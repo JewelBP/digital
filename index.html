@@ -59,7 +59,7 @@
             padding-bottom: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden;
+            overflow: hidden; /* মূল পেজ স্ক্রল বন্ধ রেখে ভেতরের শিট স্ক্রল হবে যাতে কর্নার সবসময় অক্ষত থাকে */
             height: 100vh;
             height: 100dvh;
         }
@@ -78,7 +78,7 @@
         .modern-top-wrapper {
             background: linear-gradient(180deg, #020624 0%, #060d3d 100%);
             color: #ffffff;
-            padding-bottom: 24px;
+            padding-bottom: 24px; /* নিচের সাদা শিটের বাঁকানো কর্নারের পেছনে ডার্ক ব্যাকগ্রাউন্ড রাখার জন্য */
             flex-shrink: 0;
             position: relative;
             z-index: 10;
@@ -300,17 +300,17 @@
             border-radius: 4px;
         }
 
-        /* সাদা বাঁকানো মূল শিট */
+        /* সাদা বাঁকানো মূল শিট (কর্নার ফিক্সড রেখে ভেতরে স্মুথ স্ক্রল) */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
             border-top-right-radius: 24px;
             flex: 1;
-            margin-top: -16px;
+            margin-top: -16px; /* হেডারের ডার্ক অংশের ওপর উঠে এসে দুই পাশের কর্নার পরিষ্কারভাবে দেখাবে */
             position: relative;
             z-index: 20;
             box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.2);
-            overflow-y: auto;
+            overflow-y: auto; /* শুধুমাত্র এই সাদা অংশের ভেতরের কন্টেন্ট স্ক্রল হবে */
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 16px 14px 80px 14px;
@@ -430,13 +430,12 @@
         }
 
         /* =====================================================================
-           কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন ও ফিক্সড হেডার
+           কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন
            ===================================================================== */
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden !important;
         }
         body.is-data-details-mode .modern-top-wrapper,
         body.is-data-details-mode #heroSlider,
@@ -451,13 +450,11 @@
             background-color: #ffffff !important;
             border-top-left-radius: 0 !important;
             border-top-right-radius: 0 !important;
-            padding: 0 !important;
+            padding: 0 0 80px 0 !important;
             margin-top: 0 !important;
             box-shadow: none !important;
             flex: 1 !important;
             overflow-y: auto !important;
-            display: flex;
-            flex-direction: column;
         }
         body.dark-mode.is-data-details-mode .curved-main-sheet {
             background-color: #020624 !important;
@@ -466,16 +463,6 @@
             padding: 0 !important;
             max-width: 100% !important;
             margin: 0 !important;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-
-        #dataDetailsView {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            height: 100%;
         }
 
         #dataDetailsView .details-container-card {
@@ -485,46 +472,44 @@
             padding: 0 !important;
             margin: 0 !important;
             border-radius: 0 !important;
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            height: 100%;
         }
 
         #dataPageContent {
             display: flex;
             flex-direction: column;
-            flex: 1;
+            gap: 10px;
             margin: 0 !important;
             padding: 0 !important;
-            height: 100%;
         }
 
-        /* ১. একদম ওপরের প্রোফাইল অংশ (এবার স্ক্রিনে ফিক্সড করা হলো যাতে স্ক্রোল না হয়) */
+        /* ১. একদম ওপরের প্রোফাইল অংশ (সাদা অংশ বাদ দিয়ে ডার্ক ব্যাকগ্রাউন্ড ফিক্সড) */
         #dataPageContent > div:first-child {
             background: #020624 !important;
             color: #ffffff !important;
-            padding: 24px 16px 20px 16px !important;
+            padding: 24px 16px 26px 16px !important;
             border-radius: 0 0 24px 24px !important;
             text-align: center !important;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4) !important;
             margin: 0 !important;
             width: 100% !important;
             box-sizing: border-box !important;
-            flex-shrink: 0 !important;
-            position: sticky !important;
-            top: 0 !important;
-            z-index: 100 !important;
+        }
+        #dataPageContent .avatar-wrapper {
+            cursor: zoom-in;
+            transition: transform 0.2s ease;
+        }
+        #dataPageContent .avatar-wrapper:active {
+            transform: scale(0.96);
         }
         #dataPageContent img {
-            width: 90px !important;
-            height: 90px !important;
+            width: 110px !important;
+            height: 110px !important;
             border-radius: 50% !important;
             object-fit: cover !important;
             background: #111b2b !important;
             border: 3px solid rgba(255, 255, 255, 0.15) !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
-            margin: 0 auto 8px auto !important;
+            margin: 0 auto 10px auto !important;
             display: block !important;
         }
         #dataPageContent h1,
@@ -533,12 +518,12 @@
         #dataPageContent .detail-name,
         #dataPageContent .profile-name {
             color: #ffffff !important;
-            font-size: 17px !important;
+            font-size: 18px !important;
             font-weight: 700 !important;
-            margin: 0 auto 4px auto !important;
+            margin: 0 auto 6px auto !important;
             text-align: center !important;
             background: #060e2b !important;
-            padding: 6px 10px !important;
+            padding: 7px 12px !important;
             border-radius: 10px !important;
             max-width: 90% !important;
             border: 1px solid rgba(255,255,255,0.08) !important;
@@ -547,22 +532,10 @@
         #dataPageContent .designation,
         #dataPageContent .subtitle {
             color: #cbd5e1 !important;
-            font-size: 13px !important;
+            font-size: 13.5px !important;
             font-weight: 500 !important;
             margin: 0 !important;
             text-align: center !important;
-        }
-
-        /* নিচের স্ক্রোলযোগ্য অংশ যার ভেতর বাটন ও ইনফো কার্ডগুলো থাকবে */
-        .data-scrollable-body {
-            flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            padding: 10px 0 80px 0;
-            background: #f8fafc;
-        }
-        body.dark-mode .data-scrollable-body {
-            background: #020624;
         }
 
         /* ইনফো কার্ডগুলোর পারফেক্ট মার্জিন ও প্যাডিং */
@@ -773,6 +746,109 @@
             border-radius: 50%;
             object-fit: cover;
         }
+
+        /* ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো */
+        .image-zoom-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 36, 0.96);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            touch-action: none;
+            user-select: none;
+        }
+        .image-zoom-modal.hidden {
+            display: none !important;
+        }
+        .zoom-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+            color: #ffffff;
+            z-index: 10;
+        }
+        .zoom-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 75%;
+        }
+        .zoom-close-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .zoom-canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #zoomTargetImage {
+            max-width: 92vw;
+            max-height: 76vh;
+            border-radius: 14px;
+            object-fit: contain;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
+        }
+        #zoomFallbackIcon {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 4px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 120px;
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+        }
+        .zoom-controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 16px;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+            z-index: 10;
+        }
+        .zoom-ctrl-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .zoom-ctrl-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
     </style>
 </head>
 
@@ -875,7 +951,7 @@
         </div>
     </div>
 
-    <!-- সাদা বাঁকানো মূল শিট -->
+    <!-- সাদা বাঁকানো মূল শিট (এর ভেতরেই স্ক্রল হবে যাতে দুই পাশের কর্নার অক্ষত থাকে) -->
     <div class="curved-main-sheet" id="mainScrollSheet">
         
         <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
@@ -1139,6 +1215,25 @@
     </div>
 
     <div id="toast" class="toast"></div>
+
+    <!-- ফুল-স্ক্রিন ছবি জুম উইন্ডো -->
+    <div id="imageZoomModal" class="image-zoom-modal hidden">
+        <div class="zoom-modal-header">
+            <span id="zoomModalTitle" class="zoom-modal-title">প্রোফাইল ছবি</span>
+            <button type="button" id="closeImageZoomBtn" class="zoom-close-btn" title="বন্ধ করুন">✕</button>
+        </div>
+
+        <div class="zoom-canvas-area" id="zoomCanvasArea">
+            <img id="zoomTargetImage" src="" alt="Profile Photo" class="hidden">
+            <div id="zoomFallbackIcon" class="hidden">👤</div>
+        </div>
+
+        <div class="zoom-controls-bar">
+            <button type="button" id="zoomOutBtn" class="zoom-ctrl-btn">➖ জুম আউট</button>
+            <button type="button" id="zoomResetBtn" class="zoom-ctrl-btn">🔄 রিসেট</button>
+            <button type="button" id="zoomInBtn" class="zoom-ctrl-btn">➕ জুম ইন</button>
+        </div>
+    </div>
 
 </div>
 
