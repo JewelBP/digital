@@ -1590,6 +1590,14 @@ function renderDataDetailsContent(item) {
             showToast("কন্টাক্ট কপি করা হয়েছে!");
         }
     });
+
+    // প্রোফাইল ছবিতে ক্লিক করলে বড় করে ওপেন ও জুম করার ইভেন্ট
+    const avatarWrapper = container.querySelector(".avatar-wrapper");
+    if (avatarWrapper) {
+        avatarWrapper.addEventListener("click", () => {
+            openProfileImageViewer(item.photo, item.name);
+        });
+    }
 }
 
 function setupHoldToVerify(button) {
@@ -2135,4 +2143,149 @@ function initOfflineLanguageSystem() {
             });
         }
     }
+}
+
+/* ==========================================
+   FULL-SCREEN PROFILE IMAGE ZOOM VIEWER
+========================================== */
+function openProfileImageViewer(photoUrl, personName) {
+    const modal = document.getElementById("imageZoomModal");
+    const imgEl = document.getElementById("zoomTargetImage");
+    const fallbackEl = document.getElementById("zoomFallbackIcon");
+    const titleEl = document.getElementById("zoomModalTitle");
+    const canvasArea = document.getElementById("zoomCanvasArea");
+
+    if (!modal || !imgEl || !fallbackEl || !canvasArea) return;
+
+    if (titleEl) titleEl.textContent = personName || "প্রোফাইল ছবি";
+
+    let scale = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let activeTarget = null;
+
+    function updateTransform(withTransition = false) {
+        if (!activeTarget) return;
+        activeTarget.style.transition = withTransition ? "transform 0.2s ease-out" : "none";
+        activeTarget.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+    function resetZoom() {
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+        updateTransform(true);
+    }
+
+    if (photoUrl && photoUrl.trim() !== "") {
+        imgEl.src = photoUrl;
+        imgEl.classList.remove("hidden");
+        fallbackEl.classList.add("hidden");
+        activeTarget = imgEl;
+
+        imgEl.onerror = () => {
+            imgEl.classList.add("hidden");
+            fallbackEl.classList.remove("hidden");
+            activeTarget = fallbackEl;
+            resetZoom();
+        };
+    } else {
+        imgEl.classList.add("hidden");
+        fallbackEl.classList.remove("hidden");
+        activeTarget = fallbackEl;
+    }
+
+    resetZoom();
+    modal.classList.remove("hidden");
+
+    document.getElementById("zoomInBtn").onclick = () => {
+        scale = Math.min(scale + 0.5, 5);
+        updateTransform(true);
+    };
+
+    document.getElementById("zoomOutBtn").onclick = () => {
+        scale = Math.max(scale - 0.5, 1);
+        if (scale === 1) {
+            translateX = 0;
+            translateY = 0;
+        }
+        updateTransform(true);
+    };
+
+    document.getElementById("zoomResetBtn").onclick = resetZoom;
+
+    let lastTap = 0;
+    canvasArea.onclick = () => {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+            if (scale > 1) {
+                resetZoom();
+            } else {
+                scale = 2.5;
+                updateTransform(true);
+            }
+        }
+        lastTap = now;
+    };
+
+    canvasArea.onwheel = (e) => {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 0.3 : -0.3;
+        scale = Math.min(Math.max(1, scale + delta), 5);
+        if (scale === 1) {
+            translateX = 0;
+            translateY = 0;
+        }
+        updateTransform(false);
+    };
+
+    let initialPinchDistance = null;
+    let initialScale = 1;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    canvasArea.ontouchstart = (e) => {
+        if (e.touches.length === 2) {
+            initialPinchDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            initialScale = scale;
+        } else if (e.touches.length === 1 && scale > 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        }
+    };
+
+    canvasArea.ontouchmove = (e) => {
+        if (e.touches.length === 2 && initialPinchDistance) {
+            e.preventDefault();
+            const currentDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            scale = Math.min(Math.max(1, initialScale * (currentDistance / initialPinchDistance)), 5);
+            if (scale === 1) {
+                translateX = 0;
+                translateY = 0;
+            }
+            updateTransform(false);
+        } else if (e.touches.length === 1 && isDragging && scale > 1) {
+            e.preventDefault();
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            updateTransform(false);
+        }
+    };
+
+    canvasArea.ontouchend = () => {
+        initialPinchDistance = null;
+        isDragging = false;
+    };
+
+    document.getElementById("closeImageZoomBtn").onclick = () => {
+        modal.classList.add("hidden");
+    };
 }
