@@ -59,7 +59,7 @@
             padding-bottom: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden; /* মূল পেজ স্ক্রল বন্ধ রেখে ভেতরের শিট স্ক্রল হবে যাতে কর্নার সবসময় অক্ষত থাকে */
+            overflow: hidden;
             height: 100vh;
             height: 100dvh;
         }
@@ -78,7 +78,7 @@
         .modern-top-wrapper {
             background: linear-gradient(180deg, #020624 0%, #060d3d 100%);
             color: #ffffff;
-            padding-bottom: 24px; /* নিচের সাদা শিটের বাঁকানো কর্নারের পেছনে ডার্ক ব্যাকগ্রাউন্ড রাখার জন্য */
+            padding-bottom: 24px;
             flex-shrink: 0;
             position: relative;
             z-index: 10;
@@ -300,17 +300,17 @@
             border-radius: 4px;
         }
 
-        /* সাদা বাঁকানো মূল শিট (কর্নার ফিক্সড রেখে ভেতরে স্মুথ স্ক্রল) */
+        /* সাদা বাঁকানো মূল শিট */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
             border-top-right-radius: 24px;
             flex: 1;
-            margin-top: -16px; /* হেডারের ডার্ক অংশের ওপর উঠে এসে দুই পাশের কর্নার পরিষ্কারভাবে দেখাবে */
+            margin-top: -16px;
             position: relative;
             z-index: 20;
             box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.2);
-            overflow-y: auto; /* শুধুমাত্র এই সাদা অংশের ভেতরের কন্টেন্ট স্ক্রল হবে */
+            overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 16px 14px 80px 14px;
@@ -430,12 +430,13 @@
         }
 
         /* =====================================================================
-           কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন
+           কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন ও ফিক্সড হেডার
            ===================================================================== */
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
             padding: 0 !important;
+            overflow: hidden !important;
         }
         body.is-data-details-mode .modern-top-wrapper,
         body.is-data-details-mode #heroSlider,
@@ -450,11 +451,13 @@
             background-color: #ffffff !important;
             border-top-left-radius: 0 !important;
             border-top-right-radius: 0 !important;
-            padding: 0 0 80px 0 !important;
+            padding: 0 !important;
             margin-top: 0 !important;
             box-shadow: none !important;
             flex: 1 !important;
             overflow-y: auto !important;
+            display: flex;
+            flex-direction: column;
         }
         body.dark-mode.is-data-details-mode .curved-main-sheet {
             background-color: #020624 !important;
@@ -463,6 +466,16 @@
             padding: 0 !important;
             max-width: 100% !important;
             margin: 0 !important;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        #dataDetailsView {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            height: 100%;
         }
 
         #dataDetailsView .details-container-card {
@@ -472,37 +485,46 @@
             padding: 0 !important;
             margin: 0 !important;
             border-radius: 0 !important;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            height: 100%;
         }
 
         #dataPageContent {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            flex: 1;
             margin: 0 !important;
             padding: 0 !important;
+            height: 100%;
         }
 
-        /* ১. একদম ওপরের প্রোফাইল অংশ (সাদা অংশ বাদ দিয়ে ডার্ক ব্যাকগ্রাউন্ড ফিক্সড) */
+        /* ১. একদম ওপরের প্রোফাইল অংশ (এবার স্ক্রিনে ফিক্সড করা হলো যাতে স্ক্রোল না হয়) */
         #dataPageContent > div:first-child {
             background: #020624 !important;
             color: #ffffff !important;
-            padding: 24px 16px 26px 16px !important;
+            padding: 24px 16px 20px 16px !important;
             border-radius: 0 0 24px 24px !important;
             text-align: center !important;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4) !important;
             margin: 0 !important;
             width: 100% !important;
             box-sizing: border-box !important;
+            flex-shrink: 0 !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 100 !important;
         }
         #dataPageContent img {
-            width: 110px !important;
-            height: 110px !important;
+            width: 90px !important;
+            height: 90px !important;
             border-radius: 50% !important;
             object-fit: cover !important;
             background: #111b2b !important;
             border: 3px solid rgba(255, 255, 255, 0.15) !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
-            margin: 0 auto 10px auto !important;
+            margin: 0 auto 8px auto !important;
             display: block !important;
         }
         #dataPageContent h1,
@@ -511,12 +533,12 @@
         #dataPageContent .detail-name,
         #dataPageContent .profile-name {
             color: #ffffff !important;
-            font-size: 18px !important;
+            font-size: 17px !important;
             font-weight: 700 !important;
-            margin: 0 auto 6px auto !important;
+            margin: 0 auto 4px auto !important;
             text-align: center !important;
             background: #060e2b !important;
-            padding: 7px 12px !important;
+            padding: 6px 10px !important;
             border-radius: 10px !important;
             max-width: 90% !important;
             border: 1px solid rgba(255,255,255,0.08) !important;
@@ -525,10 +547,22 @@
         #dataPageContent .designation,
         #dataPageContent .subtitle {
             color: #cbd5e1 !important;
-            font-size: 13.5px !important;
+            font-size: 13px !important;
             font-weight: 500 !important;
             margin: 0 !important;
             text-align: center !important;
+        }
+
+        /* নিচের স্ক্রোলযোগ্য অংশ যার ভেতর বাটন ও ইনফো কার্ডগুলো থাকবে */
+        .data-scrollable-body {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 10px 0 80px 0;
+            background: #f8fafc;
+        }
+        body.dark-mode .data-scrollable-body {
+            background: #020624;
         }
 
         /* ইনফো কার্ডগুলোর পারফেক্ট মার্জিন ও প্যাডিং */
@@ -841,7 +875,7 @@
         </div>
     </div>
 
-    <!-- সাদা বাঁকানো মূল শিট (এর ভেতরেই স্ক্রল হবে যাতে দুই পাশের কর্নার অক্ষত থাকে) -->
+    <!-- সাদা বাঁকানো মূল শিট -->
     <div class="curved-main-sheet" id="mainScrollSheet">
         
         <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
