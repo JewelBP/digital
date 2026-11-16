@@ -367,6 +367,19 @@ body:not(.dark-mode) .drawer-footer {
     to { width: 100%; }
 }
 
+
+.get-vip-btn, .badge-vip, [id*="vip"], [class*="vip"] {
+    white-space: nowrap !important;       /* লেখা ভেঙে নিচে নেমে যাওয়া রোধ করবে */
+    overflow: visible !important;         /* লেখা কাটা পড়া রোধ করবে */
+    height: auto !important;              /* স্বয়ংক্রিয় হাইট নিশ্চিত করবে */
+    min-height: 40px;                     /* পর্যাপ্ত জায়গা রাখাবে */
+    padding: 8px 16px !important;         /* ডানে-বামে প্যাডিং ঠিক রাখবে */
+    box-sizing: border-box !important;
+}
+
+
+
+
 /* ==========================================
    SUB-TOOLBAR
 ========================================== */
