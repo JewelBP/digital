@@ -367,19 +367,6 @@ body:not(.dark-mode) .drawer-footer {
     to { width: 100%; }
 }
 
-
-.get-vip-btn, .badge-vip, [id*="vip"], [class*="vip"] {
-    white-space: nowrap !important;       /* লেখা ভেঙে নিচে নেমে যাওয়া রোধ করবে */
-    overflow: visible !important;         /* লেখা কাটা পড়া রোধ করবে */
-    height: auto !important;              /* স্বয়ংক্রিয় হাইট নিশ্চিত করবে */
-    min-height: 40px;                     /* পর্যাপ্ত জায়গা রাখাবে */
-    padding: 8px 16px !important;         /* ডানে-বামে প্যাডিং ঠিক রাখবে */
-    box-sizing: border-box !important;
-}
-
-
-
-
 /* ==========================================
    SUB-TOOLBAR
 ========================================== */
@@ -1012,17 +999,6 @@ html, body {
     margin-bottom: 20px;
 }
 
-
-
-
-
-
-
-
-
-
-
-
 /* ===== PAGE HEIGHT FIX ===== */
 
 html {
@@ -1032,7 +1008,7 @@ html {
 body {
     min-height: 100vh;
     min-height: 100dvh;
-    padding-bottom: 62px !important;
+    padding-bottom: 90px !important; /* নিচের ফিক্সড বারের জন্য পর্যাপ্ত জায়গা */
     box-sizing: border-box;
 }
 
@@ -1098,14 +1074,14 @@ body {
     background: transparent !important;
 }
 
-/* ===== SHORT CONTENT FIX ===== */
+/* ===== SHORT CONTENT & BOTTOM PADDING FIX FOR SCROLL ===== */
 
 #mainDashboardView,
 #categoryDetailsView,
 #dataDetailsView {
     min-height: calc(100vh - 220px);
     min-height: calc(100dvh - 220px);
-
+    padding-bottom: 90px !important; /* কন্টাক্ট ডিটেইলস পেজের Get VIP বাটন যেন ফিক্সড নেভিগেশনের নিচে ঢাকা না পড়ে */
     box-sizing: border-box;
 }
 
@@ -1116,27 +1092,6 @@ body {
         min-height: 100vh;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-
-
-
-
-
-
 
 @media (max-width: 600px) {
     .topbar { height: 58px; padding: 0 10px; }
