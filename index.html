@@ -59,24 +59,29 @@
             padding-bottom: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            /* হেডার ফিক্সড করার কারণে বডিতে প্যাডিং যোগ করা হলো যাতে কন্টেন্ট হেডারের নিচে ঢাকা না পড়ে */
-            padding-top: 195px !important; 
+            overflow: hidden; /* মূল পেজ স্ক্রল বন্ধ রেখে ভেতরের শিট স্ক্রল হবে যাতে কর্নার সবসময় অক্ষত থাকে */
+            height: 100vh;
+            height: 100dvh;
         }
         html {
             margin: 0 !important;
             padding: 0 !important;
+            height: 100%;
+        }
+        #appContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
         }
         .modern-top-wrapper {
             background: linear-gradient(180deg, #020624 0%, #060d3d 100%);
             color: #ffffff;
-            padding-bottom: 14px;
-            /* হেডার ফিক্সড করার জন্য পজিশনিং */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            z-index: 1000;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            padding-bottom: 24px; /* নিচের সাদা শিটের বাঁকানো কর্নারের পেছনে ডার্ক ব্যাকগ্রাউন্ড রাখার জন্য */
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
         }
         .modern-header {
             display: flex;
@@ -146,7 +151,7 @@
         /* ডেট এবং টাইমের ঠিক নিচে হেডারের ভেতরে সার্চ ফিল্ড */
         .header-search-inline {
             display: none;
-            padding: 2px 16px 10px;
+            padding: 2px 16px 6px;
             width: 70%;
             box-sizing: border-box;
             margin: 0 auto;
@@ -295,18 +300,20 @@
             border-radius: 4px;
         }
 
-        /* সাদা বাঁকানো মূল শিট */
+        /* সাদা বাঁকানো মূল শিট (কর্নার ফিক্সড রেখে ভেতরে স্মুথ স্ক্রল) */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
             border-top-right-radius: 24px;
-            min-height: calc(100vh - 200px);
-            padding: 16px 14px 70px 14px;
-            margin-top: -10px;
+            flex: 1;
+            margin-top: -16px; /* হেডারের ডার্ক অংশের ওপর উঠে এসে দুই পাশের কর্নার পরিষ্কারভাবে দেখাবে */
             position: relative;
-            z-index: 5;
-            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.15);
-            overflow: hidden;
+            z-index: 20;
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.2);
+            overflow-y: auto; /* শুধুমাত্র এই সাদা অংশের ভেতরের কন্টেন্ট স্ক্রল হবে */
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px 14px 80px 14px;
         }
 
         /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
@@ -428,7 +435,7 @@
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
-            padding-top: 0 !important;
+            padding: 0 !important;
         }
         body.is-data-details-mode .modern-top-wrapper,
         body.is-data-details-mode #heroSlider,
@@ -443,10 +450,11 @@
             background-color: #ffffff !important;
             border-top-left-radius: 0 !important;
             border-top-right-radius: 0 !important;
-            padding: 0 0 70px 0 !important;
+            padding: 0 0 80px 0 !important;
             margin-top: 0 !important;
             box-shadow: none !important;
-            min-height: 1000vh !important;
+            flex: 1 !important;
+            overflow-y: auto !important;
         }
         body.dark-mode.is-data-details-mode .curved-main-sheet {
             background-color: #020624 !important;
@@ -833,8 +841,8 @@
         </div>
     </div>
 
-    <!-- সাদা বাঁকানো মূল শিট -->
-    <div class="curved-main-sheet">
+    <!-- সাদা বাঁকানো মূল শিট (এর ভেতরেই স্ক্রল হবে যাতে দুই পাশের কর্নার অক্ষত থাকে) -->
+    <div class="curved-main-sheet" id="mainScrollSheet">
         
         <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
         <div id="slidingNoticeContainer" style="background: transparent; border-bottom: 1px solid var(--border-color); overflow: hidden; display: none; margin-bottom: 4px; border-radius: 8px;"></div>
@@ -1219,6 +1227,7 @@
         const mainInput = document.getElementById('searchInput');
         const clearButton = document.getElementById('clearSubPageSearch');
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
+        const mainScrollSheet = document.getElementById('mainScrollSheet');
 
         if (!categoryDetails || !heroSlider || !subPageSearchWrapper) return;
 
@@ -1234,6 +1243,11 @@
 
             subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
             subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
+
+            // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
+            if (mainScrollSheet) {
+                mainScrollSheet.scrollTop = 0;
+            }
 
             if (!isSubPage && subInput) {
                 subInput.value = '';
