@@ -59,6 +59,8 @@
             padding-bottom: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
+            /* হেডার ফিক্সড করার কারণে বডিতে প্যাডিং যোগ করা হলো যাতে কন্টেন্ট হেডারের নিচে ঢাকা না পড়ে */
+            padding-top: 195px !important; 
         }
         html {
             margin: 0 !important;
@@ -68,6 +70,13 @@
             background: linear-gradient(180deg, #020624 0%, #060d3d 100%);
             color: #ffffff;
             padding-bottom: 14px;
+            /* হেডার ফিক্সড করার জন্য পজিশনিং */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
         .modern-header {
             display: flex;
@@ -419,7 +428,7 @@
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding-top: 0 !important;
         }
         body.is-data-details-mode .modern-top-wrapper,
         body.is-data-details-mode #heroSlider,
