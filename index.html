@@ -300,6 +300,14 @@
             border-radius: 4px;
         }
 
+const isSubPage = !categoryDetails.classList.contains('hidden') || isFavoriteActive;
+const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
+
+// হোম পেজ ছাড়া ফেভারিট, ক্যাটাগরি বা Data Details পেজে ইমেজ স্লাইডার থাকবে না
+heroSlider.style.display = (isSubPage || isDataPage) ? 'none' : '';
+        
+        
+
         /* সাদা বাঁকানো মূল শিট (কর্নার ফিক্সড রেখে ভেতরে স্মুথ স্ক্রল) */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
