@@ -1105,12 +1105,7 @@ body {
 }
 
 
-.curved-main-sheet {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    min-height: calc(100vh - 150px);
-}
+
 
 
 
