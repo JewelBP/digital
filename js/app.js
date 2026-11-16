@@ -2145,6 +2145,17 @@ function initOfflineLanguageSystem() {
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
 /* ==========================================
    FULL-SCREEN PROFILE IMAGE ZOOM VIEWER
 ========================================== */
@@ -2197,6 +2208,27 @@ function openProfileImageViewer(photoUrl, personName) {
 
     resetZoom();
     modal.classList.remove("hidden");
+
+    // ব্যাক বাটনের জন্য হিস্ট্রি স্টেট যোগ করা হলো
+    history.pushState({ page: "imageZoom" }, "");
+
+    const closeViewer = () => {
+        if (!modal.classList.contains("hidden")) {
+            modal.classList.add("hidden");
+            if (history.state && history.state.page === "imageZoom") {
+                history.back();
+            }
+        }
+    };
+
+    const popStateListener = (e) => {
+        if (e.state && e.state.page === "imageZoom") {
+            return;
+        }
+        modal.classList.add("hidden");
+        window.removeEventListener("popstate", popStateListener);
+    };
+    window.addEventListener("popstate", popStateListener);
 
     document.getElementById("zoomInBtn").onclick = () => {
         scale = Math.min(scale + 0.5, 5);
@@ -2286,6 +2318,8 @@ function openProfileImageViewer(photoUrl, personName) {
     };
 
     document.getElementById("closeImageZoomBtn").onclick = () => {
-        modal.classList.add("hidden");
+        closeViewer();
+        window.removeEventListener("popstate", popStateListener);
     };
 }
+
