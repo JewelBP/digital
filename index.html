@@ -324,6 +324,44 @@
         }
 
         /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
+
+        /* মেইন পেজের + Category এবং নোটিফিকেশন বাটন বড় ও আকর্ষণীয় করার স্টাইল */
+#adminActionContainer {
+    display: flex !important;
+    gap: 12px !important;
+    width: 100% !important;
+    margin-bottom: 16px !important;
+}
+
+#adminActionContainer.hidden {
+    display: none !important;
+}
+
+#addCategoryBtn,
+#notificationBtn {
+    flex: 1 !important;
+    height: 48px !important;          /* বাটনের উচ্চতা বড় করার জন্য (প্রয়োজনে 50px বা 52px দিতে পারেন) */
+    font-size: 16px !important;       /* লেখার সাইজ বড় করার জন্য */
+    font-weight: 700 !important;
+    border-radius: 12px !important;   /* কর্নার সুন্দর করার জন্য */
+    padding: 0 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* নোটিফিকেশন ব্যাজ (লাল ডট) সঠিক পজিশনে রাখার জন্য */
+#notificationBtn #notifBadge {
+    top: 10px !important;
+    right: 14px !important;
+    width: 10px !important;
+    height: 10px !important;
+}
+
+
+        
         #categoryList.category-list {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
