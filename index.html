@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
     <meta name="theme-color" content="#020624">
     <meta name="mobile-web-app-capable" content="yes">
@@ -15,7 +15,7 @@
 
     <title>RMP MT Contacts</title>
 
-    <!-- অ্যাপ আনলক করা না থাকলে সরাসরি splash.html এ পাঠিয়ে দেবে[span_2](start_span)[span_2](end_span) -->
+    <!-- অ্যাপ আনলক করা না থাকলে সরাসরি splash.html এ পাঠিয়ে দেবে -->
     <script>
         if (localStorage.getItem("police_phonebook_is_unlocked") !== "true") {
             window.location.replace("splash.html");
@@ -35,7 +35,7 @@
     <link rel="stylesheet" href="css/style.css?v=6">
 
     <style>
-        /* Google Translate Banner & Top Shift Fix[span_3](start_span)[span_3](end_span) */
+        /* Google Translate Banner & Top Shift Fix */
         .goog-te-banner-frame.skiptranslate {
             display: none !important;
         }
@@ -53,7 +53,7 @@
             box-shadow: none !important;
         }
 
-        /* আধুনিক ডার্ক হেডার এবং গ্রিড স্টাইল[span_4](start_span)[span_4](end_span) */
+        /* আধুনিক ডার্ক হেডার এবং গ্রিড স্টাইল */
         body {
             background-color: #020624 !important;
             padding-bottom: 0 !important;
@@ -78,6 +78,7 @@
         .modern-top-wrapper {
             background: linear-gradient(180deg, #020624 0%, #060d3d 100%);
             color: #ffffff;
+            padding-top: env(safe-area-inset-top, 0px); /* নচ বা স্ট্যাটাস বারের নিচে রাখার জন্য সেফ প্যাডিং */
             padding-bottom: 24px; 
             flex-shrink: 0;
             position: relative;
@@ -148,7 +149,7 @@
             margin-left: 4px;
         }
 
-        /* ডেট এবং টাইমের ঠিক নিচে হেডারের ভেতরে সার্চ ফিল্ড[span_5](start_span)[span_5](end_span) */
+        /* ডেট এবং টাইমের ঠিক নিচে হেডারের ভেতরে সার্চ ফিল্ড */
         .header-search-inline {
             display: none;
             padding: 2px 16px 6px;
@@ -214,7 +215,7 @@
             display: block;
         }
 
-        /* ইমেজ স্লাইডার[span_6](start_span)[span_6](end_span) */
+        /* ইমেজ স্লাইডার */
         .hero-slider-container {
             position: relative;
             margin: 4px 16px 0;
@@ -300,7 +301,7 @@
             border-radius: 4px;
         }
 
-        /* সাদা বাঁকানো মূল শিট[span_7](start_span)[span_7](end_span) */
+        /* সাদা বাঁকানো মূল শিট */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
@@ -316,7 +317,7 @@
             padding: 16px 14px 80px 14px;
         }
 
-        /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট[span_8](start_span)[span_8](end_span) */
+        /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
         #categoryList.category-list {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
@@ -371,7 +372,7 @@
             transform: scale(0.75);
         }
 
-        /* সাব-ক্যাটাগরি বা ডিটেইলস স্টাইল[span_9](start_span)[span_9](end_span) */
+        /* সাব-ক্যাটাগরি বা ডিটেইলস স্টাইল */
         #categoryDetailsView {
             background-color: transparent !important;
             padding: 0;
@@ -429,7 +430,53 @@
             line-height: 1.4;
         }
 
-        /* কন্টাক্ট ডিটেইলস পেজ স্টাইল[span_10](start_span)[span_10](end_span) */
+        /* মোডাল এবং পপ-আপ মেসেজ নচ ফিক্স (যাতে ওপরের স্ট্যাটাস বার বা নচে কেটে না যায়) */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+            padding: 16px;
+            padding-top: max(16px, env(safe-area-inset-top));
+        }
+        .modal-content {
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            box-sizing: border-box;
+        }
+
+        /* টোস্ট মেসেজ পজিশন ও নচ/বটম ওভারল্যাপ ফিক্স */
+        .toast {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: var(--text-main);
+            color: var(--bg-color);
+            padding: 8px 16px; 
+            border-radius: 50px;
+            font-size: 14px; 
+            font-weight: 500;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 999999;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* কন্টাক্ট ডিটেইলস পেজ স্টাইল */
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
@@ -845,7 +892,7 @@
 
 <body>
 
-<!-- Google Translate Hidden Element & Script[span_11](start_span)[span_11](end_span) -->
+<!-- Google Translate Hidden Element & Script -->
 <div id="google_translate_element" style="display:none;"></div>
 <script type="text/javascript">
   function googleTranslateElementInit() {
@@ -872,7 +919,7 @@
 
 <div id="appContainer">
 
-    <!-- ডার্ক হেডার এবং স্লাইডার[span_12](start_span)[span_12](end_span) -->
+    <!-- ডার্ক হেডার এবং স্লাইডার -->
     <div class="modern-top-wrapper">
         <header class="modern-header">
             <div class="header-left-group">
@@ -896,12 +943,12 @@
             </div>
         </header>
 
-        <!-- হোম পেজের সার্চ বক্স[span_13](start_span)[span_13](end_span) -->
+        <!-- হোম পেজের সার্চ বক্স -->
         <div id="searchBox" class="header-search-box hidden" style="margin: 4px 16px 8px;">
             <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
         </div>
 
-        <!-- ক্যাটাগরি বা সাব-পেজের সার্চ বক্স[span_14](start_span)[span_14](end_span) -->
+        <!-- ক্যাটাগরি বা সাব-পেজের সার্চ বক্স -->
         <div id="subPageHeaderSearchWrapper" class="header-search-inline hidden">
             <div class="subpage-search-field">
                 <span class="subpage-search-icon" aria-hidden="true">⌕</span>
@@ -914,7 +961,7 @@
             </div>
         </div>
 
-        <!-- ইমেজ স্লাইডার (হোম পেজের জন্য)[span_15](start_span)[span_15](end_span) -->
+        <!-- ইমেজ স্লাইডার (হোম পেজের জন্য) -->
         <div class="hero-slider-container" id="heroSlider">
             <div class="slider-track" id="sliderTrack">
                 <div class="slide-item">
@@ -942,7 +989,7 @@
         </div>
     </div>
 
-    <!-- সাদা বাঁকানো মূল শিট[span_16](start_span)[span_16](end_span) -->
+    <!-- সাদা বাঁকানো মূল শিট -->
     <div class="curved-main-sheet" id="mainScrollSheet">
         
         <div id="slidingNoticeContainer" style="background: transparent; border-bottom: 1px solid var(--border-color); overflow: hidden; display: none; margin-bottom: 4px; border-radius: 8px;"></div>
@@ -970,7 +1017,7 @@
                 </section>
             </div>
 
-            <!-- ক্যাটাগরি ডিটেইলস পেজ[span_17](start_span)[span_17](end_span) -->
+            <!-- ক্যাটাগরি ডিটেইলস পেজ -->
             <div id="categoryDetailsView" class="hidden">
                 <section class="dashboard-header">
                     <div class="header-left">
@@ -989,7 +1036,7 @@
                 <div id="detailsContent"></div>
             </div>
 
-            <!-- কন্টাক্ট ডিটেইলস পেজ[span_18](start_span)[span_18](end_span) -->
+            <!-- কন্টাক্ট ডিটেইলস পেজ -->
             <div id="dataDetailsView" class="hidden">
                 <div class="details-container-card">
                     <div id="dataPageContent"></div>
@@ -998,7 +1045,7 @@
         </main>
     </div>
 
-    <!-- Modals[span_19](start_span)[span_19](end_span) -->
+    <!-- Modals -->
     <div id="loginModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -1205,7 +1252,7 @@
 
     <div id="toast" class="toast"></div>
 
-    <!-- ফুল-স্ক্রিন ছবি জুম উইন্ডো[span_20](start_span)[span_20](end_span) -->
+    <!-- ফুল-স্ক্রিন ছবি জুম উইন্ডো -->
     <div id="imageZoomModal" class="image-zoom-modal hidden">
         <div class="zoom-modal-header">
             <span id="zoomModalTitle" class="zoom-modal-title">প্রোফাইল ছবি</span>
@@ -1247,7 +1294,7 @@
     </div>
 </div>
 
-<!-- জাভাস্ক্রিপ্ট ফাইলস[span_21](start_span)[span_21](end_span) -->
+<!-- জাভাস্ক্রিপ্ট ফাইলস -->
 <script type="module" src="js/app.js"></script>
 
 <script type="module">
@@ -1276,7 +1323,7 @@
 <script type="module" src="js/custom-settings.js"></script>
 
 <script>
-    // লাইভ ঘড়ি[span_22](start_span)[span_22](end_span)
+    // লাইভ ঘড়ি
     function updateLiveClock() {
         const clockEl = document.getElementById('liveDateTime');
         if (!clockEl) return;
@@ -1288,7 +1335,7 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // অটো ইমেজ স্লাইডার (শুধুমাত্র হোম পেজের জন্য)[span_23](start_span)[span_23](end_span)
+    // অটো ইমেজ স্লাইডার (হোম পেজের জন্য)
     (function initHeroSlider() {
         const track = document.getElementById('sliderTrack');
         const dotsContainer = document.getElementById('sliderDots');
@@ -1322,7 +1369,7 @@
         }, 3500);
     })();
 
-    // ক্যাটাগরি, ফেভারিট বা ডাটা ডিটেইলস পেজে ইমেজ স্লাইডার লুকানোর লজিক[span_24](start_span)[span_24](end_span)
+    // ফেভারিট, ক্যাটাগরি বা ডাটা ডিটেইলস পেজে ইমেজ স্লাইডার লুকানোর লজিক
     (function initSubPageHeaderSearch() {
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
@@ -1338,7 +1385,7 @@
         if (!categoryDetails || !heroSlider || !subPageSearchWrapper) return;
 
         function syncSearchVisibility() {
-            // ফেভারিট পেজে থাকলে window.isFavoriteActive অথবা categoryDetails/dataDetails চেক করা যায়
+            // ফেভারিট পেজ বা সাব-পেজ অ্যাক্টিভ থাকলে স্লাইডার লুকানো থাকবে
             const isSubPage = !categoryDetails.classList.contains('hidden') || window.isFavoriteActive;
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
 
