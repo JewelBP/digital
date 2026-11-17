@@ -1335,7 +1335,7 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // অটো ইমেজ স্লাইডার (শুধুমাত্র হোম পেজের জন্য)
+    // অটো ইমেজ স্লাইডার (হোম পেজের জন্য)
     (function initHeroSlider() {
         const track = document.getElementById('sliderTrack');
         const dotsContainer = document.getElementById('sliderDots');
@@ -1380,19 +1380,19 @@
         const mainInput = document.getElementById('searchInput');
         const clearButton = document.getElementById('clearSubPageSearch');
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
-        const mainScrollSheet = document.getElementById('mainScrollSheet');
 
         if (!heroSlider) return;
 
         function checkPages() {
             const appTitleText = document.getElementById('appTitle')?.textContent || '';
-            const isFavoritePage = appTitleText.includes('Favorite') || window.isFavoriteActive;
+            // ফেভারিট পেজ শনাক্ত করার জন্য বাংলা বা ইংরেজি টাইটেল চেক
+            const isFavoritePage = appTitleText.includes('Favorite') || appTitleText.includes('ফেভারিট') || window.isFavoriteActive;
             const isSubPage = (categoryDetails && !categoryDetails.classList.contains('hidden')) || isFavoritePage;
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // হোম পেজ বাদে ফেভারিট বা অন্য যেকোনো সাব-পেজে ইমেজ স্লাইডার ও হোম সার্চ একবারে হাইড থাকবে
+            // হোম পেজ ছাড়া ফেভারিট বা অন্য যেকোনো সাব-পেজে ইমেজ স্লাইডার ও হোম সার্চ সম্পূর্ণ হাইড থাকবে
             heroSlider.style.display = (isSubPage || isDataPage) ? 'none' : 'block';
             if (homeSearchBox) {
                 homeSearchBox.style.display = (isSubPage || isDataPage) ? 'none' : '';
@@ -1402,10 +1402,6 @@
                 subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
                 subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
             }
-
-            if (mainScrollSheet && (isSubPage || isDataPage)) {
-                // পেজ পরিবর্তন হলে ওপরের দিকে স্ক্রল রাখবে
-            }
         }
 
         const observer = new MutationObserver(checkPages);
@@ -1414,8 +1410,11 @@
         
         const titleEl = document.getElementById('appTitle');
         if (titleEl) {
-            observer.observe(titleEl, { childList: true, subtree: true, characterData: true });
+            observer.observe(titleEl, { childList: true, subtree: true, characterData: true, attributes: true });
         }
+
+        // ফেভারিট মেনু বা বাটনে ক্লিকের মাধ্যমে পেজ পরিবর্তনের ইভেন্ট ট্র্যাক করা
+        document.addEventListener('click', () => setTimeout(checkPages, 100));
 
         setInterval(checkPages, 200);
         checkPages();
