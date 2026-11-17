@@ -1166,12 +1166,3 @@ body {
     .data-card-name { font-size: 16px; }
     .data-card-detail { font-size: 12px; }
 }
-
-
-/* =========================================================
-   FIX: মেইন পেজের সার্চ বক্স স্থায়ীভাবে বন্ধ
-   সাব-পেজের #subPageHeaderSearchWrapper এতে প্রভাবিত হবে না
-========================================================= */
-#searchBox {
-    display: none !important;
-}
