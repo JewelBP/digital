@@ -148,6 +148,7 @@
             margin-left: 4px;
         }
 
+        /* ডেট এবং টাইমের ঠিক নিচে হেডারের ভেতরে সার্চ ফিল্ড */
         .header-search-inline {
             display: none;
             padding: 2px 16px 6px;
@@ -213,6 +214,100 @@
             display: block;
         }
 
+        /* ইমেজ স্লাইডার (শুধুমাত্র মেইন পেজে থাকবে) */
+        .hero-slider-container {
+            position: relative;
+            margin: 4px 16px 0;
+            border-radius: 16px;
+            overflow: hidden;
+            height: 145px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .slider-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.5s ease-in-out;
+        }
+        .slide-item {
+            min-width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .slide-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .slide-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 10%, rgba(0, 0, 0, 0.1) 80%);
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 12px 14px;
+        }
+        .slide-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .slide-badge {
+            background: #ffffff;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .slide-info h4 {
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .slide-btn {
+            background: #0ea5e9;
+            color: #ffffff !important;
+            border: none;
+            padding: 5px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .slider-dots {
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+        }
+        .slider-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+        }
+        .slider-dot.active {
+            background: #ffffff;
+            width: 14px;
+            border-radius: 4px;
+        }
+
+        /* Favorite numbers মোডে স্লাইডার ও বাটন সম্পূর্ণ হাইড রাখার রুল */
+        body.is-favorite-mode #heroSlider,
+        body.is-favorite-mode #adminActionContainer,
+        body.is-favorite-mode #emptyAddBtn {
+            display: none !important;
+        }
+
+        /* সাদা বাঁকানো মূল শিট */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
@@ -228,6 +323,7 @@
             padding: 16px 14px 80px 14px;
         }
 
+        /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
         #categoryList.category-list {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
@@ -282,6 +378,7 @@
             transform: scale(0.75);
         }
 
+        /* দ্বিতীয় পেজ বা ক্যাটাগরি ডিটেইলস স্টাইল */
         #categoryDetailsView {
             background-color: transparent !important;
             padding: 0;
@@ -339,12 +436,14 @@
             line-height: 1.4;
         }
 
+        /* কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) */
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
             padding: 0 !important;
         }
         body.is-data-details-mode .modern-top-wrapper,
+        body.is-data-details-mode #heroSlider,
         body.is-data-details-mode #searchBox,
         body.is-data-details-mode #subPageHeaderSearchWrapper,
         body.is-data-details-mode #slidingNoticeContainer,
@@ -780,7 +879,7 @@
 
 <div id="appContainer">
 
-    <!-- ডার্ক হেডার (স্লাইডার সরিয়ে ফেলা হয়েছে) -->
+    <!-- ডার্ক হেডার এবং স্লাইডার (মেইন পেজের জন্য স্লাইডার রাখা হয়েছে) -->
     <div class="modern-top-wrapper">
         <header class="modern-header">
             <div class="header-left-group">
@@ -821,6 +920,33 @@
                         title="Clear search">×</button>
             </div>
         </div>
+
+        <!-- ইমেজ স্লাইডার (শুধুমাত্র মেইন পেজে থাকবে, Favorite বা সাব-পেজে অটো হাইড হবে) -->
+        <div class="hero-slider-container" id="heroSlider">
+            <div class="slider-track" id="sliderTrack">
+                <div class="slide-item">
+                    <img src="https://images.unsplash.com/photo-1546272989-40c92939c6c2?auto=format&fit=crop&w=800&q=80" alt="Banner 1">
+                    <div class="slide-overlay">
+                        <div class="slide-info">
+                            <span class="slide-badge">📢</span>
+                            <h4>Welcome to Digital Phonebook</h4>
+                        </div>
+                        <a href="#categoryList" class="slide-btn">Explore</a>
+                    </div>
+                </div>
+                <div class="slide-item">
+                    <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80" alt="Banner 2">
+                    <div class="slide-overlay">
+                        <div class="slide-info">
+                            <span class="slide-badge">🛡️</span>
+                            <h4>Bangladesh Police Directory</h4>
+                        </div>
+                        <a href="#categoryList" class="slide-btn">Search</a>
+                    </div>
+                </div>
+            </div>
+            <div class="slider-dots" id="sliderDots"></div>
+        </div>
     </div>
 
     <!-- সাদা বাঁকানো মূল শিট -->
@@ -832,8 +958,14 @@
         <main class="container">
             <div id="mainDashboardView">
                 <section class="dashboard-header">
-                    <!-- Favorite numbers পেজে বাটনগুলো শর্ত সাপেক্ষে অথবা সম্পূর্ণ লুকানোর জন্য adminActionContainer খালি রাখা হয়েছে -->
-                    <div id="adminActionContainer" class="admin-only hidden" style="display: none !important; gap: 8px; width: 100%; margin-bottom: 10px;"></div>
+                    <!-- মেইন পেজে অ্যাডমিনদের জন্য বাটন সচল থাকবে, Favorite numbers এ অটো হাইড হবে -->
+                    <div id="adminActionContainer" class="admin-only hidden" style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
+                        <button id="addCategoryBtn" class="primary-btn" type="button" style="flex: 1;">＋ Category</button>
+                        <button id="notificationBtn" class="secondary-btn" type="button" style="flex: 1; position: relative;">
+                            🔔 নোটিফিকেশন
+                            <span id="notifBadge" class="badge-dot hidden" style="position: absolute; top: 6px; right: 10px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%;"></span>
+                        </button>
+                    </div>
                 </section>
                 
                 <!-- ৩-কলাম ক্যাটাগরি লিস্ট -->
@@ -844,8 +976,7 @@
                     <div class="empty-icon">📂</div>
                     <h2>এখনো কোনো Category নেই</h2>
                     <p>ডাটা দেখতে অপেক্ষা করুন, প্রয়োজনে রিফ্রেস করুন।</p>
-                    <!-- Favorite numbers পেজে প্রথম category তৈরির বাটন লুকানো হয়েছে -->
-                    <button id="emptyAddBtn" class="primary-btn admin-only hidden" type="button" style="display: none !important;">＋ প্রথম Category তৈরি করুন</button>
+                    <button id="emptyAddBtn" class="primary-btn admin-only hidden" type="button">＋ প্রথম Category তৈরি করুন</button>
                 </section>
             </div>
 
@@ -1126,8 +1257,15 @@
     </div>
 </div>
 
-<!-- স্ক্রিপ্টস -->
+<!-- জাভাস্ক্রিপ্ট ফাইলস এবং স্লাইডার/ঘড়ি স্ক্রিপ্ট -->
 <script type="module" src="js/app.js"></script>
+
+<script type="module">
+    import { initNotificationSystem } from './js/notification.js';
+    document.addEventListener("DOMContentLoaded", () => {
+        initNotificationSystem();
+    });
+</script>
 
 <script>
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1160,10 +1298,45 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // সাব-পেজ ও ডিটেইলস পেজের কন্ট্রোল
-    (function initSubPageHeaderSearch() {
+    // অটো ইমেজ স্লাইডার (মেইন পেজের জন্য)
+    (function initHeroSlider() {
+        const track = document.getElementById('sliderTrack');
+        const dotsContainer = document.getElementById('sliderDots');
+        if (!track || !dotsContainer) return;
+
+        const slides = track.children;
+        const totalSlides = slides.length;
+        let currentIndex = 0;
+
+        for (let i = 0; i < totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.classList.add('slider-dot');
+            if (i === 0) dot.classList.add('active');
+            dot.addEventListener('click', () => goToSlide(i));
+            dotsContainer.appendChild(dot);
+        }
+
+        const dots = dotsContainer.children;
+
+        function goToSlide(index) {
+            currentIndex = index;
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            Array.from(dots).forEach((d, idx) => {
+                d.classList.toggle('active', idx === currentIndex);
+            });
+        }
+
+        setInterval(() => {
+            currentIndex = (currentIndex + 1) % totalSlides;
+            goToSlide(currentIndex);
+        }, 3500);
+    })();
+
+    // মেইন পেজ, সাব-পেজ এবং Favorite numbers পেজের কন্ট্রোল
+    (function initPageViewSync() {
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
+        const heroSlider = document.getElementById('heroSlider');
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
         const homeSearchBox = document.getElementById('searchBox');
         const subInput = document.getElementById('subPageSearchInput');
@@ -1171,25 +1344,45 @@
         const clearButton = document.getElementById('clearSubPageSearch');
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
         const mainScrollSheet = document.getElementById('mainScrollSheet');
+        const appTitleEl = document.getElementById('appTitle');
+        const adminActionContainer = document.getElementById('adminActionContainer');
+        const emptyAddBtn = document.getElementById('emptyAddBtn');
 
-        if (!categoryDetails || !subPageSearchWrapper) return;
+        if (!categoryDetails || !heroSlider || !subPageSearchWrapper) return;
 
-        function syncSearchVisibility() {
+        function syncVisibility() {
             const isSubPage = !categoryDetails.classList.contains('hidden');
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
+            const titleText = appTitleEl ? appTitleEl.textContent.toLowerCase() : '';
+            const isFavoritePage = titleText.includes('favorite') || 
+                                   document.body.classList.contains('favorite-mode') ||
+                                   window.location.hash.toLowerCase().includes('favorite');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
+            document.body.classList.toggle('is-favorite-mode', isFavoritePage);
 
+            // মেইন পেজে স্লাইডার থাকবে, কিন্তু সাব-পেজ, ডিটেইলস পেজ অথবা Favorite numbers পেজে হাইড হবে
+            const hideSlider = isSubPage || isDataPage || isFavoritePage;
+            heroSlider.style.display = hideSlider ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = (isSubPage || isDataPage) ? 'none' : '';
 
-            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
-            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
+            // Favorite numbers পেজে ইউজার বা অ্যাডমিন কারো জন্যই (+Category, নোটিফিকেশন, +প্রথম Category) থাকবে না
+            if (isFavoritePage) {
+                if (adminActionContainer) adminActionContainer.style.setProperty('display', 'none', 'important');
+                if (emptyAddBtn) emptyAddBtn.style.setProperty('display', 'none', 'important');
+            } else {
+                if (adminActionContainer) adminActionContainer.style.removeProperty('display');
+                if (emptyAddBtn) emptyAddBtn.style.removeProperty('display');
+            }
+
+            subPageSearchWrapper.classList.toggle('is-visible', (isSubPage || isFavoritePage) && !isDataPage);
+            subPageSearchWrapper.classList.toggle('hidden', (!isSubPage && !isFavoritePage) || isDataPage);
 
             if (mainScrollSheet) {
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!isSubPage && subInput) {
+            if (!isSubPage && !isFavoritePage && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
@@ -1226,18 +1419,14 @@
             subInput.focus();
         });
 
-        const observer = new MutationObserver(syncSearchVisibility);
-        observer.observe(categoryDetails, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-        if (dataDetails) {
-            observer.observe(dataDetails, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
-        }
-        syncSearchVisibility();
+        const observer = new MutationObserver(syncVisibility);
+        observer.observe(categoryDetails, { attributes: true, attributeFilter: ['class'] });
+        if (dataDetails) observer.observe(dataDetails, { attributes: true, attributeFilter: ['class'] });
+        if (appTitleEl) observer.observe(appTitleEl, { childList: true, subtree: true, characterData: true });
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        window.addEventListener('hashchange', syncVisibility);
+
+        syncVisibility();
     })();
 </script>
 
