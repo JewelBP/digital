@@ -78,7 +78,7 @@
         .modern-top-wrapper {
             background: linear-gradient(180deg, #020624 0%, #060d3d 100%);
             color: #ffffff;
-            padding-top: env(safe-area-inset-top, 0px); /* নচ বা স্ট্যাটাস বারের নিচে রাখার জন্য সেফ প্যাডিং */
+            padding-top: env(safe-area-inset-top, 0px);
             padding-bottom: 24px; 
             flex-shrink: 0;
             position: relative;
@@ -430,7 +430,7 @@
             line-height: 1.4;
         }
 
-        /* মোডাল এবং পপ-আপ মেসেজ নচ ফিক্স (যাতে ওপরের স্ট্যাটাস বার বা নচে কেটে না যায়) */
+        /* মোডাল এবং পপ-আপ মেসেজ নচ ফিক্স */
         .modal {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -1335,7 +1335,7 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // অটো ইমেজ স্লাইডার (হোম পেজের জন্য)
+    // অটো ইমেজ স্লাইডার (শুধুমাত্র হোম পেজের জন্য)
     (function initHeroSlider() {
         const track = document.getElementById('sliderTrack');
         const dotsContainer = document.getElementById('sliderDots');
@@ -1369,8 +1369,8 @@
         }, 3500);
     })();
 
-    // ফেভারিট, ক্যাটাগরি বা ডাটা ডিটেইলস পেজে ইমেজ স্লাইডার লুকানোর লজিক
-    (function initSubPageHeaderSearch() {
+    // ফেভারিট, ক্যাটাগরি বা ডাটা ডিটেইলস পেজে স্লাইডার ও সার্চ বার লুকানোর শক্তিশালী লজিক
+    (function fixSliderAndSearchVisibility() {
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
         const heroSlider = document.getElementById('heroSlider');
@@ -1382,51 +1382,49 @@
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
         const mainScrollSheet = document.getElementById('mainScrollSheet');
 
-        if (!categoryDetails || !heroSlider || !subPageSearchWrapper) return;
+        if (!heroSlider) return;
 
-        function syncSearchVisibility() {
-            // ফেভারিট পেজ বা সাব-পেজ অ্যাক্টিভ থাকলে স্লাইডার লুকানো থাকবে
-            const isSubPage = !categoryDetails.classList.contains('hidden') || window.isFavoriteActive;
+        function checkPages() {
+            const appTitleText = document.getElementById('appTitle')?.textContent || '';
+            const isFavoritePage = appTitleText.includes('Favorite') || window.isFavoriteActive;
+            const isSubPage = (categoryDetails && !categoryDetails.classList.contains('hidden')) || isFavoritePage;
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // হোম পেজ ছাড়া ফেভারিট, ক্যাটাগরি বা Data Details পেজে ইমেজ স্লাইডার থাকবে না
-            heroSlider.style.display = (isSubPage || isDataPage) ? 'none' : '';
-            if (homeSearchBox) homeSearchBox.style.display = (isSubPage || isDataPage) ? 'none' : '';
-
-            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
-            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
-
-            if (mainScrollSheet) {
-                mainScrollSheet.scrollTop = 0;
+            // হোম পেজ বাদে ফেভারিট বা অন্য যেকোনো সাব-পেজে ইমেজ স্লাইডার ও হোম সার্চ একবারে হাইড থাকবে
+            heroSlider.style.display = (isSubPage || isDataPage) ? 'none' : 'block';
+            if (homeSearchBox) {
+                homeSearchBox.style.display = (isSubPage || isDataPage) ? 'none' : '';
             }
 
-            if (!isSubPage && subInput) {
-                subInput.value = '';
-                searchField?.classList.remove('has-value');
-                if (mainInput && mainInput.value) {
-                    mainInput.value = '';
-                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
+            if (subPageSearchWrapper) {
+                subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
+                subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
+            }
+
+            if (mainScrollSheet && (isSubPage || isDataPage)) {
+                // পেজ পরিবর্তন হলে ওপরের দিকে স্ক্রল রাখবে
             }
         }
+
+        const observer = new MutationObserver(checkPages);
+        if (categoryDetails) observer.observe(categoryDetails, { attributes: true, attributeFilter: ['class'] });
+        if (dataDetails) observer.observe(dataDetails, { attributes: true, attributeFilter: ['class'] });
+        
+        const titleEl = document.getElementById('appTitle');
+        if (titleEl) {
+            observer.observe(titleEl, { childList: true, subtree: true, characterData: true });
+        }
+
+        setInterval(checkPages, 200);
+        checkPages();
 
         if (subInput && mainInput) {
             subInput.addEventListener('input', () => {
                 mainInput.value = subInput.value;
                 mainInput.dispatchEvent(new Event('input', { bubbles: true }));
                 searchField?.classList.toggle('has-value', subInput.value.length > 0);
-            });
-
-            subInput.addEventListener('keydown', event => {
-                if (event.key === 'Escape') {
-                    subInput.value = '';
-                    mainInput.value = '';
-                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    searchField?.classList.remove('has-value');
-                    subInput.blur();
-                }
             });
         }
 
@@ -1438,19 +1436,6 @@
             searchField?.classList.remove('has-value');
             subInput.focus();
         });
-
-        const observer = new MutationObserver(syncSearchVisibility);
-        observer.observe(categoryDetails, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-        if (dataDetails) {
-            observer.observe(dataDetails, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
-        }
-        syncSearchVisibility();
     })();
 </script>
 
