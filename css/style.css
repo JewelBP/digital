@@ -599,7 +599,6 @@ body:not(.dark-mode) .drawer-footer {
     box-shadow: var(--shadow-md);
 }
 
-/* Fix for oversized notification or user avatars */
 .data-card-avatar {
     width: 60px !important;
     height: 60px !important;
@@ -843,6 +842,7 @@ body.has-bg-image .details-container-card {
     margin-bottom: 10px;
 }
 
+/* মোডাল উইন্ডোজ নচ বা স্ট্যাটাস বার সেফটি ফিক্স */
 .modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -850,8 +850,9 @@ body.has-bg-image .details-container-card {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 999999;
     padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top));
 }
 
 .modal-content {
@@ -861,9 +862,10 @@ body.has-bg-image .details-container-card {
     padding: 24px;
     width: 100%;
     max-width: 480px;
-    max-height: 90vh;
+    max-height: 85vh;
     overflow-y: auto;
     border: 1px solid var(--border-color);
+    box-sizing: border-box;
 }
 
 .modal-header {
@@ -972,20 +974,21 @@ html, body {
     box-shadow: none !important;
 }
 
+/* টোস্ট মেসেজ পজিশন ও লেয়ার ফিক্স */
 .toast {
     position: fixed;
-    bottom: 20px;
+    bottom: 70px;
     left: 50%;
     transform: translateX(-50%) translateY(100px);
     background-color: var(--text-main);
     color: var(--bg-color);
-    padding: 6px 14px; 
+    padding: 8px 16px; 
     border-radius: 50px;
     font-size: 14px; 
     font-weight: 500;
     opacity: 0;
     transition: all 0.3s ease;
-    z-index: 2000;
+    z-index: 999999;
 }
 
 .toast.show {
@@ -1008,7 +1011,7 @@ html {
 body {
     min-height: 100vh;
     min-height: 100dvh;
-    padding-bottom: 90px !important; /* নিচের ফিক্সড বারের জন্য পর্যাপ্ত জায়গা */
+    padding-bottom: 90px !important; 
     box-sizing: border-box;
 }
 
@@ -1081,7 +1084,7 @@ body {
 #dataDetailsView {
     min-height: calc(100vh - 220px);
     min-height: calc(100dvh - 220px);
-    padding-bottom: 90px !important; /* কন্টাক্ট ডিটেইলস পেজের Get VIP বাটন যেন ফিক্সড নেভিগেশনের নিচে ঢাকা না পড়ে */
+    padding-bottom: 90px !important; 
     box-sizing: border-box;
 }
 
