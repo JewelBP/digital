@@ -446,6 +446,33 @@ body:not(.dark-mode) .drawer-footer {
     cursor: pointer;
 }
 
+/* হোম পেজের অ্যাডমিন বাটন দুটি (Category এবং Notification) বড় ও ফুল-উইথ রাখার জন্য */
+#adminActionContainer {
+    display: flex !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-bottom: 14px !important;
+}
+
+#adminActionContainer.hidden,
+body.favorite-page-active #adminActionContainer,
+body.favorite-page-active #emptyAddBtn {
+    display: none !important;
+}
+
+#adminActionContainer button {
+    flex: 1 !important;
+    height: 46px !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
 .custom-action-btn, 
 .header-banner .custom-action-btn,
 .data-card-item .custom-action-btn,
@@ -1105,14 +1132,6 @@ body {
         min-height: 100vh;
     }
 }
-
-
-/* ফেভারিট পেজ একটিভ থাকলে অ্যাডমিন ক্যাটাগরি ও নোটিফিকেশন বার হাইড রাখতে */
-body:has(#appTitle:not(:empty)) .favorite-active-fix #adminActionContainer {
-    display: none !important;
-}
-
-
 
 @media (max-width: 600px) {
     .topbar { height: 58px; padding: 0 10px; }
