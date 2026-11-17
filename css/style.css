@@ -905,6 +905,16 @@ body.has-bg-image .details-container-card {
     color: var(--text-main);
 }
 
+/* নোটিফিকেশন প্যানেলের 'বিস্তারিত' ঘরটি বড় ও মাল্টি-লাইন করার জন্য ফিক্স */
+.modal-content input[placeholder*="বিস্তারিত"],
+.modal-content input[placeholder*="Description"],
+.modal-content textarea {
+    height: 95px !important;
+    min-height: 95px !important;
+    padding-top: 10px !important;
+    resize: vertical !important;
+}
+
 .modal-actions {
     display: flex;
     justify-content: flex-end;
