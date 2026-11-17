@@ -1369,13 +1369,14 @@
         }, 3500);
     })();
 
-    // ফেভারিট, ক্যাটাগরি বা ডাটা ডিটেইলস পেজে স্লাইডার ও সার্চ বার লুকানোর শক্তিশালী লজিক
+    // ফ্লিকারিং মুক্ত এবং স্থিতিশীল পেজ ও স্লাইডার/সার্চ/অ্যাডমিন বাটন রিমুভাল লজিক
     (function fixSliderAndSearchVisibility() {
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
         const heroSlider = document.getElementById('heroSlider');
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
         const homeSearchBox = document.getElementById('searchBox');
+        const adminActionContainer = document.getElementById('adminActionContainer');
         const subInput = document.getElementById('subPageSearchInput');
         const mainInput = document.getElementById('searchInput');
         const clearButton = document.getElementById('clearSubPageSearch');
@@ -1383,28 +1384,46 @@
 
         if (!heroSlider) return;
 
+        let lastState = "";
+
         function checkPages() {
             const appTitleText = document.getElementById('appTitle')?.textContent || '';
-            // ফেভারিট পেজ শনাক্ত করার জন্য বাংলা বা ইংরেজি টাইটেল চেক
             const isFavoritePage = appTitleText.includes('Favorite') || appTitleText.includes('ফেভারিট') || window.isFavoriteActive;
             const isSubPage = (categoryDetails && !categoryDetails.classList.contains('hidden')) || isFavoritePage;
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
 
+            const currentState = `${isFavoritePage}_${isSubPage}_${isDataPage}`;
+            if (currentState === lastState) return; // স্টেট পরিবর্তন না হলে রি-রেন্ডার এড়াবে (লাফালাফি বন্ধ করবে)
+            lastState = currentState;
+
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // হোম পেজ ছাড়া ফেভারিট বা অন্য যেকোনো সাব-পেজে ইমেজ স্লাইডার ও হোম সার্চ সম্পূর্ণ হাইড থাকবে
-            heroSlider.style.display = (isSubPage || isDataPage) ? 'none' : 'block';
+            // ১. স্লাইডার এবং হোম সার্চ বক্স নিয়ন্ত্রণ
+            const shouldHideHero = (isSubPage || isDataPage);
+            heroSlider.style.display = shouldHideHero ? 'none' : 'block';
             if (homeSearchBox) {
-                homeSearchBox.style.display = (isSubPage || isDataPage) ? 'none' : '';
+                homeSearchBox.style.display = shouldHideHero ? 'none' : '';
             }
 
+            // ২. সাব-পেজ সার্চ বার নিয়ন্ত্রণ
             if (subPageSearchWrapper) {
-                subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
-                subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
+                const showSubSearch = isSubPage && !isDataPage;
+                subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
+                subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
+            }
+
+            // ৩. ফেভারিট পেজে অ্যাডমিন মোডেও ক্যাটাগরি ও নোটিফিকেশন বাটন লুকানো
+            if (adminActionContainer) {
+                if (isFavoritePage) {
+                    adminActionContainer.style.display = 'none';
+                } else {
+                    adminActionContainer.style.display = '';
+                }
             }
         }
 
-        const observer = new MutationObserver(checkPages);
+        // MutationObserver দিয়ে নিখুঁত ও দ্রুত ট্র্যাক করা
+        const observer = new MutationObserver(() => requestAnimationFrame(checkPages));
         if (categoryDetails) observer.observe(categoryDetails, { attributes: true, attributeFilter: ['class'] });
         if (dataDetails) observer.observe(dataDetails, { attributes: true, attributeFilter: ['class'] });
         
@@ -1413,16 +1432,15 @@
             observer.observe(titleEl, { childList: true, subtree: true, characterData: true, attributes: true });
         }
 
-        // ফেভারিট মেনু বা বাটনে ক্লিকের মাধ্যমে পেজ পরিবর্তনের ইভেন্ট ট্র্যাক করা
-        document.addEventListener('click', () => setTimeout(checkPages, 100));
-
-        setInterval(checkPages, 200);
+        document.addEventListener('click', () => setTimeout(checkPages, 40), true);
         checkPages();
 
         if (subInput && mainInput) {
             subInput.addEventListener('input', () => {
-                mainInput.value = subInput.value;
-                mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+                if (mainInput.value !== subInput.value) {
+                    mainInput.value = subInput.value;
+                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
                 searchField?.classList.toggle('has-value', subInput.value.length > 0);
             });
         }
