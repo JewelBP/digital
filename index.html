@@ -303,8 +303,23 @@
         /* Favorite numbers মোডে স্লাইডার ও বাটন সম্পূর্ণ হাইড রাখার রুল */
         body.is-favorite-mode #heroSlider,
         body.is-favorite-mode #adminActionContainer,
-        body.is-favorite-mode #emptyAddBtn {
+        body.is-favorite-mode #emptyAddBtn,
+        body.is-favorite-mode #mainDashboardView .dashboard-header {
             display: none !important;
+        }
+
+        /* নোটিশ বার এবং কার্ডগুলোর মধ্যকার স্পেস সব পেজে সমান রাখার ফিক্স */
+        #slidingNoticeContainer {
+            margin-bottom: 12px !important;
+            padding-bottom: 0 !important;
+        }
+        body.is-favorite-mode #mainDashboardView,
+        body.is-favorite-mode #categoryList.category-list,
+        body.is-favorite-mode #categoryList,
+        #categoryDetailsView,
+        #detailsContent {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
         }
 
         /* Favorite Numbers পেজের কার্ডগুলো হুবহু ডাটা কার্ডের (.data-card-item) মাপে দেখানোর জন্য */
@@ -356,15 +371,6 @@
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 16px 14px 80px 14px;
-        }
-
-        /* স্পেস সমতা ফিক্স: ফেভারিট পেজে অতিরিক্ত প্যাডিং বা মার্জিন অ্যাডজাস্টমেন্ট */
-        body.is-favorite-mode .curved-main-sheet {
-            padding-top: 10px !important;
-        }
-        body.is-favorite-mode #categoryList .data-card-item:first-child,
-        body.is-favorite-mode #categoryList > div:first-child {
-            margin-top: 0 !important;
         }
 
         /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
@@ -1033,7 +1039,7 @@
     <div class="curved-main-sheet" id="mainScrollSheet">
         
         <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
-        <div id="slidingNoticeContainer" style="background: transparent; border-bottom: 1px solid var(--border-color); overflow: hidden; display: none; margin-bottom: 4px; border-radius: 8px;"></div>
+        <div id="slidingNoticeContainer" style="background: transparent; border-bottom: 1px solid var(--border-color); overflow: hidden; display: none; margin-bottom: 12px; border-radius: 8px;"></div>
 
         <main class="container">
             <div id="mainDashboardView">
