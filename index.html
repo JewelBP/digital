@@ -307,44 +307,40 @@
             display: none !important;
         }
 
-/* Favorite Numbers পেজের কার্ডগুলো হুবহু ডাটা কার্ডের (.data-card-item) মাপে দেখানোর জন্য */
-body.is-favorite-mode #categoryList.category-list,
-body.is-favorite-mode #categoryList {
-    display: flex !important;
-    flex-direction: column !important;
-    grid-template-columns: 1fr !important;
-    gap: 0px !important;
-    width: 100% !important;
-}
+        /* Favorite Numbers পেজের কার্ডগুলো হুবহু ডাটা কার্ডের (.data-card-item) মাপে দেখানোর জন্য */
+        body.is-favorite-mode #categoryList.category-list,
+        body.is-favorite-mode #categoryList {
+            display: flex !important;
+            flex-direction: column !important;
+            grid-template-columns: 1fr !important;
+            gap: 0px !important;
+            width: 100% !important;
+        }
 
-body.is-favorite-mode #categoryList .data-card-item,
-body.is-favorite-mode #categoryList > div {
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    height: 100px !important;
-    padding: 14px 16px !important;
-    margin: 12px 0 12px 0 !important; /* এখানে ওপর ও নিচে মার্জিন সমান করে দেওয়া হলো */
-    background-color: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 20px !important;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    text-align: left !important;
-    box-sizing: border-box !important;
-}
+        body.is-favorite-mode #categoryList .data-card-item,
+        body.is-favorite-mode #categoryList > div {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            height: 100px !important;
+            padding: 14px 16px !important;
+            margin: 0 0 12px 0 !important;
+            background-color: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 20px !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            text-align: left !important;
+            box-sizing: border-box !important;
+        }
 
-body.dark-mode.is-favorite-mode #categoryList .data-card-item,
-body.dark-mode.is-favorite-mode #categoryList > div {
-    background-color: #1e293b !important;
-    border-color: #334155 !important;
-}
-
-
-
-        
+        body.dark-mode.is-favorite-mode #categoryList .data-card-item,
+        body.dark-mode.is-favorite-mode #categoryList > div {
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+        }
 
         /* সাদা বাঁকানো মূল শিট */
         .curved-main-sheet {
@@ -362,44 +358,51 @@ body.dark-mode.is-favorite-mode #categoryList > div {
             padding: 16px 14px 80px 14px;
         }
 
+        /* স্পেস সমতা ফিক্স: ফেভারিট পেজে অতিরিক্ত প্যাডিং বা মার্জিন অ্যাডজাস্টমেন্ট */
+        body.is-favorite-mode .curved-main-sheet {
+            padding-top: 10px !important;
+        }
+        body.is-favorite-mode #categoryList .data-card-item:first-child,
+        body.is-favorite-mode #categoryList > div:first-child {
+            margin-top: 0 !important;
+        }
+
         /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
 
         /* মেইন পেজের + Category এবং নোটিফিকেশন বাটন বড় ও আকর্ষণীয় করার স্টাইল */
-#adminActionContainer {
-    display: flex !important;
-    gap: 12px !important;
-    width: 100% !important;
-    margin-bottom: 16px !important;
-}
+        #adminActionContainer {
+            display: flex !important;
+            gap: 12px !important;
+            width: 100% !important;
+            margin-bottom: 16px !important;
+        }
 
-#adminActionContainer.hidden {
-    display: none !important;
-}
+        #adminActionContainer.hidden {
+            display: none !important;
+        }
 
-#addCategoryBtn,
-#notificationBtn {
-    flex: 1 !important;
-    height: 38px !important;          
-    font-size: 12px !important;       
-    font-weight: 700 !important;
-    border-radius: 12px !important;   
-    padding: 0 16px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12) !important;
-}
+        #addCategoryBtn,
+        #notificationBtn {
+            flex: 1 !important;
+            height: 38px !important;          
+            font-size: 12px !important;       
+            font-weight: 700 !important;
+            border-radius: 12px !important;   
+            padding: 0 16px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12) !important;
+        }
 
-/* নোটিফিকেশন ব্যাজ (লাল ডট) সঠিক পজিশনে রাখার জন্য */
-#notificationBtn #notifBadge {
-    top: 10px !important;
-    right: 14px !important;
-    width: 10px !important;
-    height: 10px !important;
-}
-
-
+        /* নোটিফিকেশন ব্যাজ (লাল ডট) সঠিক পজিশনে রাখার জন্য */
+        #notificationBtn #notifBadge {
+            top: 10px !important;
+            right: 14px !important;
+            width: 10px !important;
+            height: 10px !important;
+        }
         
         #categoryList.category-list {
             display: grid !important;
