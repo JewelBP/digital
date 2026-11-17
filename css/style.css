@@ -1106,6 +1106,14 @@ body {
     }
 }
 
+
+/* ফেভারিট পেজ একটিভ থাকলে অ্যাডমিন ক্যাটাগরি ও নোটিফিকেশন বার হাইড রাখতে */
+body:has(#appTitle:not(:empty)) .favorite-active-fix #adminActionContainer {
+    display: none !important;
+}
+
+
+
 @media (max-width: 600px) {
     .topbar { height: 58px; padding: 0 10px; }
     .sub-toolbar { height: 46px; padding: 0 12px; }
