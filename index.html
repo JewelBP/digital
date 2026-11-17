@@ -997,11 +997,11 @@
         <main class="container">
             <div id="mainDashboardView">
                 <section class="dashboard-header">
-                    <div id="adminActionContainer" class="admin-only hidden" style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
-                        <button id="addCategoryBtn" class="primary-btn" type="button" style="flex: 1;">＋ Category</button>
-                        <button id="notificationBtn" class="secondary-btn" type="button" style="flex: 1; position: relative;">
+                    <div id="adminActionContainer" class="admin-only hidden" style="display: flex; gap: 10px; width: 100%; margin-bottom: 12px;">
+                        <button id="addCategoryBtn" class="primary-btn" type="button" style="flex: 1; height: 46px; font-size: 15px; border-radius: 12px;">＋ Category</button>
+                        <button id="notificationBtn" class="secondary-btn" type="button" style="flex: 1; height: 46px; font-size: 15px; border-radius: 12px; position: relative;">
                             🔔 নোটিফিকেশন
-                            <span id="notifBadge" class="badge-dot hidden" style="position: absolute; top: 6px; right: 10px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%;"></span>
+                            <span id="notifBadge" class="badge-dot hidden" style="position: absolute; top: 8px; right: 12px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%;"></span>
                         </button>
                     </div>
                 </section>
@@ -1377,6 +1377,7 @@
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
         const homeSearchBox = document.getElementById('searchBox');
         const adminActionContainer = document.getElementById('adminActionContainer');
+        const emptyAddBtn = document.getElementById('emptyAddBtn');
         const subInput = document.getElementById('subPageSearchInput');
         const mainInput = document.getElementById('searchInput');
         const clearButton = document.getElementById('clearSubPageSearch');
@@ -1393,10 +1394,11 @@
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
 
             const currentState = `${isFavoritePage}_${isSubPage}_${isDataPage}`;
-            if (currentState === lastState) return; // স্টেট পরিবর্তন না হলে রি-রেন্ডার এড়াবে (লাফালাফি বন্ধ করবে)
+            if (currentState === lastState) return;
             lastState = currentState;
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
+            document.body.classList.toggle('favorite-page-active', isFavoritePage);
 
             // ১. স্লাইডার এবং হোম সার্চ বক্স নিয়ন্ত্রণ
             const shouldHideHero = (isSubPage || isDataPage);
@@ -1412,17 +1414,15 @@
                 subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
             }
 
-            // ৩. ফেভারিট পেজে অ্যাডমিন মোডেও ক্যাটাগরি ও নোটিফিকেশন বাটন লুকানো
+            // ৩. ফেভারিট পেজে অ্যাডমিন বাটন ও এম্পটি বাটন সম্পূর্ণ লুকানো
             if (adminActionContainer) {
-                if (isFavoritePage) {
-                    adminActionContainer.style.display = 'none';
-                } else {
-                    adminActionContainer.style.display = '';
-                }
+                adminActionContainer.style.display = isFavoritePage ? 'none' : '';
+            }
+            if (emptyAddBtn) {
+                emptyAddBtn.style.display = isFavoritePage ? 'none' : '';
             }
         }
 
-        // MutationObserver দিয়ে নিখুঁত ও দ্রুত ট্র্যাক করা
         const observer = new MutationObserver(() => requestAnimationFrame(checkPages));
         if (categoryDetails) observer.observe(categoryDetails, { attributes: true, attributeFilter: ['class'] });
         if (dataDetails) observer.observe(dataDetails, { attributes: true, attributeFilter: ['class'] });
