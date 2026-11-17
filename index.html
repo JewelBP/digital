@@ -332,7 +332,7 @@
         #adminActionContainer button {
             flex: 1 !important;
             height: 46px !important;
-            font-size: 15px !important;
+            font-size: 13px !important; /* টেক্সট সাইজ কমানো হয়েছে */
             font-weight: 700 !important;
             border-radius: 12px !important;
             display: flex !important;
@@ -968,10 +968,7 @@
             </div>
         </header>
 
-        <!-- হোম পেজের সার্চ বক্স -->
-        <div id="searchBox" class="header-search-box hidden" style="margin: 4px 16px 8px;">
-            <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
-        </div>
+        <!-- মূল পেজ থেকে সার্চ বক্সের এলিমেন্ট সম্পূর্ণ সরিয়ে দেওয়া হয়েছে -->
 
         <!-- ক্যাটাগরি বা সাব-পেজের সার্চ বক্স -->
         <div id="subPageHeaderSearchWrapper" class="header-search-inline hidden">
@@ -1022,7 +1019,8 @@
         <main class="container">
             <div id="mainDashboardView">
                 <section class="dashboard-header">
-                    <div id="adminActionContainer" class="admin-only hidden">
+                    <!-- অ্যাডমিন বাটন দুটি তাৎক্ষণিকভাবে দেখানোর জন্য অতিরিক্ত কোনো 'hidden' ক্লাস রাখা হয়নি -->
+                    <div id="adminActionContainer" class="admin-only">
                         <button id="addCategoryBtn" class="primary-btn" type="button">＋ Category</button>
                         <button id="notificationBtn" class="secondary-btn" type="button" style="position: relative;">
                             🔔 নোটিফিকেশন
@@ -1400,11 +1398,9 @@
         const dataDetails = document.getElementById('dataDetailsView');
         const heroSlider = document.getElementById('heroSlider');
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
-        const homeSearchBox = document.getElementById('searchBox');
         const adminActionContainer = document.getElementById('adminActionContainer');
         const emptyAddBtn = document.getElementById('emptyAddBtn');
         const subInput = document.getElementById('subPageSearchInput');
-        const mainInput = document.getElementById('searchInput');
         const clearButton = document.getElementById('clearSubPageSearch');
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
 
@@ -1428,9 +1424,6 @@
             // ১. ইমেজ স্লাইডার হোম পেজ বাদে সব জায়গায় (ফেভারিট ও সাব-পেজে) লুকানো থাকবে
             const shouldHideHero = (isSubPage || isDataPage);
             heroSlider.style.display = shouldHideHero ? 'none' : 'block';
-            if (homeSearchBox) {
-                homeSearchBox.style.display = shouldHideHero ? 'none' : '';
-            }
 
             // ২. সাব-পেজ ও ফেভারিট পেজে সার্চ বারটি সচল ও দৃশ্যমান থাকবে
             if (subPageSearchWrapper) {
@@ -1468,21 +1461,16 @@
         document.addEventListener('click', () => setTimeout(checkPages, 30), true);
         checkPages();
 
-        if (subInput && mainInput) {
+        if (subInput) {
             subInput.addEventListener('input', () => {
-                if (mainInput.value !== subInput.value) {
-                    mainInput.value = subInput.value;
-                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
                 searchField?.classList.toggle('has-value', subInput.value.length > 0);
             });
         }
 
         clearButton?.addEventListener('click', () => {
-            if (!subInput || !mainInput) return;
+            if (!subInput) return;
             subInput.value = '';
-            mainInput.value = '';
-            mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+            subInput.dispatchEvent(new Event('input', { bubbles: true }));
             searchField?.classList.remove('has-value');
             subInput.focus();
         });
