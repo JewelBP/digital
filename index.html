@@ -317,6 +317,31 @@
             padding: 16px 14px 80px 14px;
         }
 
+        /* হোম পেজের অ্যাডমিন বাটন দুটি বড় ও ফুল-উইথ রাখা এবং ফেভারিট পেজে হাইড রাখা */
+        #adminActionContainer {
+            display: flex !important;
+            gap: 10px !important;
+            width: 100% !important;
+            margin-bottom: 14px !important;
+        }
+        #adminActionContainer.hidden,
+        body.favorite-page-active #adminActionContainer,
+        body.favorite-page-active #emptyAddBtn {
+            display: none !important;
+        }
+        #adminActionContainer button {
+            flex: 1 !important;
+            height: 46px !important;
+            font-size: 15px !important;
+            font-weight: 700 !important;
+            border-radius: 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+        }
+
         /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
         #categoryList.category-list {
             display: grid !important;
@@ -997,9 +1022,9 @@
         <main class="container">
             <div id="mainDashboardView">
                 <section class="dashboard-header">
-                    <div id="adminActionContainer" class="admin-only hidden" style="display: flex; gap: 10px; width: 100%; margin-bottom: 12px;">
-                        <button id="addCategoryBtn" class="primary-btn" type="button" style="flex: 1; height: 46px; font-size: 15px; border-radius: 12px;">＋ Category</button>
-                        <button id="notificationBtn" class="secondary-btn" type="button" style="flex: 1; height: 46px; font-size: 15px; border-radius: 12px; position: relative;">
+                    <div id="adminActionContainer" class="admin-only hidden">
+                        <button id="addCategoryBtn" class="primary-btn" type="button">＋ Category</button>
+                        <button id="notificationBtn" class="secondary-btn" type="button" style="position: relative;">
                             🔔 নোটিফিকেশন
                             <span id="notifBadge" class="badge-dot hidden" style="position: absolute; top: 8px; right: 12px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%;"></span>
                         </button>
@@ -1369,7 +1394,7 @@
         }, 3500);
     })();
 
-    // ফ্লিকারিং মুক্ত এবং স্থিতিশীল পেজ ও স্লাইডার/সার্চ/অ্যাডমিন বাটন রিমুভাল লজিক
+    // ফেভারিট পেজে স্লাইডার ও অ্যাডমিন বাটন লুকানো এবং সার্চ বার সচল রাখার স্থায়ী লজিক
     (function fixSliderAndSearchVisibility() {
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
@@ -1400,26 +1425,34 @@
             document.body.classList.toggle('is-data-details-mode', isDataPage);
             document.body.classList.toggle('favorite-page-active', isFavoritePage);
 
-            // ১. স্লাইডার এবং হোম সার্চ বক্স নিয়ন্ত্রণ
+            // ১. ইমেজ স্লাইডার হোম পেজ বাদে সব জায়গায় (ফেভারিট ও সাব-পেজে) লুকানো থাকবে
             const shouldHideHero = (isSubPage || isDataPage);
             heroSlider.style.display = shouldHideHero ? 'none' : 'block';
             if (homeSearchBox) {
                 homeSearchBox.style.display = shouldHideHero ? 'none' : '';
             }
 
-            // ২. সাব-পেজ সার্চ বার নিয়ন্ত্রণ
+            // ২. সাব-পেজ ও ফেভারিট পেজে সার্চ বারটি সচল ও দৃশ্যমান থাকবে
             if (subPageSearchWrapper) {
                 const showSubSearch = isSubPage && !isDataPage;
                 subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
                 subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
             }
 
-            // ৩. ফেভারিট পেজে অ্যাডমিন বাটন ও এম্পটি বাটন সম্পূর্ণ লুকানো
+            // ৩. ফেভারিট পেজে অ্যাডমিন বাটন ও এম্পটি বাটন সম্পূর্ণ লুকানো থাকবে
             if (adminActionContainer) {
-                adminActionContainer.style.display = isFavoritePage ? 'none' : '';
+                if (isFavoritePage) {
+                    adminActionContainer.style.setProperty('display', 'none', 'important');
+                } else {
+                    adminActionContainer.style.display = '';
+                }
             }
             if (emptyAddBtn) {
-                emptyAddBtn.style.display = isFavoritePage ? 'none' : '';
+                if (isFavoritePage) {
+                    emptyAddBtn.style.setProperty('display', 'none', 'important');
+                } else {
+                    emptyAddBtn.style.display = '';
+                }
             }
         }
 
@@ -1432,7 +1465,7 @@
             observer.observe(titleEl, { childList: true, subtree: true, characterData: true, attributes: true });
         }
 
-        document.addEventListener('click', () => setTimeout(checkPages, 40), true);
+        document.addEventListener('click', () => setTimeout(checkPages, 30), true);
         checkPages();
 
         if (subInput && mainInput) {
