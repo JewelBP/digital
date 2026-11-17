@@ -308,7 +308,7 @@
             display: none !important;
         }
 
-        /* Favorite Numbers পেজের কার্ডগুলো হুবহু ডাটা কার্ডের (.data-card-item) মাপে দেখানোর জন্য */
+        /* Favorite Numbers পেজের কার্ডগুলোর ওপরের অতিরিক্ত স্পেস কমানো এবং সমতুল্য করা */
         body.is-favorite-mode #categoryList.category-list,
         body.is-favorite-mode #categoryList {
             display: flex !important;
@@ -316,6 +316,12 @@
             grid-template-columns: 1fr !important;
             gap: 0px !important;
             width: 100% !important;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        body.is-favorite-mode .curved-main-sheet {
+            padding-top: 8px !important;
         }
 
         body.is-favorite-mode #categoryList .data-card-item,
@@ -325,7 +331,7 @@
             max-width: 100% !important;
             height: 100px !important;
             padding: 14px 16px !important;
-            margin: 0 0 12px 0 !important;
+            margin: 0 0 10px 0 !important;
             background-color: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 20px !important;
