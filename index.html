@@ -59,7 +59,7 @@
             padding-bottom: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden; /* মূল পেজ স্ক্রল বন্ধ রেখে ভেতরের শিট স্ক্রল হবে যাতে কর্নার সবসময় অক্ষত থাকে */
+            overflow: hidden;
             height: 100vh;
             height: 100dvh;
         }
@@ -78,7 +78,7 @@
         .modern-top-wrapper {
             background: linear-gradient(180deg, #020624 0%, #060d3d 100%);
             color: #ffffff;
-            padding-bottom: 24px; /* নিচের সাদা শিটের বাঁকানো কর্নারের পেছনে ডার্ক ব্যাকগ্রাউন্ড রাখার জন্য */
+            padding-bottom: 24px;
             flex-shrink: 0;
             position: relative;
             z-index: 10;
@@ -148,7 +148,6 @@
             margin-left: 4px;
         }
 
-        /* ডেট এবং টাইমের ঠিক নিচে হেডারের ভেতরে সার্চ ফিল্ড */
         .header-search-inline {
             display: none;
             padding: 2px 16px 6px;
@@ -214,109 +213,21 @@
             display: block;
         }
 
-        /* ইমেজ স্লাইডার (শুধুমাত্র প্রথম পেজে থাকবে) */
-        .hero-slider-container {
-            position: relative;
-            margin: 4px 16px 0;
-            border-radius: 16px;
-            overflow: hidden;
-            height: 145px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-        }
-        .slider-track {
-            display: flex;
-            height: 100%;
-            transition: transform 0.5s ease-in-out;
-        }
-        .slide-item {
-            min-width: 100%;
-            height: 100%;
-            position: relative;
-        }
-        .slide-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .slide-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 10%, rgba(0, 0, 0, 0.1) 80%);
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            padding: 12px 14px;
-        }
-        .slide-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .slide-badge {
-            background: #ffffff;
-            width: 28px;
-            height: 28px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-        }
-        .slide-info h4 {
-            color: #ffffff;
-            font-size: 13px;
-            font-weight: 600;
-            margin: 0;
-        }
-        .slide-btn {
-            background: #0ea5e9;
-            color: #ffffff !important;
-            border: none;
-            padding: 5px 14px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        .slider-dots {
-            position: absolute;
-            bottom: 6px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 5px;
-        }
-        .slider-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.4);
-        }
-        .slider-dot.active {
-            background: #ffffff;
-            width: 14px;
-            border-radius: 4px;
-        }
-
-        /* সাদা বাঁকানো মূল শিট (কর্নার ফিক্সড রেখে ভেতরে স্মুথ স্ক্রল) */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
             border-top-right-radius: 24px;
             flex: 1;
-            margin-top: -16px; /* হেডারের ডার্ক অংশের ওপর উঠে এসে দুই পাশের কর্নার পরিষ্কারভাবে দেখাবে */
+            margin-top: -16px;
             position: relative;
             z-index: 20;
             box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.2);
-            overflow-y: auto; /* শুধুমাত্র এই সাদা অংশের ভেতরের কন্টেন্ট স্ক্রল হবে */
+            overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 16px 14px 80px 14px;
         }
 
-        /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
         #categoryList.category-list {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
@@ -371,7 +282,6 @@
             transform: scale(0.75);
         }
 
-        /* দ্বিতীয় পেজ বা ক্যাটাগরি ডিটেইলস স্টাইল */
         #categoryDetailsView {
             background-color: transparent !important;
             padding: 0;
@@ -429,16 +339,12 @@
             line-height: 1.4;
         }
 
-        /* =====================================================================
-           কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন
-           ===================================================================== */
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
             padding: 0 !important;
         }
         body.is-data-details-mode .modern-top-wrapper,
-        body.is-data-details-mode #heroSlider,
         body.is-data-details-mode #searchBox,
         body.is-data-details-mode #subPageHeaderSearchWrapper,
         body.is-data-details-mode #slidingNoticeContainer,
@@ -482,7 +388,6 @@
             padding: 0 !important;
         }
 
-        /* ১. একদম ওপরের প্রোফাইল অংশ (সাদা অংশ বাদ দিয়ে ডার্ক ব্যাকগ্রাউন্ড ফিক্সড) */
         #dataPageContent > div:first-child {
             background: #020624 !important;
             color: #ffffff !important;
@@ -541,7 +446,6 @@
             text-align: center !important;
         }
 
-        /* ইনফো কার্ডগুলোর পারফেক্ট মার্জিন ও প্যাডিং */
         #dataPageContent .info-row,
         #dataPageContent .detail-row,
         #dataPageContent .data-field,
@@ -572,7 +476,6 @@
             border-color: #334155 !important;
         }
 
-        /* লেবেল ও মান */
         #dataPageContent .info-row .label,
         #dataPageContent .detail-row .label,
         #dataPageContent .field-label,
@@ -617,7 +520,6 @@
             color: #f1f5f9 !important;
         }
 
-        /* ২. মোবাইল, টেলিফোন ও ইমেইল বাটন — ৩ কলাম গ্রিড আকারে এক সারিতে সুবিন্যস্ত */
         #dataPageContent .action-buttons,
         #dataPageContent .detail-actions,
         #dataPageContent .btn-group,
@@ -662,23 +564,19 @@
             overflow: hidden !important;
             text-overflow: ellipsis !important;
         }
-        /* মোবাইল বাটন (নীল) */
         #dataPageContent .quick-action-grid > :nth-child(1),
         #dataPageContent .quick-actions > :nth-child(1) {
             background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
         }
-        /* টেলিফোন বাটন (স্লেট) */
         #dataPageContent .quick-action-grid > :nth-child(2),
         #dataPageContent .quick-actions > :nth-child(2) {
             background: linear-gradient(135deg, #4b5563, #374151) !important;
         }
-        /* ইমেইল বাটন (লাল) */
         #dataPageContent .quick-action-grid > :nth-child(3),
         #dataPageContent .quick-actions > :nth-child(3) {
             background: linear-gradient(135deg, #ea4335, #c5221f) !important;
         }
 
-        /* ৩. শেয়ার কন্টাক্ট — নিচে আলাদা পূর্ণ প্রস্থের (Full-width) স্বতন্ত্র ঘর ও আইকন */
         #dataPageContent .share-contact-card,
         #dataPageContent a[href*="share"],
         #dataPageContent button[id*="share"],
@@ -708,7 +606,6 @@
             cursor: pointer !important;
         }
 
-        /* একদম ছবির মতো বাঁকানো গর্ত ও মাঝখানের লোগোসহ নিচের নেভিগেশন বার */
         .custom-bottom-nav {
             position: fixed;
             bottom: 0;
@@ -750,7 +647,6 @@
             object-fit: cover;
         }
 
-        /* ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো */
         .image-zoom-modal {
             position: fixed;
             inset: 0;
@@ -884,7 +780,7 @@
 
 <div id="appContainer">
 
-    <!-- ডার্ক হেডার এবং স্লাইডার -->
+    <!-- ডার্ক হেডার (স্লাইডার সরিয়ে ফেলা হয়েছে) -->
     <div class="modern-top-wrapper">
         <header class="modern-header">
             <div class="header-left-group">
@@ -925,36 +821,9 @@
                         title="Clear search">×</button>
             </div>
         </div>
-
-        <!-- ইমেজ স্লাইডার (শুধুমাত্র প্রথম পেজে থাকবে) -->
-        <div class="hero-slider-container" id="heroSlider">
-            <div class="slider-track" id="sliderTrack">
-                <div class="slide-item">
-                    <img src="https://images.unsplash.com/photo-1546272989-40c92939c6c2?auto=format&fit=crop&w=800&q=80" alt="Banner 1">
-                    <div class="slide-overlay">
-                        <div class="slide-info">
-                            <span class="slide-badge">📢</span>
-                            <h4>Welcome to Digital Phonebook</h4>
-                        </div>
-                        <a href="#categoryList" class="slide-btn">Explore</a>
-                    </div>
-                </div>
-                <div class="slide-item">
-                    <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80" alt="Banner 2">
-                    <div class="slide-overlay">
-                        <div class="slide-info">
-                            <span class="slide-badge">🛡️</span>
-                            <h4>Bangladesh Police Directory</h4>
-                        </div>
-                        <a href="#categoryList" class="slide-btn">Search</a>
-                    </div>
-                </div>
-            </div>
-            <div class="slider-dots" id="sliderDots"></div>
-        </div>
     </div>
 
-    <!-- সাদা বাঁকানো মূল শিট (এর ভেতরেই স্ক্রল হবে যাতে দুই পাশের কর্নার অক্ষত থাকে) -->
+    <!-- সাদা বাঁকানো মূল শিট -->
     <div class="curved-main-sheet" id="mainScrollSheet">
         
         <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
@@ -963,13 +832,8 @@
         <main class="container">
             <div id="mainDashboardView">
                 <section class="dashboard-header">
-                    <div id="adminActionContainer" class="admin-only hidden" style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
-                        <button id="addCategoryBtn" class="primary-btn" type="button" style="flex: 1;">＋ Category</button>
-                        <button id="notificationBtn" class="secondary-btn" type="button" style="flex: 1; position: relative;">
-                            🔔 নোটিফিকেশন
-                            <span id="notifBadge" class="badge-dot hidden" style="position: absolute; top: 6px; right: 10px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%;"></span>
-                        </button>
-                    </div>
+                    <!-- Favorite numbers পেজে বাটনগুলো শর্ত সাপেক্ষে অথবা সম্পূর্ণ লুকানোর জন্য adminActionContainer খালি রাখা হয়েছে -->
+                    <div id="adminActionContainer" class="admin-only hidden" style="display: none !important; gap: 8px; width: 100%; margin-bottom: 10px;"></div>
                 </section>
                 
                 <!-- ৩-কলাম ক্যাটাগরি লিস্ট -->
@@ -980,7 +844,8 @@
                     <div class="empty-icon">📂</div>
                     <h2>এখনো কোনো Category নেই</h2>
                     <p>ডাটা দেখতে অপেক্ষা করুন, প্রয়োজনে রিফ্রেস করুন।</p>
-                    <button id="emptyAddBtn" class="primary-btn admin-only hidden" type="button">＋ প্রথম Category তৈরি করুন</button>
+                    <!-- Favorite numbers পেজে প্রথম category তৈরির বাটন লুকানো হয়েছে -->
+                    <button id="emptyAddBtn" class="primary-btn admin-only hidden" type="button" style="display: none !important;">＋ প্রথম Category তৈরি করুন</button>
                 </section>
             </div>
 
@@ -1240,15 +1105,11 @@
 
 </div>
 
-
-
 <div class="custom-bottom-nav">
-
     <svg class="bottom-nav-svg"
          viewBox="0 0 360 62"
          preserveAspectRatio="none"
          xmlns="http://www.w3.org/2000/svg">
-
         <path
             d="M0,0
                L115,0
@@ -1259,29 +1120,14 @@
                L0,62 Z"
             fill="#020624">
         </path>
-
     </svg>
-
     <div class="bottom-nav-logo-circle">
         <img src="icons/icon-192.png" alt="Logo">
     </div>
-
 </div>
 
-
-
-
-    
-
-<!-- জাভাস্ক্রিপ্ট ফাইলস এবং স্লাইডার/ঘড়ি স্ক্রিপ্ট -->
+<!-- স্ক্রিপ্টস -->
 <script type="module" src="js/app.js"></script>
-
-<script type="module">
-    import { initNotificationSystem } from './js/notification.js';
-    document.addEventListener("DOMContentLoaded", () => {
-        initNotificationSystem();
-    });
-</script>
 
 <script>
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1314,45 +1160,10 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // অটো ইমেজ স্লাইডার (হোম পেজের জন্য)
-    (function initHeroSlider() {
-        const track = document.getElementById('sliderTrack');
-        const dotsContainer = document.getElementById('sliderDots');
-        if (!track || !dotsContainer) return;
-
-        const slides = track.children;
-        const totalSlides = slides.length;
-        let currentIndex = 0;
-
-        for (let i = 0; i < totalSlides; i++) {
-            const dot = document.createElement('div');
-            dot.classList.add('slider-dot');
-            if (i === 0) dot.classList.add('active');
-            dot.addEventListener('click', () => goToSlide(i));
-            dotsContainer.appendChild(dot);
-        }
-
-        const dots = dotsContainer.children;
-
-        function goToSlide(index) {
-            currentIndex = index;
-            track.style.transform = `translateX(-${currentIndex * 100}%)`;
-            Array.from(dots).forEach((d, idx) => {
-                d.classList.toggle('active', idx === currentIndex);
-            });
-        }
-
-        setInterval(() => {
-            currentIndex = (currentIndex + 1) % totalSlides;
-            goToSlide(currentIndex);
-        }, 3500);
-    })();
-
-    // Category details ও Data details page-এ ইমেজ স্লাইডার লুকানো এবং Home page-এ দেখানো
+    // সাব-পেজ ও ডিটেইলস পেজের কন্ট্রোল
     (function initSubPageHeaderSearch() {
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
-        const heroSlider = document.getElementById('heroSlider');
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
         const homeSearchBox = document.getElementById('searchBox');
         const subInput = document.getElementById('subPageSearchInput');
@@ -1361,7 +1172,7 @@
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
         const mainScrollSheet = document.getElementById('mainScrollSheet');
 
-        if (!categoryDetails || !heroSlider || !subPageSearchWrapper) return;
+        if (!categoryDetails || !subPageSearchWrapper) return;
 
         function syncSearchVisibility() {
             const isSubPage = !categoryDetails.classList.contains('hidden');
@@ -1369,14 +1180,11 @@
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // হোম পেজ ছাড়া Category বা Data Details কোনো পেজেই ইমেজ স্লাইডার থাকবে না
-            heroSlider.style.display = (isSubPage || isDataPage) ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = (isSubPage || isDataPage) ? 'none' : '';
 
             subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
             subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
 
-            // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
             if (mainScrollSheet) {
                 mainScrollSheet.scrollTop = 0;
             }
@@ -1435,4 +1243,3 @@
 
 </body>
 </html>
-
