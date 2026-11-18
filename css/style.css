@@ -670,24 +670,6 @@ body:not(.dark-mode) .drawer-footer {
     box-shadow: var(--shadow-md);
 }
 
-/* ডাটা কার্ড এবং অ্যাকশন বাটনগুলোর সুবিন্যস্ত লেআউট */
-.data-card-item, .category-card, .subcategory-card {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    flex-wrap: wrap !important;
-    box-sizing: border-box !important;
-}
-
-/* অ্যাকশন বাটন গ্রুপের জন্য */
-.card-actions, .data-card-actions {
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-    flex-wrap: wrap !important;
-    margin-left: auto;
-}
-
 
 /* ==========================================
    DYNAMIC CARD BACKGROUND (IMAGE VS COLOR)
