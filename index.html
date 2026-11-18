@@ -916,26 +916,27 @@
         body.dark-mode #categoryDetailsView .data-card-item,
         body.dark-mode #detailsContent .data-card-item,
         body.dark-mode #categoryList .data-card-item {
-            background-color: var(--card-bg, #1e293b) !important;
-            background: var(--card-bg, #1e293b) !important;
-            border: 1px solid var(--border-color, #334155) !important;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
+            /* ক্যাটাগরি কার্ডের মতো একই কালার (থিম কালার, না থাকলে ডিফল্ট) */
+            background-color: var(--primary-color, #020624) !important;
+            background: var(--primary-color, #020624) !important;
+            border: none !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
         }
         body.dark-mode #categoryDetailsView .data-card-name,
         body.dark-mode #detailsContent .data-card-name,
         body.dark-mode #categoryList .data-card-name {
-            color: var(--text-main, #f1f5f9) !important;
+            color: #ffffff !important;
         }
         body.dark-mode #categoryDetailsView .data-card-detail,
         body.dark-mode #detailsContent .data-card-detail,
         body.dark-mode #categoryList .data-card-detail {
-            color: var(--text-muted, #94a3b8) !important;
+            color: rgba(255, 255, 255, 0.75) !important;
         }
         body.dark-mode #categoryDetailsView .data-card-avatar,
         body.dark-mode #detailsContent .data-card-avatar,
         body.dark-mode #categoryList .data-card-avatar {
-            background: #334155 !important;
-            border-color: #475569 !important;
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
         }
 
         /* =====================================================================
@@ -949,6 +950,7 @@
             background: var(--primary-color, #020624) !important;
             background-color: var(--primary-color, #020624) !important;
             background-image: none !important;
+            filter: none !important;
             color: #ffffff !important;
         }
         html body #dataDetailsView #dataPageContent > .details-header-section p {
