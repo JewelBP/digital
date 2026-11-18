@@ -17,7 +17,7 @@ function applyCustomSettings() {
 }
 
 /* ============================================================
-   THEME COLOR (হেডার, স্ট্যাটাস বার, নেভিগেশন বার, ক্যাটাগরি, সাব-ক্যাটাগরি ও ডিটেলস টপ সেকশন)
+   THEME COLOR (হেডার, স্ট্যাটাস বার, নেভিগেশন বার, ক্যাটাগরি ও ডিটেলস টপ সেকশন)
    ============================================================ */
 function applyThemeColor() {
   let color = localStorage.getItem(CS_THEME);
@@ -45,14 +45,14 @@ function applyThemeColor() {
     bottomNavPath.style.setProperty("fill", color, "important");
   }
 
-  // ক্যাটাগরি ও সাব-ক্যাটাগরি কার্ড ব্যাকগ্রাউন্ড কালার পরিবর্তন
-  const categoryCards = document.querySelectorAll("#categoryList .category-card, .subcategory-card, #categoryDetailsView .subcategory-card");
+  // ক্যাটাগরি কার্ড ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  const categoryCards = document.querySelectorAll("#categoryList .category-card");
   categoryCards.forEach(function (el) {
     el.style.setProperty("background", color, "important");
     el.style.setProperty("background-color", color, "important");
   });
 
-  // কার্ড ডিটেলস বা কন্টাক্ট ডিটেলস পেজের টপ স্টিকি হেডার ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  // কন্টাক্ট ডিটেলস পেজের টপ স্টিকি হেডার ব্যাকগ্রাউন্ড কালার পরিবর্তন
   const detailTopHeader = document.querySelector("#dataPageContent > div:first-child");
   if (detailTopHeader) {
     detailTopHeader.style.setProperty("background", color, "important");
