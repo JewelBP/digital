@@ -99,14 +99,14 @@ watchAuth((user, role) => {
         window.currentUser = null;
         window.currentUserRole = "guest";
         if (adminBtn) {
-            adminBtn.textContent = "🔑 Admin";
+            adminBtn.textContent = "🔑Admin";
             adminBtn.classList.add("hidden");
         }
     } else {
         window.currentUser = user;
         window.currentUserRole = role || "admin";
         if (adminBtn) {
-            adminBtn.textContent = "🟢 Admin";
+            adminBtn.textContent = "🟢Admin";
             adminBtn.classList.remove("hidden");
         }
     }
