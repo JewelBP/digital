@@ -373,20 +373,15 @@
         }
 
         /* দ্বিতীয় পেজ বা ক্যাটাগরি ডিটেইলস স্টাইল */
-        #categoryDetailsView,
-        #favoriteListView,
-        .favorite-view-container {
+        #categoryDetailsView {
             background-color: transparent !important;
             padding: 0;
             min-height: auto;
         }
-        #categoryDetailsView .dashboard-header,
-        #favoriteListView .dashboard-header {
+        #categoryDetailsView .dashboard-header {
             display: none !important;
         }
-        #categoryDetailsView .data-card-item,
-        #favoriteListView .data-card-item,
-        .favorite-view-container .data-card-item {
+        #categoryDetailsView .data-card-item {
             background-color: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 20px !important;
@@ -398,9 +393,7 @@
             position: relative;
             cursor: pointer;
         }
-        #categoryDetailsView .data-card-avatar,
-        #favoriteListView .data-card-avatar,
-        .favorite-view-container .data-card-avatar {
+        #categoryDetailsView .data-card-avatar {
             width: 65px !important;
             height: 65px !important;
             min-width: 65px !important;
@@ -416,30 +409,22 @@
             align-items: center;
             justify-content: center;
         }
-        #categoryDetailsView .data-card-avatar img,
-        #favoriteListView .data-card-avatar img,
-        .favorite-view-container .data-card-avatar img {
+        #categoryDetailsView .data-card-avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        #categoryDetailsView .data-card-info,
-        #favoriteListView .data-card-info,
-        .favorite-view-container .data-card-info {
+        #categoryDetailsView .data-card-info {
             flex-grow: 1;
             overflow: hidden;
         }
-        #categoryDetailsView .data-card-name,
-        #favoriteListView .data-card-name,
-        .favorite-view-container .data-card-name {
+        #categoryDetailsView .data-card-name {
             font-size: 16px !important;
             font-weight: 700 !important;
             color: #0f172a !important;
             margin-bottom: 2px;
         }
-        #categoryDetailsView .data-card-detail,
-        #favoriteListView .data-card-detail,
-        .favorite-view-container .data-card-detail {
+        #categoryDetailsView .data-card-detail {
             font-size: 12.5px !important;
             color: #64748b !important;
             line-height: 1.4;
@@ -869,22 +854,24 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        /* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন নিশ্চিত করতে */
-        #detailsContent .subcategory-card,
-        #detailsContent .data-card-item:has(img[src*="bell"]),
-        #detailsContent > div > div.subcategory-card,
-        #categoryDetailsView .subcategory-card,
-        .subcategory-card {
-            background-color: var(--primary-color, #020624) !important;
-            background: var(--primary-color, #020624) !important;
-            color: #ffffff !important;
-        }
+/* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন নিশ্চিত করতে */
+#detailsContent .subcategory-card,
+#detailsContent .data-card-item:has(img[src*="bell"]),
+#detailsContent > div > div.subcategory-card,
+#categoryDetailsView .subcategory-card,
+.subcategory-card {
+    background-color: var(--primary-color, #020624) !important;
+    background: var(--primary-color, #020624) !important;
+    color: #ffffff !important;
+}
 
-        /* সাব-ক্যাটাগরি কার্ডের ভেতরের লেখার কালার সাদা রাখার জন্য */
-        #detailsContent .subcategory-card *,
-        .subcategory-card * {
-            color: #ffffff !important;
-        }
+/* সাব-ক্যাটাগরি কার্ডের ভেতরের লেখার কালার সাদা রাখার জন্য */
+#detailsContent .subcategory-card *,
+.subcategory-card * {
+    color: #ffffff !important;
+}
+
+        
     </style>
 </head>
 
@@ -1368,11 +1355,11 @@
         }, 3500);
     })();
 
-    // শুধুমাত্র প্রথম পেজে (হোম পেজ) স্লাইডার থাকবে; অন্য কোনো পেজে স্লাইডার থাকবে না
+    // Category details, Data details এবং Favorite Numbers সহ অন্যান্য সাব-পেজে ইমেজ স্লাইডার লুকানো এবং শুধুমাত্র Home page-এ দেখানো
     (function initSubPageHeaderSearch() {
+        const mainDashboard = document.getElementById('mainDashboardView');
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
-        const mainDashboard = document.getElementById('mainDashboardView');
         const heroSlider = document.getElementById('heroSlider');
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
         const homeSearchBox = document.getElementById('searchBox');
@@ -1383,37 +1370,31 @@
         const mainScrollSheet = document.getElementById('mainScrollSheet');
         const appTitleText = document.querySelector('.app-title-text');
 
-        if (!categoryDetails || !heroSlider || !subPageSearchWrapper) return;
+        if (!heroSlider || !subPageSearchWrapper) return;
 
         function syncSearchVisibility() {
-            // হোম পেজ সক্রিয় কিনা তা যাচাই করা
-            const isHomePage = mainDashboard && !mainDashboard.classList.contains('hidden') &&
-                               categoryDetails.classList.contains('hidden') &&
-                               (!dataDetails || dataDetails.classList.contains('hidden'));
-
-            const favoriteView = document.getElementById('favoriteListView') || document.querySelector('.favorite-view-container');
-            const isFavoriteActive = (favoriteView && !favoriteView.classList.contains('hidden')) ||
-                                     (mainDashboard && mainDashboard.classList.contains('hidden') && categoryDetails.classList.contains('hidden')) ||
-                                     (appTitleText && /favorite/i.test(appTitleText.textContent));
-
+            const isHomeHidden = mainDashboard && mainDashboard.classList.contains('hidden');
+            const isSubPage = categoryDetails && !categoryDetails.classList.contains('hidden');
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
-            const isSubPageOrOther = !isHomePage;
+            const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
+            const isFavoritePage = titleText.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // ইমেজ স্লাইডার কেবল হোম পেজেই দৃশ্যমান থাকবে, অন্য কোথাও নয়[span_1](start_span)[span_1](end_span)
-            heroSlider.style.display = isHomePage ? '' : 'none';
-            if (homeSearchBox) homeSearchBox.style.display = isHomePage ? '' : 'none';
+            // শুধুমাত্র মূল হোম পেজ খোলা থাকলেই স্লাইডার দেখাবে; Favorite Numbers বা অন্য কোনো পেজে লুকানো থাকবে
+            const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage;
+            heroSlider.style.display = hideSlider ? 'none' : '';
+            if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
 
-            const showSubSearch = isSubPageOrOther && !isDataPage;
-            subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
-            subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
+            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
+            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
 
+            // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
             if (mainScrollSheet) {
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!showSubSearch && subInput) {
+            if (!isSubPage && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
@@ -1451,15 +1432,22 @@
         });
 
         const observer = new MutationObserver(syncSearchVisibility);
-        observer.observe(categoryDetails, { attributes: true, attributeFilter: ['class'] });
-        if (dataDetails) observer.observe(dataDetails, { attributes: true, attributeFilter: ['class'] });
-        if (mainDashboard) observer.observe(mainDashboard, { attributes: true, attributeFilter: ['class'] });
-        if (appTitleText) observer.observe(appTitleText, { childList: true, characterData: true, subtree: true });
-        
-        if (mainScrollSheet) {
-            observer.observe(mainScrollSheet, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        const mainContainer = document.querySelector('main.container');
+        if (mainContainer) {
+            observer.observe(mainContainer, {
+                attributes: true,
+                childList: true,
+                subtree: true,
+                attributeFilter: ['class', 'style']
+            });
         }
-
+        if (appTitleText) {
+            observer.observe(appTitleText, {
+                childList: true,
+                characterData: true,
+                subtree: true
+            });
+        }
         syncSearchVisibility();
     })();
 </script>
