@@ -22,8 +22,8 @@ export function initDrawer() {
                     </div>
 
                     <div class="drawer-title-texts">
-                        <h3>Police Phonebook</h3>
-                        <p>Bangladesh Police</p>
+                        <h3>RMP MT Contacts</h3>
+                        <p>Rajshahi Metropolitan Police</p>
                     </div>
 
                 </div>
