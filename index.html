@@ -374,8 +374,8 @@
 
         /* 
            =====================================================================
-           অত্যন্ত কঠোর ও নিশ্চিত নিয়ম: ক্যাটাগরি এবং ফেভারিট পেজের সকল ডাটা কার্ড 
-           সর্বদা ১০০% প্রস্থে একটির নিচে আরেকটি (Vertical Stack) থাকবে।
+           নিশ্চিত ও কঠোর নিয়ম: ক্যাটাগরি এবং ফেভারিট পেজের সকল কন্টেইনার ও ডাটা কার্ড 
+           সর্বদা ১০০% প্রস্থে একটির নিচে আরেকটি (Vertical Stack / Block) থাকবে।
            ===================================================================== 
         */
         #categoryDetailsView,
@@ -383,9 +383,10 @@
         #favoritesView,
         #favoritesList,
         #favoriteList,
+        [id*="favorite"],
+        [id*="fav"],
         main.container > div:not(#mainDashboardView):not(#dataDetailsView) {
-            display: flex !important;
-            flex-direction: column !important;
+            display: block !important;
             width: 100% !important;
             max-width: 100% !important;
             float: none !important;
@@ -397,6 +398,8 @@
         #favoritesView .data-card-item,
         #favoritesList .data-card-item,
         #favoriteList .data-card-item,
+        [id*="favorite"] .data-card-item,
+        [id*="fav"] .data-card-item,
         .curved-main-sheet .data-card-item {
             background-color: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
@@ -422,6 +425,8 @@
         body.dark-mode #favoritesView .data-card-item,
         body.dark-mode #favoritesList .data-card-item,
         body.dark-mode #favoriteList .data-card-item,
+        body.dark-mode [id*="favorite"] .data-card-item,
+        body.dark-mode [id*="fav"] .data-card-item,
         body.dark-mode .curved-main-sheet .data-card-item {
             background-color: #0f172a !important;
             border-color: #334155 !important;
@@ -1021,7 +1026,7 @@
 
         <!-- হোম পেজের সার্চ বক্স -->
         <div id="searchBox" class="header-search-box hidden" style="margin: 4px 16px 8px;">
-            <input type="search" id="searchInput" placeholder="Category, Header अथवा Data খুঁজুন..." autocomplete="off">
+            <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
         </div>
 
         <!-- ক্যাটাগরি বা সাব-পেজ এবং Favorite Numbers পেজের সার্চ বক্স -->
@@ -1481,7 +1486,7 @@
         function filterFavoriteCards(query) {
             const q = (query || '').trim().toLowerCase();
             const favContainers = document.querySelectorAll(
-                '#favoriteNumbersView .data-card-item, #favoritesView .data-card-item, #favoritesList .data-card-item, #favoriteList .data-card-item, main.container > div:not(#mainDashboardView):not(#categoryDetailsView):not(#dataDetailsView):not(.hidden) .data-card-item'
+                '#favoriteNumbersView .data-card-item, #favoritesView .data-card-item, #favoritesList .data-card-item, #favoriteList .data-card-item, [id*="favorite"] .data-card-item, [id*="fav"] .data-card-item, main.container > div:not(#mainDashboardView):not(#categoryDetailsView):not(#dataDetailsView):not(.hidden) .data-card-item'
             );
 
             favContainers.forEach(card => {
