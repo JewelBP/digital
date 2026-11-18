@@ -10,6 +10,9 @@ const CS_TEXT = "app_text_color";
 const CS_BG_IMAGE = "app_bg_image";
 const CS_LANGUAGE = "app_language";
 
+// ডিফল্ট থিম কালার কনস্ট্যান্ট
+const DEFAULT_THEME_COLOR = "#020624";
+
 function applyCustomSettings() {
   applyThemeColor();
   applyBackground();
@@ -20,8 +23,8 @@ function applyCustomSettings() {
    THEME COLOR (টুলবার, নেভিগেশন বার ও নাম বক্সের থিম কালার পরিবর্তনের জন্য)
    ============================================================ */
 function applyThemeColor() {
-  const color = localStorage.getItem(CS_THEME);
-  if (!color) return;
+  // যদি লোকালস্টোরেজে কালার না থাকে, তবে ডিফল্ট #020624 ব্যবহার করবে
+  const color = localStorage.getItem(CS_THEME) || DEFAULT_THEME_COLOR;
 
   document.documentElement.style.setProperty("--primary-color", color);
 
@@ -44,8 +47,6 @@ function applyThemeColor() {
     detailsTop.style.setProperty("background", color, "important");
     detailsTop.style.setProperty("background-color", color, "important");
   }
-
-  // (এখানে নাম বক্সের কোডটি বাদ দেওয়া হয়েছে যাতে সেটি ট্রান্সপারেন্ট থাকে)
 
   // ৪. নিচের নচযুক্ত নেভিগেশন বারের SVG রঙ পরিবর্তন
   const bottomNavPaths = document.querySelectorAll(".custom-bottom-nav .bottom-nav-svg path, .bottom-nav-svg path");
@@ -246,13 +247,32 @@ function removeBackgroundImage() {
 }
 
 /* ============================================================
+   THEME RESET FUNCTION (রিসেট করলে ডিফল্ট কালারে ফিরে যাওয়ার জন্য)
+   ============================================================ */
+function resetThemeColor() {
+  localStorage.removeItem(CS_THEME);
+  applyThemeColor();
+  
+  // যদি কালার পিকার ইনপুট থাকে তার ভ্যালুও রিসেট করা
+  const colorInput = document.getElementById("themeColorInput");
+  if (colorInput) {
+    colorInput.value = DEFAULT_THEME_COLOR;
+  }
+}
+
+/* ============================================================
    EVENT LISTENERS & INIT
    ============================================================ */
 export function setupCustomSettingsListener() {
   document.addEventListener("input", function (e) {
     if (!e.target) return;
     if (e.target.id === "themeColorInput") {
-      localStorage.setItem(CS_THEME, e.target.value);
+      const val = e.target.value;
+      if (val) {
+        localStorage.setItem(CS_THEME, val);
+      } else {
+        localStorage.removeItem(CS_THEME);
+      }
       applyThemeColor();
     }
   });
@@ -260,7 +280,12 @@ export function setupCustomSettingsListener() {
   document.addEventListener("change", function (e) {
     if (!e.target) return;
     if (e.target.id === "themeColorInput") {
-      localStorage.setItem(CS_THEME, e.target.value);
+      const val = e.target.value;
+      if (val) {
+        localStorage.setItem(CS_THEME, val);
+      } else {
+        localStorage.removeItem(CS_THEME);
+      }
       applyThemeColor();
     }
     if (e.target.id === "bgColorInput") {
@@ -279,6 +304,10 @@ export function setupCustomSettingsListener() {
   document.addEventListener("click", function (e) {
     if (e.target && e.target.id === "chooseBgImageBtn") openGallery();
     if (e.target && e.target.id === "removeBgImageBtn") removeBackgroundImage();
+    // যদি রিসেট বাটন থাকে তার জন্য ক্লিক ইভেন্ট
+    if (e.target && (e.target.id === "resetThemeBtn" || e.target.id === "resetSettingsBtn")) {
+      resetThemeColor();
+    }
   });
 }
 
@@ -286,6 +315,12 @@ window.addEventListener("DOMContentLoaded", function () {
   createBackgroundImageUI();
   applyCustomSettings();
   setupCustomSettingsListener();
+
+  // পেজ লোড হওয়ার সময় কালার ইনপুট ফিল্ডে বর্তমান বা ডিফল্ট কালার সেট করা
+  const colorInput = document.getElementById("themeColorInput");
+  if (colorInput) {
+    colorInput.value = localStorage.getItem(CS_THEME) || DEFAULT_THEME_COLOR;
+  }
 
   setTimeout(applyThemeColor, 100);
   setTimeout(applyThemeColor, 500);
@@ -298,3 +333,4 @@ window.applyThemeColor = applyThemeColor;
 window.applyBackground = applyBackground;
 window.applyGlobalTextColor = applyGlobalTextColor;
 window.removeBackgroundImage = removeBackgroundImage;
+window.resetThemeColor = resetThemeColor;
