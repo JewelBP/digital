@@ -574,11 +574,14 @@ body:not(.dark-mode) .drawer-footer {
 }
 
 .category-card h3,
-.subcategory-card h3 {
-    font-size: 16px;
-    font-weight: 600;
+.category-card h3 *,
+.subcategory-card h3,
+.subcategory-card h3 * {
+    font-size: 16px !important;
+    font-weight: 600 !important;
     color: var(--text-main);
 }
+
 
 .data-card-item {
     height: 100px;
