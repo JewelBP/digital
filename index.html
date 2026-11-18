@@ -908,6 +908,52 @@
         #detailsContent .data-card-item > * {
             min-width: 0;
         }
+
+        /* =====================================================================
+           ডাটা কার্ডে ডার্ক মোড সাপোর্ট (ক্যাটাগরি পেজ + Favorite Numbers পেজ)
+           ডার্ক মোড বন্ধ থাকলে আগের ডিফল্ট সাদা কার্ডই থাকবে
+           ===================================================================== */
+        body.dark-mode #categoryDetailsView .data-card-item,
+        body.dark-mode #detailsContent .data-card-item,
+        body.dark-mode #categoryList .data-card-item {
+            background-color: var(--card-bg, #1e293b) !important;
+            background: var(--card-bg, #1e293b) !important;
+            border: 1px solid var(--border-color, #334155) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
+        }
+        body.dark-mode #categoryDetailsView .data-card-name,
+        body.dark-mode #detailsContent .data-card-name,
+        body.dark-mode #categoryList .data-card-name {
+            color: var(--text-main, #f1f5f9) !important;
+        }
+        body.dark-mode #categoryDetailsView .data-card-detail,
+        body.dark-mode #detailsContent .data-card-detail,
+        body.dark-mode #categoryList .data-card-detail {
+            color: var(--text-muted, #94a3b8) !important;
+        }
+        body.dark-mode #categoryDetailsView .data-card-avatar,
+        body.dark-mode #detailsContent .data-card-avatar,
+        body.dark-mode #categoryList .data-card-avatar {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
+
+        /* =====================================================================
+           কন্টাক্ট ডিটেইলস পেজের ওপরের প্রোফাইল অংশ:
+           ডার্ক মোড অন/অফ যাই হোক, থিম কালার (--primary-color) থাকবে;
+           থিম কালার সেট না থাকলে ডিফল্ট #020624
+           ===================================================================== */
+        html body #dataDetailsView #dataPageContent > .details-header-section,
+        html body.dark-mode #dataDetailsView #dataPageContent > .details-header-section,
+        html body.is-data-details-mode #dataDetailsView #dataPageContent > .details-header-section {
+            background: var(--primary-color, #020624) !important;
+            background-color: var(--primary-color, #020624) !important;
+            background-image: none !important;
+            color: #ffffff !important;
+        }
+        html body #dataDetailsView #dataPageContent > .details-header-section p {
+            color: #e2e8f0 !important;
+        }
     </style>
 </head>
 
