@@ -373,15 +373,20 @@
         }
 
         /* দ্বিতীয় পেজ বা ক্যাটাগরি ডিটেইলস স্টাইল */
-        #categoryDetailsView {
+        #categoryDetailsView,
+        #favoriteListView,
+        .favorite-view-container {
             background-color: transparent !important;
             padding: 0;
             min-height: auto;
         }
-        #categoryDetailsView .dashboard-header {
+        #categoryDetailsView .dashboard-header,
+        #favoriteListView .dashboard-header {
             display: none !important;
         }
-        #categoryDetailsView .data-card-item {
+        #categoryDetailsView .data-card-item,
+        #favoriteListView .data-card-item,
+        .favorite-view-container .data-card-item {
             background-color: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 20px !important;
@@ -393,7 +398,9 @@
             position: relative;
             cursor: pointer;
         }
-        #categoryDetailsView .data-card-avatar {
+        #categoryDetailsView .data-card-avatar,
+        #favoriteListView .data-card-avatar,
+        .favorite-view-container .data-card-avatar {
             width: 65px !important;
             height: 65px !important;
             min-width: 65px !important;
@@ -409,22 +416,30 @@
             align-items: center;
             justify-content: center;
         }
-        #categoryDetailsView .data-card-avatar img {
+        #categoryDetailsView .data-card-avatar img,
+        #favoriteListView .data-card-avatar img,
+        .favorite-view-container .data-card-avatar img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        #categoryDetailsView .data-card-info {
+        #categoryDetailsView .data-card-info,
+        #favoriteListView .data-card-info,
+        .favorite-view-container .data-card-info {
             flex-grow: 1;
             overflow: hidden;
         }
-        #categoryDetailsView .data-card-name {
+        #categoryDetailsView .data-card-name,
+        #favoriteListView .data-card-name,
+        .favorite-view-container .data-card-name {
             font-size: 16px !important;
             font-weight: 700 !important;
             color: #0f172a !important;
             margin-bottom: 2px;
         }
-        #categoryDetailsView .data-card-detail {
+        #categoryDetailsView .data-card-detail,
+        #favoriteListView .data-card-detail,
+        .favorite-view-container .data-card-detail {
             font-size: 12.5px !important;
             color: #64748b !important;
             line-height: 1.4;
@@ -854,24 +869,22 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-/* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন নিশ্চিত করতে */
-#detailsContent .subcategory-card,
-#detailsContent .data-card-item:has(img[src*="bell"]),
-#detailsContent > div > div.subcategory-card,
-#categoryDetailsView .subcategory-card,
-.subcategory-card {
-    background-color: var(--primary-color, #020624) !important;
-    background: var(--primary-color, #020624) !important;
-    color: #ffffff !important;
-}
+        /* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন নিশ্চিত করতে */
+        #detailsContent .subcategory-card,
+        #detailsContent .data-card-item:has(img[src*="bell"]),
+        #detailsContent > div > div.subcategory-card,
+        #categoryDetailsView .subcategory-card,
+        .subcategory-card {
+            background-color: var(--primary-color, #020624) !important;
+            background: var(--primary-color, #020624) !important;
+            color: #ffffff !important;
+        }
 
-/* সাব-ক্যাটাগরি কার্ডের ভেতরের লেখার কালার সাদা রাখার জন্য */
-#detailsContent .subcategory-card *,
-.subcategory-card * {
-    color: #ffffff !important;
-}
-
-        
+        /* সাব-ক্যাটাগরি কার্ডের ভেতরের লেখার কালার সাদা রাখার জন্য */
+        #detailsContent .subcategory-card *,
+        .subcategory-card * {
+            color: #ffffff !important;
+        }
     </style>
 </head>
 
@@ -1355,10 +1368,11 @@
         }, 3500);
     })();
 
-    // Category details ও Data details page-এ ইমেজ স্লাইডার লুকানো এবং Home page-এ দেখানো
+    // শুধুমাত্র প্রথম পেজে (হোম পেজ) স্লাইডার থাকবে; অন্য কোনো পেজে স্লাইডার থাকবে না
     (function initSubPageHeaderSearch() {
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
+        const mainDashboard = document.getElementById('mainDashboardView');
         const heroSlider = document.getElementById('heroSlider');
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
         const homeSearchBox = document.getElementById('searchBox');
@@ -1367,28 +1381,39 @@
         const clearButton = document.getElementById('clearSubPageSearch');
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
         const mainScrollSheet = document.getElementById('mainScrollSheet');
+        const appTitleText = document.querySelector('.app-title-text');
 
         if (!categoryDetails || !heroSlider || !subPageSearchWrapper) return;
 
         function syncSearchVisibility() {
-            const isSubPage = !categoryDetails.classList.contains('hidden');
+            // হোম পেজ সক্রিয় কিনা তা যাচাই করা
+            const isHomePage = mainDashboard && !mainDashboard.classList.contains('hidden') &&
+                               categoryDetails.classList.contains('hidden') &&
+                               (!dataDetails || dataDetails.classList.contains('hidden'));
+
+            const favoriteView = document.getElementById('favoriteListView') || document.querySelector('.favorite-view-container');
+            const isFavoriteActive = (favoriteView && !favoriteView.classList.contains('hidden')) ||
+                                     (mainDashboard && mainDashboard.classList.contains('hidden') && categoryDetails.classList.contains('hidden')) ||
+                                     (appTitleText && /favorite/i.test(appTitleText.textContent));
+
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
+            const isSubPageOrOther = !isHomePage;
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // হোম পেজ ছাড়া Category বা Data Details কোনো পেজেই ইমেজ স্লাইডার থাকবে না
-            heroSlider.style.display = (isSubPage || isDataPage) ? 'none' : '';
-            if (homeSearchBox) homeSearchBox.style.display = (isSubPage || isDataPage) ? 'none' : '';
+            // ইমেজ স্লাইডার কেবল হোম পেজেই দৃশ্যমান থাকবে, অন্য কোথাও নয়[span_1](start_span)[span_1](end_span)
+            heroSlider.style.display = isHomePage ? '' : 'none';
+            if (homeSearchBox) homeSearchBox.style.display = isHomePage ? '' : 'none';
 
-            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
-            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
+            const showSubSearch = isSubPageOrOther && !isDataPage;
+            subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
+            subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
 
-            // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
             if (mainScrollSheet) {
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!isSubPage && subInput) {
+            if (!showSubSearch && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
@@ -1426,16 +1451,15 @@
         });
 
         const observer = new MutationObserver(syncSearchVisibility);
-        observer.observe(categoryDetails, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-        if (dataDetails) {
-            observer.observe(dataDetails, {
-                attributes: true,
-                attributeFilter: ['class']
-            });
+        observer.observe(categoryDetails, { attributes: true, attributeFilter: ['class'] });
+        if (dataDetails) observer.observe(dataDetails, { attributes: true, attributeFilter: ['class'] });
+        if (mainDashboard) observer.observe(mainDashboard, { attributes: true, attributeFilter: ['class'] });
+        if (appTitleText) observer.observe(appTitleText, { childList: true, characterData: true, subtree: true });
+        
+        if (mainScrollSheet) {
+            observer.observe(mainScrollSheet, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
         }
+
         syncSearchVisibility();
     })();
 </script>
