@@ -364,6 +364,9 @@ function initSettingsModal() {
     const existing = document.getElementById("settingsModal");
     if (existing) existing.remove();
 
+    // ব্যাক বাটন সাপোর্ট করার জন্য হিস্ট্রিতে স্টেট পুশ করা হলো
+    history.pushState({ modal: "settings" }, "");
+
     const themeColor = localStorage.getItem("app_theme_color") || "#ff0000";
     const bgColor = localStorage.getItem("app_bg_color") || "#3f51b5";
     const textColor = localStorage.getItem("app_text_color") || "#ffffff";
@@ -440,10 +443,10 @@ function initSettingsModal() {
                         <label style="font-size:15px;font-weight:600;color:#333;text-align:center;">Apps Data View Mode</label>
                         <div style="display:flex;justify-content:space-around;align-items:center;">
                             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:500;">
-                                                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:500;">
                                 <input type="radio" name="appLang" value="bn" ${language === "bn" ? "checked" : ""} style="cursor:pointer;">
                                 Bangla 🇧🇩
                             </label>
+                            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;font-weight:500;">
                                 <input type="radio" name="appLang" value="en" ${language === "en" ? "checked" : ""} style="cursor:pointer;">
                                 English 🇬🇧
                             </label>
@@ -479,10 +482,30 @@ function initSettingsModal() {
 
     const modal = document.getElementById("settingsModal");
 
+    // ব্যাক বাটন প্রেস করলে মোডাল বন্ধ করার লজিক
+    const handlePopState = (e) => {
+        if (document.getElementById("settingsModal")) {
+            window.removeEventListener("popstate", handlePopState);
+            modal.remove();
+            window.location.reload();
+        }
+    };
+    window.addEventListener("popstate", handlePopState);
+
+    const closeModalAndCleanup = () => {
+        window.removeEventListener("popstate", handlePopState);
+        modal.remove();
+        if (history.state && history.state.modal === "settings") {
+            history.back();
+        } else {
+            window.location.reload();
+        }
+    };
+
     // ভাষা পরিবর্তন হ্যান্ডলার (Google Translate Cookie সেট করা)
     modal.addEventListener("change", e => {
         if (e.target && e.target.name === "appLang") {
-            const selectedLang = e.target.value; // 'en' অথবা 'bn'
+            const selectedLang = e.target.value; 
             const value = `/bn/${selectedLang}`;
             
             document.cookie = `googtrans=${value};path=/;max-age=31536000`;
@@ -490,8 +513,7 @@ function initSettingsModal() {
             localStorage.setItem("app_language", selectedLang);
 
             setTimeout(() => {
-                modal.remove();
-                window.location.reload();
+                closeModalAndCleanup();
             }, 200);
         }
     });
@@ -534,18 +556,16 @@ function initSettingsModal() {
     });
 
     document.getElementById("settingsCloseBtn").addEventListener("click", () => {
-        modal.remove();
-        window.location.reload();
+        closeModalAndCleanup();
     });
 
     modal.addEventListener("click", e => {
         if (e.target === modal) {
-            modal.remove();
-            window.location.reload();
+            closeModalAndCleanup();
         }
     });
 
-    // রিসেট সেটিংস (কুকি সহ মুছে ফেলা)
+    // রিসেট সেটিংস
     document.getElementById("resetSettingsBtn").addEventListener("click", () => {
         localStorage.removeItem("app_theme_color");
         localStorage.removeItem("app_bg_color");
@@ -558,8 +578,7 @@ function initSettingsModal() {
         document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=" + document.domain + "; path=/;";
 
         alert("সেটিংস রিসেট করা হয়েছে!");
-        modal.remove();
-        window.location.reload();
+        closeModalAndCleanup();
     });
 
     document.getElementById("clearDataBtn").addEventListener("click", () => {
