@@ -103,7 +103,7 @@ export function initDrawer() {
             </div>
 
             <div class="drawer-footer">
-                <span>Secure • Version 1.1.0</span>
+                <span>Developer:Jewel Rana• Version 1.1.0</span>
             </div>
 
         </nav>
