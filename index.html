@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- থিম কালার পরিবর্তনের সাথে সাথে ব্রাউজারের স্ট্যাটাস/টপ বার পরিবর্তন হবে -->
     <meta name="theme-color" content="#020624">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -490,6 +489,7 @@
             margin-bottom: 12px !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
             display: flex !important;
+            flex-direction: row !important;
             align-items: center !important;
             position: relative;
             cursor: pointer;
@@ -518,6 +518,9 @@
         #categoryDetailsView .data-card-info {
             flex-grow: 1;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
         }
         #categoryDetailsView .data-card-name {
             font-size: 16px !important;
@@ -529,6 +532,9 @@
             font-size: 12.5px !important;
             color: #64748b !important;
             line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) */
