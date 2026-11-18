@@ -431,41 +431,6 @@
         }
 
         /* =====================================================================
-           Favorite Numbers / Favorites পেজ — এক কলামে উপর থেকে নিচে (Vertical)強制 ওভাররাইড
-           ===================================================================== */
-        #favoritesView, #favoriteNumbersView, 
-        .favorites-container, .favorite-numbers-container,
-        div[id*="favorite"], div[class*="favorite"],
-        #detailsContent:has(.fa-heart), #detailsContent:has(svg), 
-        main.container div:not(#mainDashboardView):not(#categoryDetailsView):not(#dataDetailsView) {
-            display: flex !important;
-            flex-direction: column !important;
-            flex-wrap: nowrap !important;
-            gap: 12px !important;
-            width: 100% !important;
-            float: none !important;
-        }
-        
-        /* ফেভারিট বা সাবলিস্টের ভেতরের প্রতিটি কার্ড ফুল উইডথ এবং লম্বালম্বি হবে */
-        #favoritesView .data-card-item, 
-        #favoriteNumbersView .data-card-item,
-        .favorites-container .data-card-item,
-        .favorite-numbers-container .data-card-item,
-        main.container div:not(#mainDashboardView):not(#categoryDetailsView):not(#dataDetailsView) .data-card-item {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-            margin-bottom: 12px !important;
-            float: none !important;
-            clear: both !important;
-        }
-
-        /* =====================================================================
            কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন
            ===================================================================== */
         body.is-data-details-mode {
@@ -967,7 +932,7 @@
             <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
         </div>
 
-        <!-- ক্যাটাগরি, সাব-পেজ বা Favorite Numbers পেজের সার্চ বক্স -->
+        <!-- ক্যাটাগরি বা সাব-পেজের সার্চ বক্স -->
         <div id="subPageHeaderSearchWrapper" class="header-search-inline hidden">
             <div class="subpage-search-field">
                 <span class="subpage-search-icon" aria-hidden="true">⌕</span>
@@ -1416,20 +1381,20 @@
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // হোম পেজ খোলা থাকলে স্লাইডার দেখাবে; সাব-পেজ, Favorite Numbers বা অন্য কোনো পেজে স্লাইডার লুকানো থাকবে এবং সার্চ ফিল্ড দৃশ্যমান হবে
+            // শুধুমাত্র মূল হোম পেজ খোলা থাকলেই স্লাইডার দেখাবে; Favorite Numbers বা অন্য কোনো পেজে লুকানো থাকবে
             const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage;
             heroSlider.style.display = hideSlider ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
 
-            subPageSearchWrapper.classList.toggle('is-visible', (isSubPage || isFavoritePage) && !isDataPage);
-            subPageSearchWrapper.classList.toggle('hidden', (!isSubPage && !isFavoritePage) || isDataPage);
+            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
+            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
 
             // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
             if (mainScrollSheet) {
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!isSubPage && !isFavoritePage && subInput) {
+            if (!isSubPage && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
