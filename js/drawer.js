@@ -39,11 +39,6 @@ export function initDrawer() {
             <div class="drawer-body">
 
                 <ul class="drawer-menu-list">
-                    <li data-action="home" class="active">
-                        <span class="menu-ico">📖</span>
-                        <span class="menu-text">Police Phonebook</span>
-                    </li>
-
                     <li data-action="search">
                         <span class="menu-ico">🔍</span>
                         <span class="menu-text">Search All Unit & Number</span>
