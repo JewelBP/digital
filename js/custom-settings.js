@@ -33,41 +33,39 @@ function applyThemeColor() {
     themeColorMeta.setAttribute("content", color);
   }
 
-  // ১. হেডার ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  // মূল হেডার ব্যাকগ্রাউন্ড
   const topWrapper = document.querySelector(".modern-top-wrapper");
   if (topWrapper) {
     topWrapper.style.setProperty("background", color, "important");
   }
 
-  // ৩. নিচের নেভিগেশন বার (SVG path) কালার পরিবর্তন (সাদা দাগ বা অংশ দূর করে থিম কালার করবে)
+  // সাইড মেনু বা ড্রয়ারের হেডার অংশ (নতুন যুক্ত করা হলো)
+  const drawerHeaders = document.querySelectorAll(".drawer-header, .nav-drawer-header, .sidebar-header, [class*='drawer'] header, [class*='sidebar'] header");
+  drawerHeaders.forEach(function (el) {
+    el.style.setProperty("background", color, "important");
+    el.style.setProperty("background-color", color, "important");
+  });
+
+  // নিচের নেভিগেশন বার (SVG path)
   const bottomNavPath = document.querySelector(".bottom-nav-svg path");
   if (bottomNavPath) {
     bottomNavPath.style.setProperty("fill", color, "important");
   }
 
-  // ১. ক্যাটাগরি ও সাব-ক্যাটাগরি কার্ড ব্যাকগ্রাউন্ড কালার থিম কালারের সাথে পরিবর্তন হবে
+  // ক্যাটাগরি ও সাব-ক্যাটাগরি কার্ড
   const categoryCards = document.querySelectorAll("#categoryList .category-card, .subcategory-card, #categoryDetailsView .subcategory-card");
   categoryCards.forEach(function (el) {
     el.style.setProperty("background", color, "important");
     el.style.setProperty("background-color", color, "important");
   });
 
-  // ২. কন্টাক্ট ডিটেইলস পেজের ওপরের প্রোফাইল সেকশন (যেখানে নাম ও পদবী থাকে) থিম কালার অনুযায়ী পরিবর্তিত হবে
+  // কন্টাক্ট ডিটেইলস পেজের ওপরের প্রোফাইল সেকশন
   const detailTopHeader = document.querySelector("#dataPageContent > div:first-child");
   if (detailTopHeader) {
     detailTopHeader.style.setProperty("background", color, "important");
   }
-
-  const toolbarElements = document.querySelectorAll(".topbar, .drawer-header, .sub-toolbar");
-  toolbarElements.forEach(function (el) {
-    el.style.setProperty("background-color", color, "important");
-  });
-
-  const headers = document.querySelectorAll(".header-box, .header-banner");
-  headers.forEach(function (el) {
-    el.style.setProperty("background-color", color, "important");
-  });
 }
+
 
 /* ============================================================
    BACKGROUND (FIXED IMAGE & COLOR)
