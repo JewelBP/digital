@@ -856,26 +856,49 @@ body.is-admin .header-banner > span {
     margin-bottom: 10px;
 }
 
+/* পপআপ ডায়ালগ বক্স এবং ব্যাকগ্রাউন্ড ফিক্স */
 .modal {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.7) !important; /* পেছনের কালো আবছা ব্যাকগ্রাউন্ড */
     display: flex;
     justify-content: center;
-    align-items: flex-start !important; /* মাঝখান থেকে ওপরের দিকে নিয়ে আসার জন্য */
-    padding-top: 40px !important;       /* ওপর থেকে কতটুকু নিচে থাকবে তা এখানে নিয়ন্ত্রণ করা যাবে */
+    align-items: flex-start !important; /* পপআপটি ওপরের দিকে রাখার জন্য */
+    padding-top: 25px !important;       /* ওপর থেকে নিরাপদ দূরত্ব */
+    padding-bottom: 75px !important;    /* নিচের বটম নেভিগেশন বা নচ থেকে নিরাপদ দূরত্ব */
     z-index: 10000 !important;
     box-sizing: border-box !important;
 }
 
-.modal-content {
-    max-height: calc(100dvh - 90px) !important;
-    overflow-y: auto !important;
-    margin: 0 auto;
+.modal.hidden {
+    display: none !important;
 }
+
+/* ডায়ালগ বক্সের ভেতরের মূল কন্টেন্ট (স্বচ্ছ বা ট্রান্সপারেন্ট না হয়ে স্পষ্ট থাকবে) */
+.modal-content {
+    background-color: #ffffff !important; /* লাইট মোডে স্পষ্ট সাদা ব্যাকগ্রাউন্ড */
+    color: #0f172a !important;            /* স্পষ্ট গাঢ় লেখা */
+    border-radius: 16px !important;
+    padding: 20px !important;
+    width: 92% !important;
+    max-width: 450px !important;
+    max-height: calc(100dvh - 105px) !important; /* নিচের নচের ওপর পর্যাপ্ত জায়গা রেখে উচ্চতা নির্ধারণ */
+    overflow-y: auto !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+    margin: 0 auto !important;
+    position: relative !important;
+}
+
+/* ডার্ক মোডের জন্য পপআপ ডায়ালগের স্পষ্ট ব্যাকগ্রাউন্ড */
+body.dark-mode .modal-content {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border: 1px solid #334155 !important;
+}
+
 
 
 .modal-header {
