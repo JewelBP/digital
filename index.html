@@ -431,6 +431,26 @@
         }
 
         /* =====================================================================
+           Favorite Numbers / Favorites পেজ — উপর থেকে নিচে (Vertical Column) লিস্ট স্টাইল
+           ===================================================================== */
+        #favoritesView, #favoriteNumbersView, 
+        .favorites-container, .favorite-numbers-container {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+            width: 100% !important;
+        }
+        #favoritesView .data-card-item, 
+        #favoriteNumbersView .data-card-item,
+        .favorites-container .data-card-item {
+            width: 100% !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+        }
+
+        /* =====================================================================
            কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন
            ===================================================================== */
         body.is-data-details-mode {
@@ -1422,7 +1442,7 @@
             });
         }
 
-        clearButton?.addEventListener('click', () => {
+clearButton?.addEventListener('click', () => {
             if (!subInput || !mainInput) return;
             subInput.value = '';
             mainInput.value = '';
