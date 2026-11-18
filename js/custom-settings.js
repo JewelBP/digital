@@ -31,34 +31,30 @@ function applyThemeColor() {
     metaTheme.setAttribute("content", color);
   }
 
-  // ২. টুলবারের সমস্ত অংশ (স্লাইডারের পেছনের পুরো টপ র‍্যাপার সহ)
+  // ২. টুলবারের সমস্ত অংশ
   const topWrappers = document.querySelectorAll(".modern-top-wrapper, .modern-header, .app-header, header, .topbar, .drawer-header, .sub-toolbar, .header-box, .header-banner");
   topWrappers.forEach(function (el) {
     el.style.setProperty("background", color, "important");
     el.style.setProperty("background-color", color, "important");
   });
 
-  // ৩. কন্টাক্ট ডিটেইলস পেজের উপরের টপ অংশ
+  // ৩. কন্টাক্ট ডিটেইলস পেজের উপরের মূল ব্যাকগ্রাউন্ড অংশ (তীর চিহ্নিত স্থান)
   const detailsTop = document.querySelector("#dataPageContent > div:first-child");
   if (detailsTop) {
     detailsTop.style.setProperty("background", color, "important");
     detailsTop.style.setProperty("background-color", color, "important");
   }
 
-  // ৪. নাম ও পদবীর পেছনের বক্সটি (টুলবার ও নেভিগেশনের মতো থিম কালার অনুযায়ী পরিবর্তন হবে)
-  const nameBoxes = document.querySelectorAll("#dataPageContent h1, #dataPageContent h2, #dataPageContent h3, #dataPageContent .detail-name, #dataPageContent .profile-name");
-  nameBoxes.forEach(function (el) {
-    el.style.setProperty("background", color, "important");
-    el.style.setProperty("background-color", color, "important");
-  });
+  // (এখানে নাম বক্সের কোডটি বাদ দেওয়া হয়েছে যাতে সেটি ট্রান্সপারেন্ট থাকে)
 
-  // ৫. নিচের নচযুক্ত নেভিগেশন বারের SVG রঙ পরিবর্তন
+  // ৪. নিচের নচযুক্ত নেভিগেশন বারের SVG রঙ পরিবর্তন
   const bottomNavPaths = document.querySelectorAll(".custom-bottom-nav .bottom-nav-svg path, .bottom-nav-svg path");
   bottomNavPaths.forEach(function (path) {
     path.setAttribute("fill", color);
     path.style.setProperty("fill", color, "important");
   });
 }
+
 
 /* ============================================================
    BACKGROUND (FIXED IMAGE & COLOR - সাদা শিট অপরিবর্তিত থাকবে)
