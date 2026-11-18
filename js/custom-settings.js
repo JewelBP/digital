@@ -17,20 +17,29 @@ function applyCustomSettings() {
 }
 
 /* ============================================================
-   THEME COLOR (헤ডার, নেভিগেশন বার, ক্যাটাগরি, সাব-ক্যাটাগরি ও ডিটেলস টপ সেকশন)
+   THEME COLOR (হেডার, স্ট্যাটাস বার, নেভিগেশন বার, ক্যাটাগরি, সাব-ক্যাটাগরি ও ডিটেলস টপ সেকশন)
    ============================================================ */
 function applyThemeColor() {
-  const color = localStorage.getItem(CS_THEME);
-  if (!color) return;
+  let color = localStorage.getItem(CS_THEME);
+  if (!color) {
+    color = "#020624"; // ডিফল্ট কালার
+  }
 
   document.documentElement.style.setProperty("--primary-color", color);
 
-  // হেডার ও নেভিগেশন বার ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  // ব্রাউজারের স্ট্যাটাস বার/মেটা থিম কালার আপডেট করা
+  let themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeColorMeta) {
+    themeColorMeta.setAttribute("content", color);
+  }
+
+  // হেডার ব্যাকগ্রাউন্ড কালার পরিবর্তন
   const topWrapper = document.querySelector(".modern-top-wrapper");
   if (topWrapper) {
     topWrapper.style.setProperty("background", color, "important");
   }
 
+  // বটম নেভিগেশন বার (SVG path) কালার পরিবর্তন
   const bottomNavPath = document.querySelector(".bottom-nav-svg path");
   if (bottomNavPath) {
     bottomNavPath.style.setProperty("fill", color, "important");
