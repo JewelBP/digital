@@ -853,6 +853,25 @@
         .zoom-ctrl-btn:active {
             background: rgba(255, 255, 255, 0.3);
         }
+
+/* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন নিশ্চিত করতে */
+#detailsContent .subcategory-card,
+#detailsContent .data-card-item:has(img[src*="bell"]),
+#detailsContent > div > div.subcategory-card,
+#categoryDetailsView .subcategory-card,
+.subcategory-card {
+    background-color: var(--primary-color, #020624) !important;
+    background: var(--primary-color, #020624) !important;
+    color: #ffffff !important;
+}
+
+/* সাব-ক্যাটাগরি কার্ডের ভেতরের লেখার কালার সাদা রাখার জন্য */
+#detailsContent .subcategory-card *,
+.subcategory-card * {
+    color: #ffffff !important;
+}
+
+        
     </style>
 </head>
 
