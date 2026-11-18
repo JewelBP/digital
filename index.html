@@ -372,15 +372,26 @@
             transform: scale(0.75);
         }
 
-        /* ক্যাটাগরি ডিটেইলস এবং Favorite Numbers ডাটা কার্ড স্টাইল (একরকম পূর্ণ প্রস্থে একটার নিচে আরেকটি থাকবে) */
-        #categoryDetailsView {
-            background-color: transparent !important;
-            padding: 0;
-            min-height: auto;
+        /* 
+           =====================================================================
+           অত্যন্ত কঠোর ও নিশ্চিত নিয়ম: ক্যাটাগরি এবং ফেভারিট পেজের সকল ডাটা কার্ড 
+           সর্বদা ১০০% প্রস্থে একটির নিচে আরেকটি (Vertical Stack) থাকবে।
+           ===================================================================== 
+        */
+        #categoryDetailsView,
+        #favoriteNumbersView,
+        #favoritesView,
+        #favoritesList,
+        #favoriteList,
+        main.container > div:not(#mainDashboardView):not(#dataDetailsView) {
+            display: flex !important;
+            flex-direction: column !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            float: none !important;
+            clear: both !important;
         }
-        #categoryDetailsView .dashboard-header {
-            display: none !important;
-        }
+
         #categoryDetailsView .data-card-item,
         #favoriteNumbersView .data-card-item,
         #favoritesView .data-card-item,
@@ -394,11 +405,12 @@
             margin-bottom: 12px !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
             display: flex !important;
+            flex-direction: row !important;
             align-items: center !important;
             justify-content: space-between !important;
             gap: 10px !important;
-            position: relative;
-            cursor: pointer;
+            position: relative !important;
+            cursor: pointer !important;
             width: 100% !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
@@ -1009,7 +1021,7 @@
 
         <!-- হোম পেজের সার্চ বক্স -->
         <div id="searchBox" class="header-search-box hidden" style="margin: 4px 16px 8px;">
-            <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
+            <input type="search" id="searchInput" placeholder="Category, Header अथवा Data খুঁজুন..." autocomplete="off">
         </div>
 
         <!-- ক্যাটাগরি বা সাব-পেজ এবং Favorite Numbers পেজের সার্চ বক্স -->
@@ -1475,7 +1487,7 @@
             favContainers.forEach(card => {
                 const text = (card.textContent || '').toLowerCase();
                 const match = !q || text.includes(q);
-                card.style.display = match ? '' : 'none';
+                card.style.display = match ? 'flex' : 'none';
             });
         }
 
