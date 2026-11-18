@@ -877,6 +877,7 @@
            ফিক্স: Favorite Numbers পেজের কার্ড অনুভূমিক (সাইডে স্ক্রল) না হয়ে
            অন্য ক্যাটাগরির মতো উপর-নিচ উল্লম্বভাবে সাজানো থাকবে
            ===================================================================== */
+        #categoryList:has(> .data-card-item),
         #categoryDetailsView :has(> .data-card-item),
         #detailsContent :has(> .data-card-item) {
             display: flex !important;
@@ -892,8 +893,10 @@
             transform: none !important;
             animation: none !important;
         }
+        #categoryList .data-card-item,
         #categoryDetailsView .data-card-item,
         #detailsContent .data-card-item {
+            margin-bottom: 12px !important;
             flex: 0 0 auto !important;
             width: 100% !important;
             min-width: 0 !important;
