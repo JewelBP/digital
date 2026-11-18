@@ -17,13 +17,37 @@ function applyCustomSettings() {
 }
 
 /* ============================================================
-   THEME COLOR
+   THEME COLOR (헤ডার, নেভিগেশন বার, ক্যাটাগরি, সাব-ক্যাটাগরি ও ডিটেলস টপ সেকশন)
    ============================================================ */
 function applyThemeColor() {
   const color = localStorage.getItem(CS_THEME);
   if (!color) return;
 
   document.documentElement.style.setProperty("--primary-color", color);
+
+  // হেডার ও নেভিগেশন বার ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  const topWrapper = document.querySelector(".modern-top-wrapper");
+  if (topWrapper) {
+    topWrapper.style.setProperty("background", color, "important");
+  }
+
+  const bottomNavPath = document.querySelector(".bottom-nav-svg path");
+  if (bottomNavPath) {
+    bottomNavPath.style.setProperty("fill", color, "important");
+  }
+
+  // ক্যাটাগরি ও সাব-ক্যাটাগরি কার্ড ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  const categoryCards = document.querySelectorAll("#categoryList .category-card, .subcategory-card, #categoryDetailsView .subcategory-card");
+  categoryCards.forEach(function (el) {
+    el.style.setProperty("background", color, "important");
+    el.style.setProperty("background-color", color, "important");
+  });
+
+  // কার্ড ডিটেলস বা কন্টাক্ট ডিটেলস পেজের টপ স্টিকি হেডার ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  const detailTopHeader = document.querySelector("#dataPageContent > div:first-child");
+  if (detailTopHeader) {
+    detailTopHeader.style.setProperty("background", color, "important");
+  }
 
   const toolbarElements = document.querySelectorAll(".topbar, .drawer-header, .sub-toolbar");
   toolbarElements.forEach(function (el) {
@@ -50,14 +74,12 @@ function applyBackground() {
     document.body.style.setProperty("background-repeat", "no-repeat", "important");
     document.body.style.setProperty("background-attachment", "fixed", "important");
 
-    // ব্যাকগ্রাউন্ড ইমেজ থাকলে এই ক্লাসটি যুক্ত হবে, ফলে কার্ড ট্রান্সপারেন্ট হবে
     document.body.classList.add("has-bg-image");
 
     if (color) {
       document.body.style.setProperty("background-color", color, "important");
     }
   } else {
-    // শুধু কালার থাকলে বা ছবি না থাকলে ক্লাসটি রিমুভ হয়ে যাবে, কার্ড সলিড থাকবে
     document.body.classList.remove("has-bg-image");
     document.body.style.removeProperty("background-image");
 
