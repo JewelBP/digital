@@ -90,7 +90,7 @@ export function initDrawer() {
                     </li>
 
                     <li data-action="driving">
-                        <span class="menu-ico">📲</span>
+                        <span class="menu-ico">📝</span>
                         <span class="menu-text">Driving Note</span>
                     </li>
 
@@ -103,7 +103,7 @@ export function initDrawer() {
             </div>
 
             <div class="drawer-footer">
-                <span>Developer:Jewel Rana• Version 1.1.0</span>
+                <span>Developer: Jewel Rana • Version 1.1.0</span>
             </div>
 
         </nav>
