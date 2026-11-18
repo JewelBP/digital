@@ -577,7 +577,7 @@
         }
 
         #dataPageContent > div:first-child {
-            background: var(--primary-color, #020624) !important;
+            background: var(--primary-color, #020624) !important; /* থিম কালার না থাকলে #020624 কমন কালার হিসেবে থাকবে, থিম আসলে সেটি হয়ে যাবে */
             color: #ffffff !important;
             padding: 24px 16px 26px 16px !important;
             border-radius: 0 0 24px 24px !important;
@@ -610,7 +610,6 @@
         }
         /* মার্কিং করা নির্দিষ্ট বক্সের কালার যা থিম পরিবর্তনেও অপরিবর্তিত থাকবে */
         #dataPageContent h1,
-        #dataPageContent h1,
         #dataPageContent h2,
         #dataPageContent h3,
         #dataPageContent .detail-name,
@@ -620,7 +619,7 @@
             font-weight: 700 !important;
             margin: 0 auto 6px auto !important;
             text-align: center !important;
-            background: var(--primary-color, #060e2b) !important; /* থিম পরিবর্তন করলে এই বক্সের রঙও টুলবারের মতো বদলাবে */
+            background: var(--primary-color, #060e2b) !important; /* এখানেও থিম কালার পেলে সেটি নেবে, না পেলে কমন কালার #060e2b থাকবে */
             padding: 7px 12px !important;
             border-radius: 10px !important;
             max-width: 90% !important;
