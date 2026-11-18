@@ -59,7 +59,7 @@
             padding-bottom: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden;
+            overflow: hidden; /* মূল পেজ স্ক্রল বন্ধ রেখে ভেতরের শিট স্ক্রল হবে যাতে কর্নার সবসময় অক্ষত থাকে */
             height: 100vh;
             height: 100dvh;
         }
@@ -78,7 +78,7 @@
         .modern-top-wrapper {
             background: var(--primary-color, #020624);
             color: #ffffff;
-            padding-bottom: 24px;
+            padding-bottom: 24px; /* নিচের সাদা শিটের বাঁকানো কর্নারের পেছনে ডার্ক ব্যাকগ্রাউন্ড রাখার জন্য */
             flex-shrink: 0;
             position: relative;
             z-index: 10;
@@ -214,7 +214,7 @@
             display: block;
         }
 
-        /* ইমেজ স্লাইডার (শুধুমাত্র মেইন পেজে থাকবে) */
+        /* ইমেজ স্লাইডার (শুধুমাত্র প্রথম পেজে থাকবে) */
         .hero-slider-container {
             position: relative;
             margin: 4px 16px 0;
@@ -300,124 +300,29 @@
             border-radius: 4px;
         }
 
-        /* Favorite numbers মোডে স্লাইডার ও বাটন সম্পূর্ণ হাইড রাখার রুল */
-        body.is-favorite-mode #heroSlider,
-        body.is-favorite-mode #adminActionContainer,
-        body.is-favorite-mode #emptyAddBtn,
-        body.is-favorite-mode #mainDashboardView .dashboard-header {
-            display: none !important;
-        }
-
-        /* নোটিশ বার এবং কার্ডগুলোর মধ্যকার স্পেস সব পেজে সমান রাখার ফিক্স */
-        #slidingNoticeContainer {
-            margin-bottom: 12px !important;
-            padding-bottom: 0 !important;
-        }
-        body.is-favorite-mode #mainDashboardView,
-        body.is-favorite-mode #categoryList.category-list,
-        body.is-favorite-mode #categoryList,
-        #categoryDetailsView,
-        #detailsContent {
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-        }
-
-        /* Favorite Numbers পেজের কার্ডগুলো হুবহু ডাটা কার্ডের (.data-card-item) মাপে দেখানোর জন্য */
-        body.is-favorite-mode #categoryList.category-list,
-        body.is-favorite-mode #categoryList {
-            display: flex !important;
-            flex-direction: column !important;
-            grid-template-columns: 1fr !important;
-            gap: 0px !important;
-            width: 100% !important;
-        }
-
-        body.is-favorite-mode #categoryList .data-card-item,
-        body.is-favorite-mode #categoryList > div {
-            width: 100% !important;
-            min-width: 100% !important;
-            max-width: 100% !important;
-            height: 100px !important;
-            padding: 14px 16px !important;
-            margin: 0 0 12px 0 !important;
-            background-color: #ffffff !important;
-            border: 1px solid #e2e8f0 !important;
-            border-radius: 20px !important;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            text-align: left !important;
-            box-sizing: border-box !important;
-        }
-
-        body.dark-mode.is-favorite-mode #categoryList .data-card-item,
-        body.dark-mode.is-favorite-mode #categoryList > div {
-            background-color: #1e293b !important;
-            border-color: #334155 !important;
-        }
-
-        /* সাদা বাঁকানো মূল শিট */
+        /* সাদা বাঁকানো মূল শিট (কর্নার ফিক্সড রেখে ভেতরে স্মুথ স্ক্রল) */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
             border-top-right-radius: 24px;
             flex: 1;
-            margin-top: -16px;
+            margin-top: -16px; /* হেডারের ডার্ক অংশের ওপর উঠে এসে দুই পাশের কর্নার পরিষ্কারভাবে দেখাবে */
             position: relative;
             z-index: 20;
             box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.2);
-            overflow-y: auto;
+            overflow-y: auto; /* শুধুমাত্র এই সাদা অংশের ভেতরের কন্টেন্ট স্ক্রল হবে */
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 16px 14px 80px 14px;
         }
 
         /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
-
-        /* মেইন পেজের + Category এবং নোটিফিকেশন বাটন বড় ও আকর্ষণীয় করার স্টাইল */
-        #adminActionContainer {
-            display: flex !important;
-            gap: 12px !important;
-            width: 100% !important;
-            margin-bottom: 16px !important;
-        }
-
-        #adminActionContainer.hidden {
-            display: none !important;
-        }
-
-        #addCategoryBtn,
-        #notificationBtn {
-            flex: 1 !important;
-            height: 38px !important;          
-            font-size: 12px !important;       
-            font-weight: 700 !important;
-            border-radius: 12px !important;   
-            padding: 0 16px !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            gap: 8px !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12) !important;
-        }
-
-        /* নোটিফিকেশন ব্যাজ (লাল ডট) সঠিক পজিশনে রাখার জন্য */
-        #notificationBtn #notifBadge {
-            top: 10px !important;
-            right: 14px !important;
-            width: 10px !important;
-            height: 10px !important;
-        }
-        
         #categoryList.category-list {
             display: grid !important;
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 12px !important;
         }
-        #categoryList .category-card,
-        .subcategory-card,
-        #categoryDetailsView .subcategory-card {
+        #categoryList .category-card {
             background: var(--primary-color, #020624) !important;
             background-color: var(--primary-color, #020624) !important;
             border: none !important;
@@ -448,12 +353,9 @@
             border-radius: 8px !important;
             object-fit: contain !important;
         }
-        
-        #categoryList .category-card h3,
-        .subcategory-card h3,
-        #categoryDetailsView .subcategory-card h3 {
+        #categoryList .category-card h3 {
             color: #ffffff !important;
-            font-size: 16px !important;
+            font-size: 12px !important;
             font-weight: 600 !important;
             line-height: 1.25 !important;
             display: -webkit-box;
@@ -461,8 +363,6 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-      
-
         #categoryList .category-card > div:last-child {
             position: absolute;
             top: 3px;
@@ -489,7 +389,6 @@
             margin-bottom: 12px !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
             display: flex !important;
-            flex-direction: row !important;
             align-items: center !important;
             position: relative;
             cursor: pointer;
@@ -518,9 +417,6 @@
         #categoryDetailsView .data-card-info {
             flex-grow: 1;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
         }
         #categoryDetailsView .data-card-name {
             font-size: 16px !important;
@@ -532,12 +428,11 @@
             font-size: 12.5px !important;
             color: #64748b !important;
             line-height: 1.4;
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
 
-        /* কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) */
+        /* =====================================================================
+           কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন
+           ===================================================================== */
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
@@ -588,6 +483,7 @@
             padding: 0 !important;
         }
 
+        /* ১. একদম ওপরের প্রোফাইল অংশ (থিম কালার অনুযায়ী পরিবর্তনশীল) */
         #dataPageContent > div:first-child {
             background: var(--primary-color, #020624) !important;
             color: #ffffff !important;
@@ -646,6 +542,7 @@
             text-align: center !important;
         }
 
+        /* ইনফো কার্ডগুলোর পারফেক্ট মার্জিন ও প্যাডিং */
         #dataPageContent .info-row,
         #dataPageContent .detail-row,
         #dataPageContent .data-field,
@@ -676,6 +573,7 @@
             border-color: #334155 !important;
         }
 
+        /* লেবেল ও মান */
         #dataPageContent .info-row .label,
         #dataPageContent .detail-row .label,
         #dataPageContent .field-label,
@@ -720,6 +618,7 @@
             color: #f1f5f9 !important;
         }
 
+        /* ২. মোবাইল, টেলিফোন ও ইমেইল বাটন — ৩ কলাম গ্রিড আকারে এক সারিতে সুবিন্যস্ত */
         #dataPageContent .action-buttons,
         #dataPageContent .detail-actions,
         #dataPageContent .btn-group,
@@ -777,6 +676,7 @@
             background: linear-gradient(135deg, #ea4335, #c5221f) !important;
         }
 
+        /* ৩. শেয়ার কন্টাক্ট — নিচে আলাদা পূর্ণ প্রস্থের (Full-width) স্বতন্ত্র ঘর ও আইকন */
         #dataPageContent .share-contact-card,
         #dataPageContent a[href*="share"],
         #dataPageContent button[id*="share"],
@@ -806,29 +706,16 @@
             cursor: pointer !important;
         }
 
-/* বটম নচ বা নেভিগেশন বার */
-.custom-bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 48px;
-    z-index: 9999;
-    pointer-events: none;
-}
-
-/* মোডালগুলো যেন সবসময় নচের উপরে ভেসে থাকে এবং নিচের অংশ না কাটে */
-.modal {
-    z-index: 10000 !important;
-    padding-bottom: 60px !important;
-    box-sizing: border-box !important;
-}
-
-.modal-content {
-    max-height: calc(100dvh - 85px) !important;
-    overflow-y: auto !important;
-}
-
+        /* একদম ছবির মতো বাঁকানো গর্ত ও মাঝখানের লোগোসহ নিচের নেভিগেশন বার */
+        .custom-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            z-index: 9999;
+            pointer-events: none;
+        }
         .bottom-nav-svg {
             position: absolute;
             bottom: 0;
@@ -864,6 +751,7 @@
             object-fit: cover;
         }
 
+        /* ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো */
         .image-zoom-modal {
             position: fixed;
             inset: 0;
@@ -965,53 +853,6 @@
         .zoom-ctrl-btn:active {
             background: rgba(255, 255, 255, 0.3);
         }
-    
-        /* ===== ADMIN/USER FONT + DARK MODE CONSISTENCY FIX ===== */
-
-        /* Main category and subcategory cards */
-        body.dark-mode #categoryList .category-card,
-        body.dark-mode .subcategory-card,
-        body.dark-mode #categoryDetailsView .subcategory-card {
-            background: var(--primary-color, #1e293b) !important;
-            background-color: var(--primary-color, #1e293b) !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        body.dark-mode #categoryList .category-card h3,
-        body.dark-mode .subcategory-card h3,
-        body.dark-mode #categoryDetailsView .subcategory-card h3 {
-            color: #f8fafc !important;
-        }
-
-        /* Data cards on category/subcategory pages */
-        body.dark-mode #categoryDetailsView .data-card-item,
-        body.dark-mode #categoryList .data-card-item,
-        body.dark-mode .data-card-item {
-            background: #1e293b !important;
-            background-color: #1e293b !important;
-            border-color: #334155 !important;
-            color: #f8fafc !important;
-        }
-
-        body.dark-mode #categoryDetailsView .data-card-name,
-        body.dark-mode #categoryList .data-card-name,
-        body.dark-mode .data-card-name {
-            color: #f8fafc !important;
-        }
-
-        body.dark-mode #categoryDetailsView .data-card-detail,
-        body.dark-mode #categoryList .data-card-detail,
-        body.dark-mode .data-card-detail {
-            color: #cbd5e1 !important;
-        }
-
-        body.dark-mode #categoryDetailsView .data-card-avatar,
-        body.dark-mode .data-card-avatar {
-            background: #334155 !important;
-            border-color: #475569 !important;
-        }
-
     </style>
 </head>
 
@@ -1044,7 +885,7 @@
 
 <div id="appContainer">
 
-    <!-- ডার্ক হেডার এবং স্লাইডার (মেইন পেজের জন্য স্লাইডার রাখা হয়েছে) -->
+    <!-- ডার্ক হেডার এবং স্লাইডার -->
     <div class="modern-top-wrapper">
         <header class="modern-header">
             <div class="header-left-group">
@@ -1063,6 +904,7 @@
 
             <div class="header-right-group">
                 <button id="adminLoginBtn" class="primary-btn active-btn btn-admin-small hidden" type="button">🔑</button>
+                <button id="themeBtn" class="modern-icon-btn" title="নাইট/ডে মোড" type="button">🌙</button>
                 <img src="icons/icon-192.png" alt="Logo" class="header-logo-img">
             </div>
         </header>
@@ -1085,7 +927,7 @@
             </div>
         </div>
 
-        <!-- ইমেজ স্লাইডার (শুধুমাত্র মেইন পেজে থাকবে, Favorite বা সাব-পেজে অটো হাইড হবে) -->
+        <!-- ইমেজ স্লাইডার (শুধুমাত্র প্রথম পেজে থাকবে) -->
         <div class="hero-slider-container" id="heroSlider">
             <div class="slider-track" id="sliderTrack">
                 <div class="slide-item">
@@ -1113,16 +955,15 @@
         </div>
     </div>
 
-    <!-- সাদা বাঁকানো মূল শিট -->
+    <!-- সাদা বাঁকানো মূল শিট (এর ভেতরেই স্ক্রল হবে যাতে দুই পাশের কর্নার অক্ষত থাকে) -->
     <div class="curved-main-sheet" id="mainScrollSheet">
         
         <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
-        <div id="slidingNoticeContainer" style="background: transparent; border-bottom: 1px solid var(--border-color); overflow: hidden; display: none; margin-bottom: 12px; border-radius: 8px;"></div>
+        <div id="slidingNoticeContainer" style="background: transparent; border-bottom: 1px solid var(--border-color); overflow: hidden; display: none; margin-bottom: 4px; border-radius: 8px;"></div>
 
         <main class="container">
             <div id="mainDashboardView">
                 <section class="dashboard-header">
-                    <!-- মেইন পেজে অ্যাডমিনদের জন্য বাটন সচল থাকবে, Favorite numbers এ অটো হাইড হবে -->
                     <div id="adminActionContainer" class="admin-only hidden" style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
                         <button id="addCategoryBtn" class="primary-btn" type="button" style="flex: 1;">＋ Category</button>
                         <button id="notificationBtn" class="secondary-btn" type="button" style="flex: 1; position: relative;">
@@ -1214,7 +1055,7 @@
                 <input id="applicantName" type="text" placeholder="যেমন: মো: আব্দুর রহিম">
             </div>
             <div class="form-group">
-                <label>পদবী / পরিচয় *</label>
+                <label>পদবী / পরিচয় *</label>
                 <input id="applicantDesignation" type="text" placeholder="যেমন: সাব-ইন্সপেক্টর / পরিচয় সংক্রান্ত তথ্য">
             </div>
             <div class="modal-actions">
@@ -1462,7 +1303,7 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // অটো ইমেজ স্লাইডার (মেইন পেজের জন্য)
+    // অটো ইমেজ স্লাইডার (হোম পেজের জন্য)
     (function initHeroSlider() {
         const track = document.getElementById('sliderTrack');
         const dotsContainer = document.getElementById('sliderDots');
@@ -1496,8 +1337,8 @@
         }, 3500);
     })();
 
-    // মেইন পেজ, সাব-পেজ এবং Favorite numbers পেজের কন্ট্রোল
-    (function initPageViewSync() {
+    // Category details ও Data details page-এ ইমেজ স্লাইডার লুকানো এবং Home page-এ দেখানো
+    (function initSubPageHeaderSearch() {
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
         const heroSlider = document.getElementById('heroSlider');
@@ -1508,45 +1349,28 @@
         const clearButton = document.getElementById('clearSubPageSearch');
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
         const mainScrollSheet = document.getElementById('mainScrollSheet');
-        const appTitleEl = document.getElementById('appTitle');
-        const adminActionContainer = document.getElementById('adminActionContainer');
-        const emptyAddBtn = document.getElementById('emptyAddBtn');
 
         if (!categoryDetails || !heroSlider || !subPageSearchWrapper) return;
 
-        function syncVisibility() {
+        function syncSearchVisibility() {
             const isSubPage = !categoryDetails.classList.contains('hidden');
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
-            const titleText = appTitleEl ? appTitleEl.textContent.toLowerCase() : '';
-            const isFavoritePage = titleText.includes('favorite') || 
-                                   document.body.classList.contains('favorite-mode') ||
-                                   window.location.hash.toLowerCase().includes('favorite');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
-            document.body.classList.toggle('is-favorite-mode', isFavoritePage);
 
-            // মেইন পেজে স্লাইডার থাকবে, কিন্তু সাব-পেজ, ডিটেইলস পেজ অথবা Favorite numbers পেজে হাইড হবে
-            const hideSlider = isSubPage || isDataPage || isFavoritePage;
-            heroSlider.style.display = hideSlider ? 'none' : '';
+            // হোম পেজ ছাড়া Category বা Data Details কোনো পেজেই ইমেজ স্লাইডার থাকবে না
+            heroSlider.style.display = (isSubPage || isDataPage) ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = (isSubPage || isDataPage) ? 'none' : '';
 
-            // Favorite numbers পেজে ইউজার বা অ্যাডমিন কারো জন্যই (+Category, নোটিফিকেশন, +প্রথম Category) থাকবে না
-            if (isFavoritePage) {
-                if (adminActionContainer) adminActionContainer.style.setProperty('display', 'none', 'important');
-                if (emptyAddBtn) emptyAddBtn.style.setProperty('display', 'none', 'important');
-            } else {
-                if (adminActionContainer) adminActionContainer.style.removeProperty('display');
-                if (emptyAddBtn) emptyAddBtn.style.removeProperty('display');
-            }
+            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
+            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
 
-            subPageSearchWrapper.classList.toggle('is-visible', (isSubPage || isFavoritePage) && !isDataPage);
-            subPageSearchWrapper.classList.toggle('hidden', (!isSubPage && !isFavoritePage) || isDataPage);
-
+            // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
             if (mainScrollSheet) {
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!isSubPage && !isFavoritePage && subInput) {
+            if (!isSubPage && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
@@ -1583,14 +1407,18 @@
             subInput.focus();
         });
 
-        const observer = new MutationObserver(syncVisibility);
-        observer.observe(categoryDetails, { attributes: true, attributeFilter: ['class'] });
-        if (dataDetails) observer.observe(dataDetails, { attributes: true, attributeFilter: ['class'] });
-        if (appTitleEl) observer.observe(appTitleEl, { childList: true, subtree: true, characterData: true });
-        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-        window.addEventListener('hashchange', syncVisibility);
-
-        syncVisibility();
+        const observer = new MutationObserver(syncSearchVisibility);
+        observer.observe(categoryDetails, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+        if (dataDetails) {
+            observer.observe(dataDetails, {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
+        syncSearchVisibility();
     })();
 </script>
 
