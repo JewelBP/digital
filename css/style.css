@@ -856,19 +856,15 @@ body.is-admin .header-banner > span {
     margin-bottom: 10px;
 }
 
-/* পপআপ ডায়ালগ বক্স এবং ব্যাকগ্রাউন্ড ফিক্স */
+/* পপআপ ডায়ালগ বক্স সেন্টার থেকে শুরু এবং নচের উপরে থাকবে */
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7) !important; /* পেছনের কালো আবছা ব্যাকগ্রাউন্ড */
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7) !important; /* পেছনের ব্যাকগ্রাউন্ড আবছা অন্ধকার */
     display: flex;
     justify-content: center;
-    align-items: flex-start !important; /* পপআপটি ওপরের দিকে রাখার জন্য */
-    padding-top: 25px !important;       /* ওপর থেকে নিরাপদ দূরত্ব */
-    padding-bottom: 75px !important;    /* নিচের বটম নেভিগেশন বা নচ থেকে নিরাপদ দূরত্ব */
+    align-items: center !important;     /* একদম স্ক্রিনের সেন্টারে রাখবে */
+    padding: 15px 15px 70px 15px !important; /* নিচের নচ বা নেভিগেশন বারের জন্য জায়গা রেখে প্যাডিং */
     z-index: 10000 !important;
     box-sizing: border-box !important;
 }
@@ -877,22 +873,23 @@ body.is-admin .header-banner > span {
     display: none !important;
 }
 
-/* ডায়ালগ বক্সের ভেতরের মূল কন্টেন্ট (স্বচ্ছ বা ট্রান্সপারেন্ট না হয়ে স্পষ্ট থাকবে) */
+/* পপআপ কন্টেন্ট বক্স (স্বচ্ছতা দূর করে স্পষ্ট ব্যাকগ্রাউন্ড দেওয়া হলো) */
 .modal-content {
     background-color: #ffffff !important; /* লাইট মোডে স্পষ্ট সাদা ব্যাকগ্রাউন্ড */
     color: #0f172a !important;            /* স্পষ্ট গাঢ় লেখা */
-    border-radius: 16px !important;
-    padding: 20px !important;
+    border-radius: 18px !important;
+    padding: 22px !important;
     width: 92% !important;
-    max-width: 450px !important;
-    max-height: calc(100dvh - 105px) !important; /* নিচের নচের ওপর পর্যাপ্ত জায়গা রেখে উচ্চতা নির্ধারণ */
+    max-width: 440px !important;
+    max-height: calc(100dvh - 120px) !important; /* নচ এড়াতে সর্বোচ্চ উচ্চতা */
     overflow-y: auto !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
-    margin: 0 auto !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+    margin: auto !important;
+    box-sizing: border-box !important;
     position: relative !important;
 }
 
-/* ডার্ক মোডের জন্য পপআপ ডায়ালগের স্পষ্ট ব্যাকগ্রাউন্ড */
+/* ডার্ক মোডের জন্য পপআপ কন্টেন্ট বক্স */
 body.dark-mode .modal-content {
     background-color: #1e293b !important;
     color: #f8fafc !important;
