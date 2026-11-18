@@ -448,7 +448,7 @@
         
         #categoryList .category-card h3 {
             color: #ffffff !important;
-            font-size: 18px !important;
+            font-size: 16px !important;
             font-weight: 600 !important;
             line-height: 1.25 !important;
             display: -webkit-box;
@@ -950,6 +950,53 @@
         .zoom-ctrl-btn:active {
             background: rgba(255, 255, 255, 0.3);
         }
+    
+        /* ===== ADMIN/USER FONT + DARK MODE CONSISTENCY FIX ===== */
+
+        /* Main category and subcategory cards */
+        body.dark-mode #categoryList .category-card,
+        body.dark-mode .subcategory-card,
+        body.dark-mode #categoryDetailsView .subcategory-card {
+            background: #1e293b !important;
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #categoryList .category-card h3,
+        body.dark-mode .subcategory-card h3,
+        body.dark-mode #categoryDetailsView .subcategory-card h3 {
+            color: #f8fafc !important;
+        }
+
+        /* Data cards on category/subcategory pages */
+        body.dark-mode #categoryDetailsView .data-card-item,
+        body.dark-mode #categoryList .data-card-item,
+        body.dark-mode .data-card-item {
+            background: #1e293b !important;
+            background-color: #1e293b !important;
+            border-color: #334155 !important;
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #categoryDetailsView .data-card-name,
+        body.dark-mode #categoryList .data-card-name,
+        body.dark-mode .data-card-name {
+            color: #f8fafc !important;
+        }
+
+        body.dark-mode #categoryDetailsView .data-card-detail,
+        body.dark-mode #categoryList .data-card-detail,
+        body.dark-mode .data-card-detail {
+            color: #cbd5e1 !important;
+        }
+
+        body.dark-mode #categoryDetailsView .data-card-avatar,
+        body.dark-mode .data-card-avatar {
+            background: #334155 !important;
+            border-color: #475569 !important;
+        }
+
     </style>
 </head>
 
