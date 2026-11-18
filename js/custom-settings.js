@@ -17,7 +17,7 @@ function applyCustomSettings() {
 }
 
 /* ============================================================
-   THEME COLOR
+   THEME COLOR (টুলবার ও নেভিগেশন বারের সমস্ত অংশের জন্য)
    ============================================================ */
 function applyThemeColor() {
   const color = localStorage.getItem(CS_THEME);
@@ -25,23 +25,41 @@ function applyThemeColor() {
 
   document.documentElement.style.setProperty("--primary-color", color);
 
-  const toolbarElements = document.querySelectorAll(".topbar, .drawer-header, .sub-toolbar");
-  toolbarElements.forEach(function (el) {
+  // ১. মেটা থিম কালার (মোবাইল স্ট্যাটাস বার)
+  const metaTheme = document.querySelector('meta[name="theme-color"]');
+  if (metaTheme) {
+    metaTheme.setAttribute("content", color);
+  }
+
+  // ২. টুলবারের সমস্ত অংশ (স্লাইডারের পেছনের পুরো টপ র‍্যাপার সহ)
+  const topWrappers = document.querySelectorAll(".modern-top-wrapper, .modern-header, .app-header, header, .topbar, .drawer-header, .sub-toolbar, .header-box, .header-banner");
+  topWrappers.forEach(function (el) {
+    el.style.setProperty("background", color, "important");
     el.style.setProperty("background-color", color, "important");
   });
 
-  const headers = document.querySelectorAll(".header-box, .header-banner");
-  headers.forEach(function (el) {
-    el.style.setProperty("background-color", color, "important");
+  // ৩. কন্টাক্ট ডিটেইলস পেজের উপরের টপ অংশ
+  const detailsTop = document.querySelector("#dataPageContent > div:first-child");
+  if (detailsTop) {
+    detailsTop.style.setProperty("background", color, "important");
+    detailsTop.style.setProperty("background-color", color, "important");
+  }
+
+  // ৪. নিচের নচযুক্ত নেভিগেশন বারের SVG রঙ পরিবর্তন
+  const bottomNavPaths = document.querySelectorAll(".custom-bottom-nav .bottom-nav-svg path, .bottom-nav-svg path");
+  bottomNavPaths.forEach(function (path) {
+    path.setAttribute("fill", color);
+    path.style.setProperty("fill", color, "important");
   });
 }
 
 /* ============================================================
-   BACKGROUND (FIXED IMAGE & COLOR)
+   BACKGROUND (FIXED IMAGE & COLOR - সাদা শিট অপরিবর্তিত থাকবে)
    ============================================================ */
 function applyBackground() {
   const image = localStorage.getItem(CS_BG_IMAGE);
   const color = localStorage.getItem(CS_BG);
+  const targetSheet = document.getElementById("mainScrollSheet") || document.body;
 
   if (image) {
     document.body.style.setProperty("background-image", 'url("' + image + '")', "important");
@@ -50,16 +68,23 @@ function applyBackground() {
     document.body.style.setProperty("background-repeat", "no-repeat", "important");
     document.body.style.setProperty("background-attachment", "fixed", "important");
 
-    // ব্যাকগ্রাউন্ড ইমেজ থাকলে এই ক্লাসটি যুক্ত হবে, ফলে কার্ড ট্রান্সপারেন্ট হবে
+    if (targetSheet && targetSheet !== document.body) {
+      targetSheet.style.setProperty("background-image", 'url("' + image + '")', "important");
+      targetSheet.style.setProperty("background-size", "cover", "important");
+      targetSheet.style.setProperty("background-position", "center center", "important");
+    }
+
     document.body.classList.add("has-bg-image");
 
     if (color) {
       document.body.style.setProperty("background-color", color, "important");
     }
   } else {
-    // শুধু কালার থাকলে বা ছবি না থাকলে ক্লাসটি রিমুভ হয়ে যাবে, কার্ড সলিড থাকবে
     document.body.classList.remove("has-bg-image");
     document.body.style.removeProperty("background-image");
+    if (targetSheet && targetSheet !== document.body) {
+      targetSheet.style.removeProperty("background-image");
+    }
 
     if (color) {
       document.body.style.setProperty("background-color", color, "important");
@@ -221,6 +246,14 @@ function removeBackgroundImage() {
    EVENT LISTENERS & INIT
    ============================================================ */
 export function setupCustomSettingsListener() {
+  document.addEventListener("input", function (e) {
+    if (!e.target) return;
+    if (e.target.id === "themeColorInput") {
+      localStorage.setItem(CS_THEME, e.target.value);
+      applyThemeColor();
+    }
+  });
+
   document.addEventListener("change", function (e) {
     if (!e.target) return;
     if (e.target.id === "themeColorInput") {
@@ -251,6 +284,8 @@ window.addEventListener("DOMContentLoaded", function () {
   applyCustomSettings();
   setupCustomSettingsListener();
 
+  setTimeout(applyThemeColor, 100);
+  setTimeout(applyThemeColor, 500);
   setTimeout(createBackgroundImageUI, 500);
 });
 
