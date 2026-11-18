@@ -575,8 +575,8 @@ body:not(.dark-mode) .drawer-footer {
 
 .category-card h3,
 .subcategory-card h3 {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--text-main);
 }
 
