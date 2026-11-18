@@ -775,6 +775,10 @@ body.has-bg-image .details-container-card {
     color: var(--text-main);
 }
 
+/* ==========================================
+   HEADER BANNER ALIGNMENT (FIXED FOR ADMIN & USER)
+========================================== */
+
 .header-box {
     margin-bottom: 20px;
 }
@@ -797,19 +801,8 @@ body.has-bg-image .details-container-card {
     display: none !important;
 }
 
-.topbar.admin-header ~ .container .header-banner > span {
-    display: block;
-    text-align: left;
-    margin-right: auto;
-    position: static;
-    transform: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: calc(100% - 110px);
-}
-
-.topbar.user-header ~ .container .header-banner > span {
+/* ডিফল্টভাবে (ইউজার মোডে) হেডার ব্যানার একদম মাঝখানে (Center) থাকবে */
+.header-banner > span {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -820,6 +813,23 @@ body.has-bg-image .details-container-card {
     text-overflow: ellipsis;
     max-width: calc(100% - 110px);
     width: max-content;
+}
+
+/* অ্যাডমিন লগইন থাকলে (অর্থাৎ যখন এডিট/ডিলিট বাটন দৃশ্যমান থাকবে) তখন বামদিকে (Left) থাকবে */
+.header-banner:has(> div:not(.hidden)) > span,
+.topbar.admin-header ~ .container .header-banner > span,
+body.is-admin .header-banner > span {
+    position: static;
+    left: auto;
+    transform: none;
+    display: block;
+    text-align: left;
+    margin-right: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 110px);
+    width: auto;
 }
 
 .header-banner > div {
@@ -1101,8 +1111,7 @@ body {
     .container { margin-top: 16px; padding: 0 12px; }
     .dashboard-header h1 { font-size: 22px; }
     .header-banner { min-height: 48px; padding: 8px 12px; }
-    .topbar.user-header ~ .container .header-banner > span,
-    .topbar.admin-header ~ .container .header-banner > span {
+    .header-banner > span {
         max-width: calc(100% - 95px);
         font-size: 17px;
     }
@@ -1120,8 +1129,7 @@ body {
     .topbar { padding: 0 6px; }
     .app-title { font-size: 17px; }
     .btn-admin-small { padding: 5px 8px !important; }
-    .topbar.user-header ~ .container .header-banner > span,
-    .topbar.admin-header ~ .container .header-banner > span { font-size: 16px; }
+    .header-banner > span { font-size: 16px; }
     .data-card-avatar { width: 60px !important; height: 60px !important; min-width: 60px !important; }
     .data-card-name { font-size: 16px; }
     .data-card-detail { font-size: 12px; }
