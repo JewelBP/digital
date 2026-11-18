@@ -431,21 +431,27 @@
         }
 
         /* =====================================================================
-           Favorite Numbers / Favorites পেজ — কঠোরভাবে উপর থেকে নিচে (Vertical) স্টাইল
+           Favorite Numbers / Favorites পেজ — এক কলামে উপর থেকে নিচে (Vertical)強制 ওভাররাইড
            ===================================================================== */
         #favoritesView, #favoriteNumbersView, 
         .favorites-container, .favorite-numbers-container,
-        div[id*="favorite"], div[class*="favorite"] {
+        div[id*="favorite"], div[class*="favorite"],
+        #detailsContent:has(.fa-heart), #detailsContent:has(svg), 
+        main.container div:not(#mainDashboardView):not(#categoryDetailsView):not(#dataDetailsView) {
             display: flex !important;
             flex-direction: column !important;
             flex-wrap: nowrap !important;
             gap: 12px !important;
             width: 100% !important;
+            float: none !important;
         }
+        
+        /* ফেভারিট বা সাবলিস্টের ভেতরের প্রতিটি কার্ড ফুল উইডথ এবং লম্বালম্বি হবে */
         #favoritesView .data-card-item, 
         #favoriteNumbersView .data-card-item,
         .favorites-container .data-card-item,
-        .favorite-numbers-container .data-card-item {
+        .favorite-numbers-container .data-card-item,
+        main.container div:not(#mainDashboardView):not(#categoryDetailsView):not(#dataDetailsView) .data-card-item {
             display: flex !important;
             flex-direction: row !important;
             align-items: center !important;
@@ -455,6 +461,8 @@
             margin-left: 0 !important;
             margin-right: 0 !important;
             margin-bottom: 12px !important;
+            float: none !important;
+            clear: both !important;
         }
 
         /* =====================================================================
