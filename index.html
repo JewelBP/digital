@@ -577,7 +577,7 @@
         }
 
         #dataPageContent > div:first-child {
-            background: #020624 !important;
+            background: var(--primary-color, #020624) !important;
             color: #ffffff !important;
             padding: 24px 16px 26px 16px !important;
             border-radius: 0 0 24px 24px !important;
@@ -619,12 +619,14 @@
             font-weight: 700 !important;
             margin: 0 auto 6px auto !important;
             text-align: center !important;
-            background: var(--primary-color, #060e2b) !important; /* এখানেও থিম কালার পেলে সেটি নেবে, না পেলে কমন কালার #060e2b থাকবে */
-            padding: 7px 12px !important;
-            border-radius: 10px !important;
+            background: transparent !important; /* নামের পেছনের ব্যাকগ্রাউন্ড সম্পূর্ণ ট্রান্সপারেন্ট করা হলো */
+            padding: 4px 12px !important;
+            border-radius: 0 !important;
             max-width: 90% !important;
-            border: 1px solid rgba(255,255,255,0.15) !important;
+            border: none !important; /* কোনো বর্ডার থাকবে না */
+            box-shadow: none !important;
         }
+
 
 
         #dataPageContent .detail-designation,
