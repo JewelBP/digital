@@ -76,7 +76,7 @@
             overflow: hidden;
         }
         .modern-top-wrapper {
-            background: linear-gradient(180deg, #020624 0%, #060d3d 100%);
+            background: var(--primary-color, linear-gradient(180deg, #020624 0%, #060d3d 100%));
             color: #ffffff;
             padding-bottom: 24px;
             flex-shrink: 0;
@@ -415,8 +415,11 @@
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 12px !important;
         }
-        #categoryList .category-card {
-            background: #3f3351 !important;
+        #categoryList .category-card,
+        .subcategory-card,
+        #categoryDetailsView .subcategory-card {
+            background: var(--primary-color, #3f3351) !important;
+            background-color: var(--primary-color, #3f3351) !important;
             border: none !important;
             border-radius: 14px !important;
             height: 105px !important;
@@ -446,7 +449,9 @@
             object-fit: contain !important;
         }
         
-        #categoryList .category-card h3 {
+        #categoryList .category-card h3,
+        .subcategory-card h3,
+        #categoryDetailsView .subcategory-card h3 {
             color: #ffffff !important;
             font-size: 16px !important;
             font-weight: 600 !important;
@@ -527,7 +532,7 @@
 
         /* কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) */
         body.is-data-details-mode {
-            background: var(--bg-color, #020624) !important;
+            background-color: #020624 !important;
             margin: 0 !important;
             padding: 0 !important;
         }
@@ -541,7 +546,7 @@
         }
         
         body.is-data-details-mode .curved-main-sheet {
-            background-color: #020624 !important;
+            background-color: #ffffff !important;
             border-top-left-radius: 0 !important;
             border-top-right-radius: 0 !important;
             padding: 0 0 80px 0 !important;
@@ -577,7 +582,7 @@
         }
 
         #dataPageContent > div:first-child {
-            background: #020624 !important;
+            background: var(--primary-color, #020624) !important;
             color: #ffffff !important;
             padding: 24px 16px 26px 16px !important;
             border-radius: 0 0 24px 24px !important;
@@ -603,12 +608,11 @@
             border-radius: 50% !important;
             object-fit: cover !important;
             background: #111b2b !important;
-            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border: 3px solid rgba(255, 255, 255, 0.15) !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
             margin: 0 auto 10px auto !important;
             display: block !important;
         }
-        /* মার্কিং করা নির্দিষ্ট বক্সের কালার যা থিম পরিবর্তনেও অপরিবর্তিত থাকবে */
         #dataPageContent h1,
         #dataPageContent h2,
         #dataPageContent h3,
@@ -619,16 +623,12 @@
             font-weight: 700 !important;
             margin: 0 auto 6px auto !important;
             text-align: center !important;
-            background: transparent !important; /* নামের পেছনের ব্যাকগ্রাউন্ড সম্পূর্ণ ট্রান্সপারেন্ট করা হলো */
-            padding: 4px 12px !important;
-            border-radius: 0 !important;
+            background: rgba(0, 0, 0, 0.2) !important;
+            padding: 7px 12px !important;
+            border-radius: 10px !important;
             max-width: 90% !important;
-            border: none !important; /* কোনো বর্ডার থাকবে না */
-            box-shadow: none !important;
+            border: 1px solid rgba(255,255,255,0.08) !important;
         }
-
-
-
         #dataPageContent .detail-designation,
         #dataPageContent .designation,
         #dataPageContent .subtitle {
@@ -831,6 +831,9 @@
             display: block;
             filter: drop-shadow(0 -3px 8px rgba(0, 0, 0, 0.25));
         }
+        .bottom-nav-svg path {
+            fill: var(--primary-color, #020624) !important;
+        }
         .bottom-nav-logo-circle {
             position: absolute;
             bottom: 14px;
@@ -962,8 +965,8 @@
         body.dark-mode #categoryList .category-card,
         body.dark-mode .subcategory-card,
         body.dark-mode #categoryDetailsView .subcategory-card {
-            background: #1e293b !important;
-            background-color: #1e293b !important;
+            background: var(--primary-color, #1e293b) !important;
+            background-color: var(--primary-color, #1e293b) !important;
             border-color: #334155 !important;
             color: #f8fafc !important;
         }
