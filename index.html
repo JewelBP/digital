@@ -610,6 +610,7 @@
         }
         /* মার্কিং করা নির্দিষ্ট বক্সের কালার যা থিম পরিবর্তনেও অপরিবর্তিত থাকবে */
         #dataPageContent h1,
+        #dataPageContent h1,
         #dataPageContent h2,
         #dataPageContent h3,
         #dataPageContent .detail-name,
@@ -619,12 +620,14 @@
             font-weight: 700 !important;
             margin: 0 auto 6px auto !important;
             text-align: center !important;
-            background: #060e2b !important;
+            background: var(--primary-color, #060e2b) !important; /* থিম পরিবর্তন করলে এই বক্সের রঙও টুলবারের মতো বদলাবে */
             padding: 7px 12px !important;
             border-radius: 10px !important;
             max-width: 90% !important;
-            border: 1px solid rgba(255,255,255,0.08) !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
         }
+
+
         #dataPageContent .detail-designation,
         #dataPageContent .designation,
         #dataPageContent .subtitle {
