@@ -39,7 +39,7 @@ function applyThemeColor() {
     topWrapper.style.setProperty("background", color, "important");
   }
 
-  // সাইড মেনু বা ড্রয়ারের হেডার অংশ (নতুন যুক্ত করা হলো)
+  // সাইড মেনু বা ড্রয়ারের হেডার অংশ
   const drawerHeaders = document.querySelectorAll(".drawer-header, .nav-drawer-header, .sidebar-header, [class*='drawer'] header, [class*='sidebar'] header");
   drawerHeaders.forEach(function (el) {
     el.style.setProperty("background", color, "important");
@@ -52,8 +52,8 @@ function applyThemeColor() {
     bottomNavPath.style.setProperty("fill", color, "important");
   }
 
-  // ক্যাটাগরি ও সাব-ক্যাটাগরি কার্ড
-  const categoryCards = document.querySelectorAll("#categoryList .category-card, .subcategory-card, #categoryDetailsView .subcategory-card");
+  // ক্যাটাগরি, সাব-ক্যাটাগরি এবং সব ধরনের কার্ডের ব্যাকগ্রাউন্ড কালার থিম কালারের সাথে পরিবর্তন হবে
+  const categoryCards = document.querySelectorAll("#categoryList .category-card, .subcategory-card, #categoryDetailsView .subcategory-card, #detailsContent .subcategory-card, [class*='subcategory'], [class*='sub-category']");
   categoryCards.forEach(function (el) {
     el.style.setProperty("background", color, "important");
     el.style.setProperty("background-color", color, "important");
@@ -65,6 +65,7 @@ function applyThemeColor() {
     detailTopHeader.style.setProperty("background", color, "important");
   }
 }
+
 
 
 /* ============================================================
