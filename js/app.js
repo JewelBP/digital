@@ -1290,7 +1290,7 @@ function showMainDashboardView() {
     const appTitle = document.getElementById("appTitle");
     if (appTitle) {
         const titleText = appTitle.querySelector(".app-title-text") || appTitle;
-        titleText.textContent = "Police Phonebook";
+        titleText.textContent = "RMP MT Contacts";
     }
 
     const verifiedBadge = document.getElementById("verifiedBadge");
@@ -1777,7 +1777,7 @@ function showToast(msg) {
 const APP_LANGUAGE_KEY = "selected_app_language";
 
 const OFFLINE_TRANSLATIONS = {
-    "Police Phonebook": "Police Phonebook",
+    "RMP MT Contacts": "RMP MT Contacts",
     "নাম পাওয়া যায়নি": "Name not found",
     "মোবাইল নেই": "Mobile unavailable",
     "টেলিফোন নেই": "Telephone unavailable",
