@@ -1137,3 +1137,23 @@ body {
     .data-card-name { font-size: 16px; }
     .data-card-detail { font-size: 12px; }
 }
+
+
+/* ===== DARK MODE CARD SUPPORT (ADMIN + USER) ===== */
+body.dark-mode .category-card,
+body.dark-mode .subcategory-card,
+body.dark-mode .data-card-item {
+    background-color: var(--card-bg, #1e293b) !important;
+    border-color: var(--border-color, #334155) !important;
+    color: var(--text-main, #f8fafc) !important;
+}
+
+body.dark-mode .category-card h3,
+body.dark-mode .subcategory-card h3,
+body.dark-mode .data-card-name {
+    color: var(--text-main, #f8fafc) !important;
+}
+
+body.dark-mode .data-card-detail {
+    color: var(--text-muted, #94a3b8) !important;
+}
