@@ -431,23 +431,30 @@
         }
 
         /* =====================================================================
-           Favorite Numbers / Favorites পেজ — উপর থেকে নিচে (Vertical Column) লিস্ট স্টাইল
+           Favorite Numbers / Favorites পেজ — কঠোরভাবে উপর থেকে নিচে (Vertical) স্টাইল
            ===================================================================== */
         #favoritesView, #favoriteNumbersView, 
-        .favorites-container, .favorite-numbers-container {
+        .favorites-container, .favorite-numbers-container,
+        div[id*="favorite"], div[class*="favorite"] {
             display: flex !important;
             flex-direction: column !important;
+            flex-wrap: nowrap !important;
             gap: 12px !important;
             width: 100% !important;
         }
         #favoritesView .data-card-item, 
         #favoriteNumbersView .data-card-item,
-        .favorites-container .data-card-item {
-            width: 100% !important;
-            box-sizing: border-box !important;
+        .favorites-container .data-card-item,
+        .favorite-numbers-container .data-card-item {
             display: flex !important;
             flex-direction: row !important;
             align-items: center !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-bottom: 12px !important;
         }
 
         /* =====================================================================
@@ -503,7 +510,7 @@
             padding: 0 !important;
         }
 
-        /* ১. একদম ওপরের প্রোফাইল অংশ (থিম কালার অনুযায়ী পরিবর্তনশীল) */
+        /* ১. একদম একদম ওপরের প্রোফাইল অংশ (থিম কালার অনুযায়ী পরিবর্তনশীল) */
         #dataPageContent > div:first-child {
             background: var(--primary-color, #020624) !important;
             color: #ffffff !important;
@@ -1442,7 +1449,7 @@
             });
         }
 
-clearButton?.addEventListener('click', () => {
+        clearButton?.addEventListener('click', () => {
             if (!subInput || !mainInput) return;
             subInput.value = '';
             mainInput.value = '';
