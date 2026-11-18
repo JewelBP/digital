@@ -1,4 +1,4 @@
-const CACHE_NAME = "police-phonebook-v3.1";
+const CACHE_NAME = "RMP MT Contacts-v1.1";
 
 const APP_SHELL = [
     "./",
