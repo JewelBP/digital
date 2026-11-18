@@ -917,8 +917,8 @@
         body.dark-mode #detailsContent .data-card-item,
         body.dark-mode #categoryList .data-card-item {
             /* ক্যাটাগরি কার্ডের মতো একই কালার (থিম কালার, না থাকলে ডিফল্ট) */
-            background-color: var(--primary-color, #020624) !important;
-            background: var(--primary-color, #020624) !important;
+            background-color: var(--app-main-color, #020624) !important;
+            background: var(--app-main-color, #020624) !important;
             border: none !important;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
         }
@@ -947,8 +947,8 @@
         html body #dataDetailsView #dataPageContent > .details-header-section,
         html body.dark-mode #dataDetailsView #dataPageContent > .details-header-section,
         html body.is-data-details-mode #dataDetailsView #dataPageContent > .details-header-section {
-            background: var(--primary-color, #020624) !important;
-            background-color: var(--primary-color, #020624) !important;
+            background: var(--app-main-color, #020624) !important;
+            background-color: var(--app-main-color, #020624) !important;
             background-image: none !important;
             filter: none !important;
             color: #ffffff !important;
@@ -1535,6 +1535,30 @@
         syncSearchVisibility();
     })();
 </script>
- 
+
+
+<script>
+    // নেভিগেশন বার/টুলবারের আসল কালার পড়ে --app-main-color সেট করে
+    // (থিম কালার থাকলে থিম কালার, নইলে ডার্ক/ডিফল্ট মোডে #020624)
+    (function syncMainColor() {
+        const DEFAULT = '#020624';
+        function apply() {
+            let color = DEFAULT;
+            const path = document.querySelector('.bottom-nav-svg path');
+            if (path) {
+                const fill = getComputedStyle(path).fill;
+                if (fill && fill !== 'none' && !/rgba\(.*,\s*0\)$/.test(fill) && fill !== 'transparent') color = fill;
+            }
+            document.documentElement.style.setProperty('--app-main-color', color);
+        }
+        document.addEventListener('DOMContentLoaded', apply);
+        window.addEventListener('load', apply);
+        new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
+        document.addEventListener('DOMContentLoaded', () => {
+            new MutationObserver(apply).observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] });
+        });
+        setInterval(apply, 1500);
+    })();
+</script>
 </body>
 </html>
