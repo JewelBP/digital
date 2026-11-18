@@ -372,7 +372,7 @@
             transform: scale(0.75);
         }
 
-        /* দ্বিতীয় পেজ বা ক্যাটাগরি ডিটেইলস এবং Favorite Numbers ডাটা কার্ড স্টাইল (ছবির মতো হুবহু ফিক্সড) */
+        /* ক্যাটাগরি ডিটেইলস এবং Favorite Numbers ডাটা কার্ড স্টাইল (একরকম পূর্ণ প্রস্থে একটার নিচে আরেকটি থাকবে) */
         #categoryDetailsView {
             background-color: transparent !important;
             padding: 0;
@@ -399,7 +399,11 @@
             gap: 10px !important;
             position: relative;
             cursor: pointer;
+            width: 100% !important;
+            max-width: 100% !important;
             box-sizing: border-box !important;
+            float: none !important;
+            clear: both !important;
         }
         body.dark-mode #categoryDetailsView .data-card-item,
         body.dark-mode #favoriteNumbersView .data-card-item,
