@@ -22,7 +22,7 @@ function applyCustomSettings() {
 function applyThemeColor() {
   let color = localStorage.getItem(CS_THEME);
   if (!color) {
-    color = "#020624"; // ডিফল্ট কালার
+    color = "#020624"; // ডিফল্ট থিম কালার
   }
 
   document.documentElement.style.setProperty("--primary-color", color);
@@ -33,26 +33,26 @@ function applyThemeColor() {
     themeColorMeta.setAttribute("content", color);
   }
 
-  // হেডার ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  // ১. হেডার ব্যাকগ্রাউন্ড কালার পরিবর্তন
   const topWrapper = document.querySelector(".modern-top-wrapper");
   if (topWrapper) {
     topWrapper.style.setProperty("background", color, "important");
   }
 
-  // বটম নেভিগেশন বার (SVG path) কালার পরিবর্তন
+  // ৩. নিচের নেভিগেশন বার (SVG path) কালার পরিবর্তন (সাদা দাগ বা অংশ দূর করে থিম কালার করবে)
   const bottomNavPath = document.querySelector(".bottom-nav-svg path");
   if (bottomNavPath) {
     bottomNavPath.style.setProperty("fill", color, "important");
   }
 
-  // ক্যাটাগরি কার্ড ব্যাকগ্রাউন্ড কালার পরিবর্তন
-  const categoryCards = document.querySelectorAll("#categoryList .category-card");
+  // ১. ক্যাটাগরি ও সাব-ক্যাটাগরি কার্ড ব্যাকগ্রাউন্ড কালার থিম কালারের সাথে পরিবর্তন হবে
+  const categoryCards = document.querySelectorAll("#categoryList .category-card, .subcategory-card, #categoryDetailsView .subcategory-card");
   categoryCards.forEach(function (el) {
     el.style.setProperty("background", color, "important");
     el.style.setProperty("background-color", color, "important");
   });
 
-  // কন্টাক্ট ডিটেলস পেজের টপ স্টিকি হেডার ব্যাকগ্রাউন্ড কালার পরিবর্তন
+  // ২. কন্টাক্ট ডিটেইলস পেজের ওপরের প্রোফাইল সেকশন (যেখানে নাম ও পদবী থাকে) থিম কালার অনুযায়ী পরিবর্তিত হবে
   const detailTopHeader = document.querySelector("#dataPageContent > div:first-child");
   if (detailTopHeader) {
     detailTopHeader.style.setProperty("background", color, "important");
