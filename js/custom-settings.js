@@ -10,9 +10,6 @@ const CS_TEXT = "app_text_color";
 const CS_BG_IMAGE = "app_bg_image";
 const CS_LANGUAGE = "app_language";
 
-// ডিফল্ট থিম কালার কনস্ট্যান্ট
-const DEFAULT_THEME_COLOR = "#020624";
-
 function applyCustomSettings() {
   applyThemeColor();
   applyBackground();
@@ -20,50 +17,31 @@ function applyCustomSettings() {
 }
 
 /* ============================================================
-   THEME COLOR (টুলবার, নেভিগেশন বার ও নাম বক্সের থিম কালার পরিবর্তনের জন্য)
+   THEME COLOR
    ============================================================ */
 function applyThemeColor() {
-  // যদি লোকালস্টোরেজে কালার না থাকে, তবে ডিফল্ট #020624 ব্যবহার করবে
-  const color = localStorage.getItem(CS_THEME) || DEFAULT_THEME_COLOR;
+  const color = localStorage.getItem(CS_THEME);
+  if (!color) return;
 
   document.documentElement.style.setProperty("--primary-color", color);
 
-  // ১. মেটা থিম কালার (মোবাইল স্ট্যাটাস বার)
-  const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) {
-    metaTheme.setAttribute("content", color);
-  }
-
-  // ২. টুলবারের সমস্ত অংশ
-  const topWrappers = document.querySelectorAll(".modern-top-wrapper, .modern-header, .app-header, header, .topbar, .drawer-header, .sub-toolbar, .header-box, .header-banner");
-  topWrappers.forEach(function (el) {
-    el.style.setProperty("background", color, "important");
+  const toolbarElements = document.querySelectorAll(".topbar, .drawer-header, .sub-toolbar");
+  toolbarElements.forEach(function (el) {
     el.style.setProperty("background-color", color, "important");
   });
 
-  // ৩. কন্টাক্ট ডিটেইলস পেজের উপরের মূল ব্যাকগ্রাউন্ড অংশ (তীর চিহ্নিত স্থান)
-  const detailsTop = document.querySelector("#dataPageContent > div:first-child");
-  if (detailsTop) {
-    detailsTop.style.setProperty("background", color, "important");
-    detailsTop.style.setProperty("background-color", color, "important");
-  }
-
-  // ৪. নিচের নচযুক্ত নেভিগেশন বারের SVG রঙ পরিবর্তন
-  const bottomNavPaths = document.querySelectorAll(".custom-bottom-nav .bottom-nav-svg path, .bottom-nav-svg path");
-  bottomNavPaths.forEach(function (path) {
-    path.setAttribute("fill", color);
-    path.style.setProperty("fill", color, "important");
+  const headers = document.querySelectorAll(".header-box, .header-banner");
+  headers.forEach(function (el) {
+    el.style.setProperty("background-color", color, "important");
   });
 }
 
-
 /* ============================================================
-   BACKGROUND (FIXED IMAGE & COLOR - সাদা শিট অপরিবর্তিত থাকবে)
+   BACKGROUND (FIXED IMAGE & COLOR)
    ============================================================ */
 function applyBackground() {
   const image = localStorage.getItem(CS_BG_IMAGE);
   const color = localStorage.getItem(CS_BG);
-  const targetSheet = document.getElementById("mainScrollSheet") || document.body;
 
   if (image) {
     document.body.style.setProperty("background-image", 'url("' + image + '")', "important");
@@ -72,23 +50,16 @@ function applyBackground() {
     document.body.style.setProperty("background-repeat", "no-repeat", "important");
     document.body.style.setProperty("background-attachment", "fixed", "important");
 
-    if (targetSheet && targetSheet !== document.body) {
-      targetSheet.style.setProperty("background-image", 'url("' + image + '")', "important");
-      targetSheet.style.setProperty("background-size", "cover", "important");
-      targetSheet.style.setProperty("background-position", "center center", "important");
-    }
-
+    // ব্যাকগ্রাউন্ড ইমেজ থাকলে এই ক্লাসটি যুক্ত হবে, ফলে কার্ড ট্রান্সপারেন্ট হবে
     document.body.classList.add("has-bg-image");
 
     if (color) {
       document.body.style.setProperty("background-color", color, "important");
     }
   } else {
+    // শুধু কালার থাকলে বা ছবি না থাকলে ক্লাসটি রিমুভ হয়ে যাবে, কার্ড সলিড থাকবে
     document.body.classList.remove("has-bg-image");
     document.body.style.removeProperty("background-image");
-    if (targetSheet && targetSheet !== document.body) {
-      targetSheet.style.removeProperty("background-image");
-    }
 
     if (color) {
       document.body.style.setProperty("background-color", color, "important");
@@ -247,45 +218,13 @@ function removeBackgroundImage() {
 }
 
 /* ============================================================
-   THEME RESET FUNCTION (রিসেট করলে ডিফল্ট কালারে ফিরে যাওয়ার জন্য)
-   ============================================================ */
-function resetThemeColor() {
-  localStorage.removeItem(CS_THEME);
-  applyThemeColor();
-  
-  // যদি কালার পিকার ইনপুট থাকে তার ভ্যালুও রিসেট করা
-  const colorInput = document.getElementById("themeColorInput");
-  if (colorInput) {
-    colorInput.value = DEFAULT_THEME_COLOR;
-  }
-}
-
-/* ============================================================
    EVENT LISTENERS & INIT
    ============================================================ */
 export function setupCustomSettingsListener() {
-  document.addEventListener("input", function (e) {
-    if (!e.target) return;
-    if (e.target.id === "themeColorInput") {
-      const val = e.target.value;
-      if (val) {
-        localStorage.setItem(CS_THEME, val);
-      } else {
-        localStorage.removeItem(CS_THEME);
-      }
-      applyThemeColor();
-    }
-  });
-
   document.addEventListener("change", function (e) {
     if (!e.target) return;
     if (e.target.id === "themeColorInput") {
-      const val = e.target.value;
-      if (val) {
-        localStorage.setItem(CS_THEME, val);
-      } else {
-        localStorage.removeItem(CS_THEME);
-      }
+      localStorage.setItem(CS_THEME, e.target.value);
       applyThemeColor();
     }
     if (e.target.id === "bgColorInput") {
@@ -304,10 +243,6 @@ export function setupCustomSettingsListener() {
   document.addEventListener("click", function (e) {
     if (e.target && e.target.id === "chooseBgImageBtn") openGallery();
     if (e.target && e.target.id === "removeBgImageBtn") removeBackgroundImage();
-    // যদি রিসেট বাটন থাকে তার জন্য ক্লিক ইভেন্ট
-    if (e.target && (e.target.id === "resetThemeBtn" || e.target.id === "resetSettingsBtn")) {
-      resetThemeColor();
-    }
   });
 }
 
@@ -316,14 +251,6 @@ window.addEventListener("DOMContentLoaded", function () {
   applyCustomSettings();
   setupCustomSettingsListener();
 
-  // পেজ লোড হওয়ার সময় কালার ইনপুট ফিল্ডে বর্তমান বা ডিফল্ট কালার সেট করা
-  const colorInput = document.getElementById("themeColorInput");
-  if (colorInput) {
-    colorInput.value = localStorage.getItem(CS_THEME) || DEFAULT_THEME_COLOR;
-  }
-
-  setTimeout(applyThemeColor, 100);
-  setTimeout(applyThemeColor, 500);
   setTimeout(createBackgroundImageUI, 500);
 });
 
@@ -333,4 +260,3 @@ window.applyThemeColor = applyThemeColor;
 window.applyBackground = applyBackground;
 window.applyGlobalTextColor = applyGlobalTextColor;
 window.removeBackgroundImage = removeBackgroundImage;
-window.resetThemeColor = resetThemeColor;
