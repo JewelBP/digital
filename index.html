@@ -932,7 +932,7 @@
             <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
         </div>
 
-        <!-- ক্যাটাগরি বা সাব-পেজের সার্চ বক্স -->
+        <!-- ক্যাটাগরি, সাব-পেজ বা Favorite Numbers পেজের সার্চ বক্স -->
         <div id="subPageHeaderSearchWrapper" class="header-search-inline hidden">
             <div class="subpage-search-field">
                 <span class="subpage-search-icon" aria-hidden="true">⌕</span>
@@ -1381,20 +1381,20 @@
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // শুধুমাত্র মূল হোম পেজ খোলা থাকলেই স্লাইডার দেখাবে; Favorite Numbers বা অন্য কোনো পেজে লুকানো থাকবে
+            // হোম পেজ খোলা থাকলে স্লাইডার দেখাবে; সাব-পেজ, Favorite Numbers বা অন্য কোনো পেজে স্লাইডার লুকানো থাকবে এবং সার্চ ফিল্ড দৃশ্যমান হবে
             const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage;
             heroSlider.style.display = hideSlider ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
 
-            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
-            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
+            subPageSearchWrapper.classList.toggle('is-visible', (isSubPage || isFavoritePage) && !isDataPage);
+            subPageSearchWrapper.classList.toggle('hidden', (!isSubPage && !isFavoritePage) || isDataPage);
 
             // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
             if (mainScrollSheet) {
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!isSubPage && subInput) {
+            if (!isSubPage && !isFavoritePage && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
