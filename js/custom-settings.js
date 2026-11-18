@@ -17,7 +17,7 @@ function applyCustomSettings() {
 }
 
 /* ============================================================
-   THEME COLOR (টুলবার ও নেভিগেশন বারের সমস্ত অংশের জন্য)
+   THEME COLOR (টুলবার, নেভিগেশন বার ও নাম বক্সের থিম কালার পরিবর্তনের জন্য)
    ============================================================ */
 function applyThemeColor() {
   const color = localStorage.getItem(CS_THEME);
@@ -45,10 +45,11 @@ function applyThemeColor() {
     detailsTop.style.setProperty("background-color", color, "important");
   }
 
-  // ৪. কন্টাক্ট ডিটেইলস পেজের নাম ও পদবীর পেছনের বক্সগুলো
+  // ৪. নাম ও পদবীর পেছনের বক্সটি (টুলবার ও নেভিগেশনের মতো থিম কালার অনুযায়ী পরিবর্তন হবে)
   const nameBoxes = document.querySelectorAll("#dataPageContent h1, #dataPageContent h2, #dataPageContent h3, #dataPageContent .detail-name, #dataPageContent .profile-name");
   nameBoxes.forEach(function (el) {
-    el.style.setProperty("background", "rgba(0, 0, 0, 0.2)", "important");
+    el.style.setProperty("background", color, "important");
+    el.style.setProperty("background-color", color, "important");
   });
 
   // ৫. নিচের নচযুক্ত নেভিগেশন বারের SVG রঙ পরিবর্তন
