@@ -372,35 +372,16 @@
             transform: scale(0.75);
         }
 
-        /* 
-           =====================================================================
-           নিশ্চিত ও কঠোর নিয়ম: ক্যাটাগরি এবং ফেভারিট পেজের সকল কন্টেইনার ও ডাটা কার্ড 
-           সর্বদা ১০০% প্রস্থে একটির নিচে আরেকটি (Vertical Stack / Block) থাকবে।
-           ===================================================================== 
-        */
-        #categoryDetailsView,
-        #favoriteNumbersView,
-        #favoritesView,
-        #favoritesList,
-        #favoriteList,
-        [id*="favorite"],
-        [id*="fav"],
-        main.container > div:not(#mainDashboardView):not(#dataDetailsView) {
-            display: block !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            float: none !important;
-            clear: both !important;
+        /* দ্বিতীয় পেজ বা ক্যাটাগরি ডিটেইলস স্টাইল */
+        #categoryDetailsView {
+            background-color: transparent !important;
+            padding: 0;
+            min-height: auto;
         }
-
-        #categoryDetailsView .data-card-item,
-        #favoriteNumbersView .data-card-item,
-        #favoritesView .data-card-item,
-        #favoritesList .data-card-item,
-        #favoriteList .data-card-item,
-        [id*="favorite"] .data-card-item,
-        [id*="fav"] .data-card-item,
-        .curved-main-sheet .data-card-item {
+        #categoryDetailsView .dashboard-header {
+            display: none !important;
+        }
+        #categoryDetailsView .data-card-item {
             background-color: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 20px !important;
@@ -408,123 +389,45 @@
             margin-bottom: 12px !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
             display: flex !important;
-            flex-direction: row !important;
             align-items: center !important;
-            justify-content: space-between !important;
-            gap: 10px !important;
-            position: relative !important;
-            cursor: pointer !important;
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-            float: none !important;
-            clear: both !important;
+            position: relative;
+            cursor: pointer;
         }
-        body.dark-mode #categoryDetailsView .data-card-item,
-        body.dark-mode #favoriteNumbersView .data-card-item,
-        body.dark-mode #favoritesView .data-card-item,
-        body.dark-mode #favoritesList .data-card-item,
-        body.dark-mode #favoriteList .data-card-item,
-        body.dark-mode [id*="favorite"] .data-card-item,
-        body.dark-mode [id*="fav"] .data-card-item,
-        body.dark-mode .curved-main-sheet .data-card-item {
-            background-color: #0f172a !important;
-            border-color: #334155 !important;
-        }
-        #categoryDetailsView .data-card-avatar,
-        #favoriteNumbersView .data-card-avatar,
-        #favoritesView .data-card-avatar,
-        #favoritesList .data-card-avatar,
-        #favoriteList .data-card-avatar,
-        .curved-main-sheet .data-card-avatar {
+        #categoryDetailsView .data-card-avatar {
             width: 65px !important;
             height: 65px !important;
             min-width: 65px !important;
             max-width: 65px !important;
-            min-height: 65px !important;
             max-height: 65px !important;
             border-radius: 50% !important;
             background: #e2e8f0;
-            margin-right: 4px !important;
+            margin-right: 14px !important;
             object-fit: cover !important;
             border: 2px solid #cbd5e1;
             overflow: hidden;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            flex-shrink: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        #categoryDetailsView .data-card-avatar img,
-        #favoriteNumbersView .data-card-avatar img,
-        #favoritesView .data-card-avatar img,
-        #favoritesList .data-card-avatar img,
-        #favoriteList .data-card-avatar img,
-        .curved-main-sheet .data-card-avatar img {
-            width: 100% !important;
-            height: 100% !important;
-            object-fit: cover !important;
-            border-radius: 50% !important;
+        #categoryDetailsView .data-card-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
-        #categoryDetailsView .data-card-info,
-        #favoriteNumbersView .data-card-info,
-        #favoritesView .data-card-info,
-        #favoritesList .data-card-info,
-        #favoriteList .data-card-info,
-        .curved-main-sheet .data-card-info {
-            flex-grow: 1 !important;
-            min-width: 0 !important;
-            overflow: hidden !important;
-            text-align: left !important;
+        #categoryDetailsView .data-card-info {
+            flex-grow: 1;
+            overflow: hidden;
         }
-        #categoryDetailsView .data-card-name,
-        #favoriteNumbersView .data-card-name,
-        #favoritesView .data-card-name,
-        #favoritesList .data-card-name,
-        #favoriteList .data-card-name,
-        .curved-main-sheet .data-card-name {
+        #categoryDetailsView .data-card-name {
             font-size: 16px !important;
             font-weight: 700 !important;
             color: #0f172a !important;
-            margin-bottom: 3px !important;
-            line-height: 1.3 !important;
+            margin-bottom: 2px;
         }
-        body.dark-mode #categoryDetailsView .data-card-name,
-        body.dark-mode #favoriteNumbersView .data-card-name,
-        body.dark-mode #favoritesView .data-card-name,
-        body.dark-mode #favoritesList .data-card-name,
-        body.dark-mode #favoriteList .data-card-name,
-        body.dark-mode .curved-main-sheet .data-card-name {
-            color: #f8fafc !important;
-        }
-        #categoryDetailsView .data-card-detail,
-        #favoriteNumbersView .data-card-detail,
-        #favoritesView .data-card-detail,
-        #favoritesList .data-card-detail,
-        #favoriteList .data-card-detail,
-        .curved-main-sheet .data-card-detail {
+        #categoryDetailsView .data-card-detail {
             font-size: 12.5px !important;
             color: #64748b !important;
-            line-height: 1.45 !important;
-            margin-bottom: 1px !important;
-        }
-        body.dark-mode #categoryDetailsView .data-card-detail,
-        body.dark-mode #favoriteNumbersView .data-card-detail,
-        body.dark-mode #favoritesView .data-card-detail,
-        body.dark-mode #favoritesList .data-card-detail,
-        body.dark-mode #favoriteList .data-card-detail,
-        body.dark-mode .curved-main-sheet .data-card-detail {
-            color: #94a3b8 !important;
-        }
-        .curved-main-sheet .fav-btn,
-        .curved-main-sheet .favorite-btn,
-        .curved-main-sheet .data-card-fav {
-            flex-shrink: 0 !important;
-            align-self: center !important;
-            background: transparent !important;
-            border: none !important;
-            font-size: 20px !important;
-            padding: 4px !important;
-            cursor: pointer !important;
+            line-height: 1.4;
         }
 
         /* =====================================================================
@@ -969,6 +872,39 @@
 }
 
         
+
+        /* =====================================================================
+           ফিক্স: Favorite Numbers পেজের কার্ড অনুভূমিক (সাইডে স্ক্রল) না হয়ে
+           অন্য ক্যাটাগরির মতো উপর-নিচ উল্লম্বভাবে সাজানো থাকবে
+           ===================================================================== */
+        #categoryDetailsView :has(> .data-card-item),
+        #detailsContent :has(> .data-card-item) {
+            display: flex !important;
+            flex-direction: column !important;
+            flex-wrap: nowrap !important;
+            grid-template-columns: none !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            scroll-snap-type: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            gap: 0 !important;
+            transform: none !important;
+            animation: none !important;
+        }
+        #categoryDetailsView .data-card-item,
+        #detailsContent .data-card-item {
+            flex: 0 0 auto !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            scroll-snap-align: none !important;
+        }
+        #categoryDetailsView .data-card-item > *,
+        #detailsContent .data-card-item > * {
+            min-width: 0;
+        }
     </style>
 </head>
 
@@ -1029,7 +965,7 @@
             <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
         </div>
 
-        <!-- ক্যাটাগরি বা সাব-পেজ এবং Favorite Numbers পেজের সার্চ বক্স -->
+        <!-- ক্যাটাগরি বা সাব-পেজের সার্চ বক্স -->
         <div id="subPageHeaderSearchWrapper" class="header-search-inline hidden">
             <div class="subpage-search-field">
                 <span class="subpage-search-icon" aria-hidden="true">⌕</span>
@@ -1452,7 +1388,7 @@
         }, 3500);
     })();
 
-    // Category details, Data details এবং Favorite Numbers পেজে সার্চ ফিল্ড ও কার্ড ব্যবস্থাপনা
+    // Category details, Data details এবং Favorite Numbers সহ অন্যান্য সাব-পেজে ইমেজ স্লাইডার লুকানো এবং শুধুমাত্র Home page-এ দেখানো
     (function initSubPageHeaderSearch() {
         const mainDashboard = document.getElementById('mainDashboardView');
         const categoryDetails = document.getElementById('categoryDetailsView');
@@ -1469,111 +1405,66 @@
 
         if (!heroSlider || !subPageSearchWrapper) return;
 
-        function getActivePageState() {
+        function syncSearchVisibility() {
             const isHomeHidden = mainDashboard && mainDashboard.classList.contains('hidden');
             const isSubPage = categoryDetails && !categoryDetails.classList.contains('hidden');
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
             const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
-            const isFavoritePage =
-                titleText.includes('favorite') ||
-                titleText.includes('ফেভারিট') ||
-                !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
-
-            return { isHomeHidden, isSubPage, isDataPage, isFavoritePage };
-        }
-
-        // Favorite Numbers পেজের ডাটা কার্ড সার্চ ফিল্টারিং
-        function filterFavoriteCards(query) {
-            const q = (query || '').trim().toLowerCase();
-            const favContainers = document.querySelectorAll(
-                '#favoriteNumbersView .data-card-item, #favoritesView .data-card-item, #favoritesList .data-card-item, #favoriteList .data-card-item, [id*="favorite"] .data-card-item, [id*="fav"] .data-card-item, main.container > div:not(#mainDashboardView):not(#categoryDetailsView):not(#dataDetailsView):not(.hidden) .data-card-item'
-            );
-
-            favContainers.forEach(card => {
-                const text = (card.textContent || '').toLowerCase();
-                const match = !q || text.includes(q);
-                card.style.display = match ? 'flex' : 'none';
-            });
-        }
-
-        function syncSearchVisibility() {
-            const { isHomeHidden, isSubPage, isDataPage, isFavoritePage } = getActivePageState();
+            const isFavoritePage = titleText.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // শুধুমাত্র মূল হোম পেজ খোলা থাকলেই স্লাইডার দেখাবে
+            // শুধুমাত্র মূল হোম পেজ খোলা থাকলেই স্লাইডার দেখাবে; Favorite Numbers বা অন্য কোনো পেজে লুকানো থাকবে
             const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage;
             heroSlider.style.display = hideSlider ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
 
-            // Category Details অথবা Favorite Numbers পেজে হেডারের ভেতরে সার্চ ফিল্ড দেখাবে
-            const showSubSearch = (isSubPage || isFavoritePage) && !isDataPage;
-            subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
-            subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
+            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
+            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
 
             // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
             if (mainScrollSheet) {
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!showSubSearch && subInput) {
+            if (!isSubPage && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
                     mainInput.value = '';
                     mainInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
-                filterFavoriteCards('');
             }
         }
 
-        if (subInput) {
+        if (subInput && mainInput) {
             subInput.addEventListener('input', () => {
-                const { isFavoritePage } = getActivePageState();
+                mainInput.value = subInput.value;
+                mainInput.dispatchEvent(new Event('input', { bubbles: true }));
                 searchField?.classList.toggle('has-value', subInput.value.length > 0);
-
-                if (isFavoritePage) {
-                    filterFavoriteCards(subInput.value);
-                } else if (mainInput) {
-                    mainInput.value = subInput.value;
-                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
-                }
             });
 
             subInput.addEventListener('keydown', event => {
                 if (event.key === 'Escape') {
                     subInput.value = '';
+                    mainInput.value = '';
+                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
                     searchField?.classList.remove('has-value');
-                    if (mainInput) {
-                        mainInput.value = '';
-                        mainInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-                    filterFavoriteCards('');
                     subInput.blur();
                 }
             });
         }
 
         clearButton?.addEventListener('click', () => {
-            if (!subInput) return;
+            if (!subInput || !mainInput) return;
             subInput.value = '';
+            mainInput.value = '';
+            mainInput.dispatchEvent(new Event('input', { bubbles: true }));
             searchField?.classList.remove('has-value');
-            if (mainInput) {
-                mainInput.value = '';
-                mainInput.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            filterFavoriteCards('');
             subInput.focus();
         });
 
-        const observer = new MutationObserver(() => {
-            syncSearchVisibility();
-            const { isFavoritePage } = getActivePageState();
-            if (isFavoritePage && subInput && subInput.value) {
-                filterFavoriteCards(subInput.value);
-            }
-        });
-
+        const observer = new MutationObserver(syncSearchVisibility);
         const mainContainer = document.querySelector('main.container');
         if (mainContainer) {
             observer.observe(mainContainer, {
