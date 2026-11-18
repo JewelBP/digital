@@ -45,7 +45,13 @@ function applyThemeColor() {
     detailsTop.style.setProperty("background-color", color, "important");
   }
 
-  // ৪. নিচের নচযুক্ত নেভিগেশন বারের SVG রঙ পরিবর্তন
+  // ৪. কন্টাক্ট ডিটেইলস পেজের নাম ও পদবীর পেছনের বক্সগুলো
+  const nameBoxes = document.querySelectorAll("#dataPageContent h1, #dataPageContent h2, #dataPageContent h3, #dataPageContent .detail-name, #dataPageContent .profile-name");
+  nameBoxes.forEach(function (el) {
+    el.style.setProperty("background", "rgba(0, 0, 0, 0.2)", "important");
+  });
+
+  // ৫. নিচের নচযুক্ত নেভিগেশন বারের SVG রঙ পরিবর্তন
   const bottomNavPaths = document.querySelectorAll(".custom-bottom-nav .bottom-nav-svg path, .bottom-nav-svg path");
   bottomNavPaths.forEach(function (path) {
     path.setAttribute("fill", color);
