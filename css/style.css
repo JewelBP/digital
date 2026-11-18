@@ -638,8 +638,8 @@ body:not(.dark-mode) .drawer-footer {
 }
 
 .data-card-name {
-    font-size: 18px;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
