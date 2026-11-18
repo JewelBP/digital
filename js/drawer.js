@@ -84,19 +84,19 @@ export function initDrawer() {
                 <div class="drawer-section-title">Communicate</div>
 
                 <ul class="drawer-menu-list">
-                    <li data-action="about">
-                        <span class="menu-ico">ℹ️</span>
-                        <span class="menu-text">About App</span>
-                    </li>
-
-                    <li data-action="update-app">
-                        <span class="menu-ico">📲</span>
-                        <span class="menu-text">Update App</span>
-                    </li>
-
                     <li data-action="share">
                         <span class="menu-ico">🔗</span>
                         <span class="menu-text">Share App</span>
+                    </li>
+
+                    <li data-action="driving">
+                        <span class="menu-ico">📲</span>
+                        <span class="menu-text">Driving Note</span>
+                    </li>
+
+                    <li data-action="about">
+                        <span class="menu-ico">ℹ️</span>
+                        <span class="menu-text">About Developer</span>
                     </li>
                 </ul>
 
@@ -619,7 +619,7 @@ function handleDrawerAction(action) {
         case "share":
             if (navigator.share) {
                 navigator.share({
-                    title: "Police Phonebook",
+                    title: "RMP MT Contacts",
                     url: window.location.href
                 }).catch(console.error);
             } else {
