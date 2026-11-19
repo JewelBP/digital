@@ -322,9 +322,10 @@
             grid-template-columns: repeat(3, 1fr) !important;
             gap: 12px !important;
         }
-        #categoryList .category-card {
-            background: var(--primary-color, #463758) !important;
-            background-color: var(--primary-color, #463758) !important;
+        #categoryList .category-card,
+        body.dark-mode #categoryList .category-card {
+            background: var(--app-main-color, var(--primary-color, #463758)) !important;
+            background-color: var(--app-main-color, var(--primary-color, #463758)) !important;
             border: none !important;
             border-radius: 14px !important;
             height: 105px !important;
@@ -854,18 +855,25 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        /* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন */
+        /* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন (ডে ও ডার্ক উভয় মোডে) */
         #detailsContent .subcategory-card,
         #detailsContent .data-card-item:has(img[src*="bell"]),
         #detailsContent > div > div.subcategory-card,
         #categoryDetailsView .subcategory-card,
-        .subcategory-card {
-            background-color: var(--primary-color, #020624) !important;
-            background: var(--primary-color, #020624) !important;
+        .subcategory-card,
+        body.dark-mode #detailsContent .subcategory-card,
+        body.dark-mode #detailsContent .data-card-item:has(img[src*="bell"]),
+        body.dark-mode #detailsContent > div > div.subcategory-card,
+        body.dark-mode #categoryDetailsView .subcategory-card,
+        body.dark-mode .subcategory-card {
+            background-color: var(--app-main-color, var(--primary-color, #020624)) !important;
+            background: var(--app-main-color, var(--primary-color, #020624)) !important;
             color: #ffffff !important;
         }
         #detailsContent .subcategory-card *,
-        .subcategory-card * {
+        .subcategory-card *,
+        body.dark-mode #detailsContent .subcategory-card *,
+        body.dark-mode .subcategory-card * {
             color: #ffffff !important;
         }
 
@@ -905,11 +913,15 @@
             min-width: 0;
         }
 
-        /* ডাটা কার্ডে ডার্ক মোড সাপোর্ট */
+        /* ডাটা কার্ডে ডার্ক মোড এবং কাস্টম থিম কালার সাপোর্ট (ডে ও ডার্ক উভয় মোডে) */
         body.dark-mode #categoryDetailsView .data-card-item,
         body.dark-mode #detailsContent .data-card-item,
         body.dark-mode #categoryList .data-card-item,
-        body.dark-mode #allSearchContainer .data-card-item {
+        body.dark-mode #allSearchContainer .data-card-item,
+        body.has-custom-theme #categoryDetailsView .data-card-item,
+        body.has-custom-theme #detailsContent .data-card-item,
+        body.has-custom-theme #categoryList .data-card-item,
+        body.has-custom-theme #allSearchContainer .data-card-item {
             background-color: var(--app-main-color, #020624) !important;
             background: var(--app-main-color, #020624) !important;
             border: none !important;
@@ -918,19 +930,31 @@
         body.dark-mode #categoryDetailsView .data-card-name,
         body.dark-mode #detailsContent .data-card-name,
         body.dark-mode #categoryList .data-card-name,
-        body.dark-mode #allSearchContainer .data-card-name {
+        body.dark-mode #allSearchContainer .data-card-name,
+        body.has-custom-theme #categoryDetailsView .data-card-name,
+        body.has-custom-theme #detailsContent .data-card-name,
+        body.has-custom-theme #categoryList .data-card-name,
+        body.has-custom-theme #allSearchContainer .data-card-name {
             color: #ffffff !important;
         }
         body.dark-mode #categoryDetailsView .data-card-detail,
         body.dark-mode #detailsContent .data-card-detail,
         body.dark-mode #categoryList .data-card-detail,
-        body.dark-mode #allSearchContainer .data-card-detail {
+        body.dark-mode #allSearchContainer .data-card-detail,
+        body.has-custom-theme #categoryDetailsView .data-card-detail,
+        body.has-custom-theme #detailsContent .data-card-detail,
+        body.has-custom-theme #categoryList .data-card-detail,
+        body.has-custom-theme #allSearchContainer .data-card-detail {
             color: rgba(255, 255, 255, 0.75) !important;
         }
         body.dark-mode #categoryDetailsView .data-card-avatar,
         body.dark-mode #detailsContent .data-card-avatar,
         body.dark-mode #categoryList .data-card-avatar,
-        body.dark-mode #allSearchContainer .data-card-avatar {
+        body.dark-mode #allSearchContainer .data-card-avatar,
+        body.has-custom-theme #categoryDetailsView .data-card-avatar,
+        body.has-custom-theme #detailsContent .data-card-avatar,
+        body.has-custom-theme #categoryList .data-card-avatar,
+        body.has-custom-theme #allSearchContainer .data-card-avatar {
             background: rgba(255, 255, 255, 0.15) !important;
             border-color: rgba(255, 255, 255, 0.25) !important;
         }
@@ -1533,7 +1557,7 @@
 
 
 <script>
-    // নেভিগেশন বার/টুলবারের আসল কালার পড়ে --app-main-color সেট করে
+    // নেভিগেশন বার/টুলবারের আসল কালার পড়ে --app-main-color সেট করে এবং কাস্টম থিম শনাক্ত করে
     (function syncMainColor() {
         const DEFAULT = '#020624';
         function apply() {
@@ -1544,6 +1568,9 @@
                 if (fill && fill !== 'none' && !/rgba\(.*,\s*0\)$/.test(fill) && fill !== 'transparent') color = fill;
             }
             document.documentElement.style.setProperty('--app-main-color', color);
+            const normalized = color.replace(/\s+/g, '').toLowerCase();
+            const isDefault = normalized === '#020624' || normalized === 'rgb(2,6,36)';
+            document.body?.classList.toggle('has-custom-theme', !isDefault);
         }
         document.addEventListener('DOMContentLoaded', apply);
         window.addEventListener('load', apply);
