@@ -19,12 +19,12 @@
 
 body.dark-mode {
     --bg-color: #0f172a;
-    --card-bg: #fff000;
+    --card-bg: #1e293b;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --border-color: #334155;
     --primary-color: #424242;
-    --primary-hover: #2563eb;
+    --primary-hover: #fff000;
     --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
 }
