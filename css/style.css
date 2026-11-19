@@ -23,7 +23,7 @@ body.dark-mode {
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --border-color: #334155;
-    --primary-color: #463758;
+    --primary-color: #020624; /*বাটন কালার #463758 */
     --primary-hover: #2563eb;
     --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
