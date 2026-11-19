@@ -48,6 +48,12 @@ let isAllSearchActive = false;
 let isSearchMode = false;
 let isFavoriteActive = false;
 
+let isDrivingNoteActive = false;
+let drivingBlocks = [];
+let drivingEditIndex = -1;
+const DRIVING_STORAGE_KEY = "rmp_mt_driving_note_blocks_v1";
+const DRIVING_FIREBASE_PATH = "webapp/driving_note_blocks";
+
 window.currentUserRole = "guest";
 let isDeviceVerified = false;
 
@@ -67,7 +73,7 @@ function checkDeviceVerificationStatus() {
     onValue(approvedRef, (snapshot) => {
         if (snapshot.exists() && snapshot.val().status === "approved") {
             isDeviceVerified = true;
-            if (!currentCategoryId && !currentDataId && !isAllSearchActive && !isFavoriteActive) {
+            if (!currentCategoryId && !currentDataId && !isAllSearchActive && !isFavoriteActive && !isDrivingNoteActive) {
                 document.getElementById("verifiedBadge")?.classList.remove("hidden");
             }
         } else {
@@ -116,7 +122,7 @@ watchAuth((user, role) => {
 });
 
 function isAllSupportOrSearchActive() {
-    return isAllSearchActive || currentCategoryId !== null || currentDataId !== null || isFavoriteActive;
+    return isAllSearchActive || currentCategoryId !== null || currentDataId !== null || isFavoriteActive || isDrivingNoteActive;
 }
 
 function updateAdminUI() {
@@ -145,6 +151,10 @@ function updateAdminUI() {
     }
 
     document.querySelectorAll(".admin-only").forEach(el => {
+        if (el.id === "drivingAdminPanel") {
+            el.classList.toggle("hidden", !isAdmin);
+            return;
+        }
         if (isAdmin) {
             if (el.id === "addCategoryBtn" && (isAllSearchActive || isFavoriteActive)) {
                 el.classList.add("hidden");
@@ -155,6 +165,10 @@ function updateAdminUI() {
             el.classList.add("hidden");
         }
     });
+
+    if (isDrivingNoteActive) {
+        renderDrivingNoteBlocks();
+    }
 
     const loginForm = document.getElementById("loginFormContainer");
     const logoutContainer = document.getElementById("logoutContainer");
@@ -267,7 +281,7 @@ function closeHeaderSearch() {
 
         if (input) input.value = "";
         
-        if (!currentCategoryId && !currentDataId && !isAllSearchActive && !isFavoriteActive) {
+        if (!currentCategoryId && !currentDataId && !isAllSearchActive && !isFavoriteActive && !isDrivingNoteActive) {
             setNavState(false);
         }
         handleSearch();
@@ -280,10 +294,12 @@ function handlePopState(event) {
 
     if (!state || state.page === "home") {
         isFavoriteActive = false;
+        isDrivingNoteActive = false;
         closeAllSearchUI();
         showMainDashboardView(false);
     } else if (state.page === "allSearch") {
         isFavoriteActive = false;
+        isDrivingNoteActive = false;
         if (!isAllSearchActive) {
             activateAllSearchUI(false);
         } else {
@@ -291,16 +307,24 @@ function handlePopState(event) {
         }
     } else if (state.page === "favorite") {
         isFavoriteActive = true;
+        isDrivingNoteActive = false;
         closeAllSearchUI();
         renderFavoriteView(false);
     } else if (state.page === "category") {
         isFavoriteActive = false;
+        isDrivingNoteActive = false;
         closeAllSearchUI();
         showCategoryView(state.categoryId, false);
     } else if (state.page === "data") {
         isFavoriteActive = false;
+        isDrivingNoteActive = false;
         closeAllSearchUI();
         showDataPage(state.dataId, false);
+    } else if (state.page === "drivingNote") {
+        isFavoriteActive = false;
+        isDrivingNoteActive = true;
+        closeAllSearchUI();
+        openDrivingNotePage(false);
     }
 }
 
@@ -428,7 +452,7 @@ function setupEvents() {
             return;
         }
 
-        if (currentCategoryId || currentDataId || isAllSearchActive || isFavoriteActive) {
+        if (currentCategoryId || currentDataId || isAllSearchActive || isFavoriteActive || isDrivingNoteActive) {
             history.back();
             return;
         }
@@ -678,6 +702,7 @@ function activateAllSearchUI(pushHistory = true) {
 
     isAllSearchActive = true;
     isFavoriteActive = false;
+    isDrivingNoteActive = false;
     currentCategoryId = null;
     currentDataId = null;
 
@@ -693,6 +718,7 @@ function activateAllSearchUI(pushHistory = true) {
     setNavState(true);
 
     document.getElementById("mainDashboardView")?.classList.remove("hidden");
+    document.getElementById("drivingNoteView")?.classList.add("hidden");
     const categoryList = document.getElementById("categoryList");
     if (categoryList) {
         categoryList.innerHTML = "";
@@ -759,7 +785,7 @@ function closeAllSearchUI() {
     subSearchWrapper?.querySelector(".subpage-search-field")?.classList.remove("has-value");
 
     updateAdminUI();
-    if (!currentCategoryId && !currentDataId && !isFavoriteActive) {
+    if (!currentCategoryId && !currentDataId && !isFavoriteActive && !isDrivingNoteActive) {
         renderCategories("");
     }
 }
@@ -1056,6 +1082,7 @@ function isFavorite(dataId) {
 function renderFavoriteView(pushHistory = true) {
     if (pushHistory) history.pushState({ page: "favorite" }, "");
     isFavoriteActive = true;
+    isDrivingNoteActive = false;
     currentCategoryId = null;
     currentDataId = null;
     isAllSearchActive = false;
@@ -1076,6 +1103,7 @@ function renderFavoriteView(pushHistory = true) {
     document.getElementById("categoryDetailsView")?.classList.add("hidden");
     document.getElementById("dataDetailsView")?.classList.add("hidden");
     document.getElementById("allSearchContainer")?.classList.add("hidden");
+    document.getElementById("drivingNoteView")?.classList.add("hidden");
 
     const list = document.getElementById("categoryList");
     const emptyState = document.getElementById("emptyState");
@@ -1361,9 +1389,11 @@ function showCategoryView(id) {
     currentCategoryId = id;
     currentDataId = null;
     isFavoriteActive = false;
+    isDrivingNoteActive = false;
     isAllSearchActive = false;
     document.body.classList.remove("is-all-search-mode");
     document.getElementById("allSearchContainer")?.classList.add("hidden");
+    document.getElementById("drivingNoteView")?.classList.add("hidden");
 
     const appTitle = document.getElementById("appTitle");
     if (appTitle) {
@@ -1391,6 +1421,7 @@ function showMainDashboardView() {
     currentCategoryId = null;
     currentDataId = null;
     isFavoriteActive = false;
+    isDrivingNoteActive = false;
 
     const appTitle = document.getElementById("appTitle");
     if (appTitle) {
@@ -1407,6 +1438,7 @@ function showMainDashboardView() {
 
     document.getElementById("categoryDetailsView")?.classList.add("hidden");
     document.getElementById("dataDetailsView")?.classList.add("hidden");
+    document.getElementById("drivingNoteView")?.classList.add("hidden");
     document.getElementById("mainDashboardView")?.classList.remove("hidden");
 
     updateAdminUI();
@@ -1428,6 +1460,10 @@ function showMainDashboardView() {
 }
 
 function refreshCurrentView() {
+    if (isDrivingNoteActive) {
+        openDrivingNotePage(false);
+        return;
+    }
     if (currentDataId) {
         showDataPage(currentDataId, false);
     } else if (currentCategoryId) {
@@ -1604,6 +1640,7 @@ function showDataPage(dataId) {
 
     currentDataId = dataId;
     isFavoriteActive = false;
+    isDrivingNoteActive = false;
     document.getElementById("verifiedBadge")?.classList.add("hidden");
     setNavState(true);
 
@@ -1611,6 +1648,7 @@ function showDataPage(dataId) {
 
     document.getElementById("mainDashboardView")?.classList.add("hidden");
     document.getElementById("categoryDetailsView")?.classList.add("hidden");
+    document.getElementById("drivingNoteView")?.classList.add("hidden");
     document.getElementById("dataDetailsView")?.classList.remove("hidden");
 
     updateAdminUI();
@@ -2422,3 +2460,317 @@ function openProfileImageViewer(photoUrl, personName) {
         window.removeEventListener("popstate", popStateListener);
     };
 }
+
+/* =====================================================================
+   DRIVING NOTE GUIDE (USER + ADMIN + FIREBASE + OFFLINE CACHE)
+===================================================================== */
+const defaultDrivingBlocks = [
+    {
+        type: "heading",
+        text: "১. ড্রাইভিং শুরু করার আগে প্রয়োজনীয় প্রস্তুতি"
+    },
+    {
+        type: "text",
+        text: "গাড়ি স্টার্ট করার আগে সিট বেল্ট, লুকিং গ্লাস, টায়ারের চাপ, ব্রেক এবং হেডলাইট ও ইন্ডিকেটর সঠিকভাবে কাজ করছে কি না তা পরীক্ষা করুন।"
+    },
+    {
+        type: "note",
+        text: "গুরুত্বপূর্ণ সতর্কতা: যানজট, বৃষ্টির ভেজা রাস্তা বা রাতে চলার সময় গতিসীমা ও নিরাপদ দূরত্ব বজায় রাখুন।"
+    },
+    {
+        type: "link",
+        url: "https://brta.gov.bd",
+        extra: "BRTA তথ্য ও নির্দেশিকা দেখুন"
+    }
+];
+
+function loadDrivingCache() {
+    const cached = localStorage.getItem(DRIVING_STORAGE_KEY);
+    if (cached) {
+        try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                drivingBlocks = parsed;
+                return;
+            }
+        } catch (e) {
+            console.error("Driving note cache error:", e);
+        }
+    }
+    drivingBlocks = [...defaultDrivingBlocks];
+}
+
+function subscribeDrivingNoteLive() {
+    loadDrivingCache();
+    if (!navigator.onLine) return;
+
+    onValue(ref(db, DRIVING_FIREBASE_PATH), (snapshot) => {
+        if (snapshot.exists()) {
+            const val = snapshot.val();
+            drivingBlocks = Array.isArray(val) ? val : Object.values(val);
+            localStorage.setItem(DRIVING_STORAGE_KEY, JSON.stringify(drivingBlocks));
+            if (isDrivingNoteActive) {
+                renderDrivingNoteBlocks();
+            }
+        }
+    }, (err) => {
+        console.error("Driving note realtime listener error:", err);
+    });
+}
+
+async function persistDrivingBlocks() {
+    if (window.currentUserRole !== "admin") {
+        showToast("শুধুমাত্র Admin পরিবর্তন সেভ করতে পারবেন");
+        return;
+    }
+
+    localStorage.setItem(DRIVING_STORAGE_KEY, JSON.stringify(drivingBlocks));
+    renderDrivingNoteBlocks();
+
+    if (!navigator.onLine) {
+        showToast("অফলাইনে সেভ হয়েছে! ইন্টারনেট এলে সিঙ্ক হবে।");
+        return;
+    }
+
+    try {
+        await set(ref(db, DRIVING_FIREBASE_PATH), drivingBlocks);
+        showToast("Driving Note আপডেট হয়েছে");
+    } catch (e) {
+        console.error("Driving note save error:", e);
+        showToast("ক্লাউডে সেভ করতে সমস্যা হয়েছে");
+    }
+}
+
+function updateDrivingFormFields() {
+    const type = document.getElementById("drivingBlockType")?.value || "text";
+    const fieldText = document.getElementById("drivingFieldText");
+    const fieldUrl = document.getElementById("drivingFieldUrl");
+    const fieldExtra = document.getElementById("drivingFieldExtra");
+    const textLabel = document.getElementById("drivingTextLabel");
+    const urlLabel = document.getElementById("drivingUrlLabel");
+    const extraLabel = document.getElementById("drivingExtraLabel");
+
+    fieldText?.classList.add("hidden");
+    fieldUrl?.classList.add("hidden");
+    fieldExtra?.classList.add("hidden");
+
+    if (type === "heading" || type === "text" || type === "note") {
+        fieldText?.classList.remove("hidden");
+        if (textLabel) {
+            textLabel.textContent =
+                type === "heading" ? "শিরোনাম লিখুন" :
+                type === "note" ? "বিশেষ নোট লিখুন" : "বিস্তারিত লেখা";
+        }
+    } else if (type === "image") {
+        fieldUrl?.classList.remove("hidden");
+        fieldExtra?.classList.remove("hidden");
+        if (urlLabel) urlLabel.textContent = "ছবির লিংক (Image URL)";
+        if (extraLabel) extraLabel.textContent = "ছবির ক্যাপশন (ঐচ্ছিক)";
+    } else if (type === "link") {
+        fieldUrl?.classList.remove("hidden");
+        fieldExtra?.classList.remove("hidden");
+        if (urlLabel) urlLabel.textContent = "ওয়েবসাইট বা পেজের লিংক (URL)";
+        if (extraLabel) extraLabel.textContent = "বাটনের লেখা";
+    }
+}
+
+function resetDrivingForm() {
+    drivingEditIndex = -1;
+    const textEl = document.getElementById("drivingInputText");
+    const urlEl = document.getElementById("drivingInputUrl");
+    const extraEl = document.getElementById("drivingInputExtra");
+    const saveBtn = document.getElementById("saveDrivingBlockBtn");
+    const cancelBtn = document.getElementById("cancelDrivingEditBtn");
+    const formTitle = document.getElementById("drivingFormTitle");
+
+    if (textEl) textEl.value = "";
+    if (urlEl) urlEl.value = "";
+    if (extraEl) extraEl.value = "";
+    if (saveBtn) saveBtn.textContent = "সেভ করুন";
+    if (cancelBtn) cancelBtn.classList.add("hidden");
+    if (formTitle) formTitle.textContent = "📝 Driving Note ব্লক যোগ করুন";
+}
+
+function saveDrivingBlock() {
+    if (window.currentUserRole !== "admin") return;
+
+    const type = document.getElementById("drivingBlockType")?.value || "text";
+    const text = document.getElementById("drivingInputText")?.value.trim() || "";
+    const url = document.getElementById("drivingInputUrl")?.value.trim() || "";
+    const extra = document.getElementById("drivingInputExtra")?.value.trim() || "";
+
+    if ((type === "heading" || type === "text" || type === "note") && !text) {
+        return showToast("দয়া করে প্রয়োজনীয় লেখা দিন");
+    }
+    if ((type === "image" || type === "link") && !url) {
+        return showToast("দয়া করে সঠিক URL দিন");
+    }
+
+    const blockData = { type, text, url, extra };
+
+    if (drivingEditIndex >= 0 && drivingBlocks[drivingEditIndex]) {
+        drivingBlocks[drivingEditIndex] = blockData;
+    } else {
+        drivingBlocks.push(blockData);
+    }
+
+    persistDrivingBlocks();
+    resetDrivingForm();
+}
+
+function startEditDrivingBlock(index) {
+    const b = drivingBlocks[index];
+    if (!b) return;
+    drivingEditIndex = index;
+
+    const typeSelect = document.getElementById("drivingBlockType");
+    if (typeSelect) typeSelect.value = b.type;
+    updateDrivingFormFields();
+
+    const textEl = document.getElementById("drivingInputText");
+    const urlEl = document.getElementById("drivingInputUrl");
+    const extraEl = document.getElementById("drivingInputExtra");
+    const saveBtn = document.getElementById("saveDrivingBlockBtn");
+    const cancelBtn = document.getElementById("cancelDrivingEditBtn");
+    const formTitle = document.getElementById("drivingFormTitle");
+
+    if (textEl) textEl.value = b.text || "";
+    if (urlEl) urlEl.value = b.url || "";
+    if (extraEl) extraEl.value = b.extra || "";
+    if (saveBtn) saveBtn.textContent = "আপডেট করুন";
+    if (cancelBtn) cancelBtn.classList.remove("hidden");
+    if (formTitle) formTitle.textContent = "✏️ Driving Note ব্লক এডিট করুন";
+
+    document.getElementById("drivingAdminPanel")?.scrollIntoView({ behavior: "smooth" });
+}
+
+async function deleteDrivingBlock(index) {
+    const ok = await customConfirm("এই Driving Note অংশটি মুছে ফেলতে চান?");
+    if (!ok) return;
+    drivingBlocks.splice(index, 1);
+    await persistDrivingBlocks();
+}
+
+async function moveDrivingBlock(index, dir) {
+    const target = index + dir;
+    if (target < 0 || target >= drivingBlocks.length) return;
+    const temp = drivingBlocks[index];
+    drivingBlocks[index] = drivingBlocks[target];
+    drivingBlocks[target] = temp;
+    await persistDrivingBlocks();
+}
+
+function renderDrivingNoteBlocks() {
+    const container = document.getElementById("drivingNoteContent");
+    const adminPanel = document.getElementById("drivingAdminPanel");
+    if (!container) return;
+
+    const isAdmin = window.currentUserRole === "admin";
+    if (adminPanel) {
+        adminPanel.classList.toggle("hidden", !isAdmin);
+    }
+
+    container.innerHTML = "";
+
+    if (!drivingBlocks.length) {
+        container.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted);">কোনো Driving Note যুক্ত করা হয়নি।</div>`;
+        return;
+    }
+
+    drivingBlocks.forEach((block, idx) => {
+        const card = document.createElement("div");
+        card.style.cssText = "background:var(--card-bg, #ffffff); border:1px solid #e2e8f0; border-radius:14px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.04);";
+
+        if (block.type === "heading") {
+            card.innerHTML = `<h3 style="margin:0; font-size:18px; color:var(--app-main-color, #020624); font-weight:700;">${escapeHTML(block.text)}</h3>`;
+        } else if (block.type === "text") {
+            card.innerHTML = `<p style="margin:0; font-size:15px; line-height:1.65; white-space:pre-line;">${escapeHTML(block.text)}</p>`;
+        } else if (block.type === "note") {
+            card.style.borderLeft = "4px solid #020624";
+            card.style.background = "#eef2ff";
+            card.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#1e293b; white-space:pre-line;">${escapeHTML(block.text)}</div>`;
+        } else if (block.type === "image" && block.url) {
+            const safeUrl = escapeHTML(block.url);
+            const safeCaption = escapeHTML(block.extra || "Driving Note ছবি");
+            card.innerHTML = `
+                <img src="${safeUrl}" alt="${safeCaption}" style="width:100%; border-radius:10px; display:block; cursor:zoom-in;" onerror="this.style.display='none'">
+                ${block.extra ? `<div style="text-align:center; font-size:13px; color:#64748b; margin-top:6px;">${safeCaption}</div>` : ""}
+            `;
+            card.querySelector("img")?.addEventListener("click", () => {
+                openProfileImageViewer(block.url, block.extra || "Driving Note");
+            });
+        } else if (block.type === "link" && block.url) {
+            const safeUrl = escapeHTML(block.url);
+            const safeLabel = escapeHTML(block.extra || "লিংক খুলুন");
+            card.innerHTML = `
+                <a href="${safeUrl}" target="_blank" rel="noopener noreferrer"
+                   style="display:inline-block; background:var(--app-main-color, #020624); color:#ffffff; text-decoration:none; padding:9px 16px; border-radius:10px; font-size:14px; font-weight:600;">
+                    🔗 ${safeLabel}
+                </a>
+            `;
+        }
+
+        if (isAdmin) {
+            const actions = document.createElement("div");
+            actions.style.cssText = "display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; padding-top:8px; border-top:1px dashed #cbd5e1;";
+            actions.innerHTML = `
+                <button type="button" class="secondary-btn btn-up" style="padding:5px 10px; font-size:12px;">↑ উপরে</button>
+                <button type="button" class="secondary-btn btn-down" style="padding:5px 10px; font-size:12px;">↓ নিচে</button>
+                <button type="button" class="primary-btn btn-edit" style="padding:5px 10px; font-size:12px;">✏️ এডিট</button>
+                <button type="button" class="danger-btn btn-del" style="padding:5px 10px; font-size:12px;">🗑️ ডিলিট</button>
+            `;
+            actions.querySelector(".btn-up")?.addEventListener("click", () => moveDrivingBlock(idx, -1));
+            actions.querySelector(".btn-down")?.addEventListener("click", () => moveDrivingBlock(idx, 1));
+            actions.querySelector(".btn-edit")?.addEventListener("click", () => startEditDrivingBlock(idx));
+            actions.querySelector(".btn-del")?.addEventListener("click", () => deleteDrivingBlock(idx));
+            card.appendChild(actions);
+        }
+
+        container.appendChild(card);
+    });
+}
+
+function openDrivingNotePage(pushHistory = true) {
+    if (pushHistory) {
+        history.pushState({ page: "drivingNote" }, "");
+    }
+
+    isDrivingNoteActive = true;
+    isFavoriteActive = false;
+    isAllSearchActive = false;
+    currentCategoryId = null;
+    currentDataId = null;
+
+    document.body.classList.remove("is-all-search-mode", "is-data-details-mode");
+
+    const appTitle = document.getElementById("appTitle");
+    if (appTitle) {
+        const titleText = appTitle.querySelector(".app-title-text") || appTitle;
+        titleText.textContent = "Driving Note";
+    }
+
+    document.getElementById("verifiedBadge")?.classList.add("hidden");
+    document.getElementById("searchBtn")?.classList.add("hidden");
+    setNavState(true);
+
+    document.getElementById("mainDashboardView")?.classList.add("hidden");
+    document.getElementById("categoryDetailsView")?.classList.add("hidden");
+    document.getElementById("dataDetailsView")?.classList.add("hidden");
+    document.getElementById("allSearchContainer")?.classList.add("hidden");
+    document.getElementById("drivingNoteView")?.classList.remove("hidden");
+
+    const mainScrollSheet = document.getElementById("mainScrollSheet");
+    if (mainScrollSheet) mainScrollSheet.scrollTop = 0;
+
+    updateDrivingFormFields();
+    renderDrivingNoteBlocks();
+}
+
+window.openDrivingNotePage = openDrivingNotePage;
+
+document.addEventListener("DOMContentLoaded", () => {
+    subscribeDrivingNoteLive();
+    document.getElementById("drivingBlockType")?.addEventListener("change", updateDrivingFormFields);
+    document.getElementById("saveDrivingBlockBtn")?.addEventListener("click", saveDrivingBlock);
+    document.getElementById("cancelDrivingEditBtn")?.addEventListener("click", resetDrivingForm);
+});
