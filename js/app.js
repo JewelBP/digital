@@ -259,7 +259,6 @@ function closeHeaderSearch() {
         searchBox.classList.add("hidden");
         appTitle.classList.remove("hidden");
         
-        // প্রথম পেজে থাকলে সার্চ বাটন সম্পূর্ণ হাইড থাকবে
         if (currentCategoryId || currentDataId || isAllSearchActive || isFavoriteActive) {
             if (searchBtn) searchBtn.classList.remove("hidden");
         } else {
@@ -286,7 +285,9 @@ function handlePopState(event) {
     } else if (state.page === "allSearch") {
         isFavoriteActive = false;
         if (!isAllSearchActive) {
-            activateAllSearchUI();
+            activateAllSearchUI(false);
+        } else {
+            renderAllSearch();
         }
     } else if (state.page === "favorite") {
         isFavoriteActive = true;
@@ -438,6 +439,7 @@ function setupEvents() {
     });
 
     document.getElementById("searchInput")?.addEventListener("input", handleSearch);
+    document.getElementById("subPageSearchInput")?.addEventListener("input", handleSearch);
 
     document.getElementById("adminLoginBtn")?.addEventListener("click", () => openModal("loginModal"));
 
@@ -641,7 +643,9 @@ async function submitVerificationRequest() {
 }
 
 function handleSearch() {
-    const rawVal = document.getElementById("searchInput")?.value.trim();
+    const mainVal = document.getElementById("searchInput")?.value.trim() || "";
+    const subVal = document.getElementById("subPageSearchInput")?.value.trim() || "";
+    const rawVal = isAllSearchActive ? (subVal || mainVal) : (mainVal || subVal);
     const searchVal = rawVal ? rawVal.toLowerCase() : "";
     const adminBtn = document.getElementById("adminLoginBtn");
 
@@ -667,20 +671,93 @@ function handleSearch() {
     }
 }
 
+function activateAllSearchUI(pushHistory = true) {
+    if (pushHistory) {
+        history.pushState({ page: "allSearch" }, "");
+    }
+
+    isAllSearchActive = true;
+    isFavoriteActive = false;
+    currentCategoryId = null;
+    currentDataId = null;
+
+    const appTitle = document.getElementById("appTitle");
+    if (appTitle) {
+        const titleText = appTitle.querySelector(".app-title-text") || appTitle;
+        titleText.textContent = "Search All Unit & Number";
+    }
+
+    document.getElementById("verifiedBadge")?.classList.add("hidden");
+    setNavState(true);
+
+    document.getElementById("mainDashboardView")?.classList.remove("hidden");
+    document.getElementById("categoryList")?.classList.add("hidden");
+    document.getElementById("emptyState")?.classList.add("hidden");
+    document.getElementById("categoryDetailsView")?.classList.add("hidden");
+    document.getElementById("dataDetailsView")?.classList.add("hidden");
+
+    const allSearchContainer = document.getElementById("allSearchContainer");
+    if (allSearchContainer) {
+        allSearchContainer.classList.remove("hidden");
+    }
+
+    const subSearchWrapper = document.getElementById("subPageHeaderSearchWrapper");
+    const subSearchInput = document.getElementById("subPageSearchInput");
+    const mainSearchBox = document.getElementById("searchBox");
+    const mainSearchInput = document.getElementById("searchInput");
+
+    if (subSearchInput) subSearchInput.value = "";
+    if (mainSearchInput) mainSearchInput.value = "";
+    subSearchWrapper?.querySelector(".subpage-search-field")?.classList.remove("has-value");
+
+    if (subSearchWrapper) {
+        subSearchWrapper.classList.remove("hidden");
+        subSearchWrapper.classList.add("is-visible");
+        if (subSearchInput) {
+            subSearchInput.placeholder = "নাম, পদবী, ইউনিট বা নাম্বার দিয়ে খুঁজুন...";
+            setTimeout(() => subSearchInput.focus(), 100);
+        }
+    } else if (mainSearchBox) {
+        mainSearchBox.classList.remove("hidden");
+        if (mainSearchInput) {
+            setTimeout(() => mainSearchInput.focus(), 100);
+        }
+    }
+
+    const mainScrollSheet = document.getElementById("mainScrollSheet");
+    if (mainScrollSheet) mainScrollSheet.scrollTop = 0;
+
+    updateAdminUI();
+    renderAllSearch();
+}
+
+window.activateAllSearchUI = activateAllSearchUI;
+window.openAllSearchPage = activateAllSearchUI;
+
 function closeAllSearchUI() {
     isAllSearchActive = false;
     const container = document.getElementById("allSearchContainer");
     container?.classList.add("hidden");
+
+    const subSearchWrapper = document.getElementById("subPageHeaderSearchWrapper");
+    const subSearchInput = document.getElementById("subPageSearchInput");
+    const mainSearchInput = document.getElementById("searchInput");
+
+    if (subSearchInput) subSearchInput.value = "";
+    if (mainSearchInput) mainSearchInput.value = "";
+    subSearchWrapper?.querySelector(".subpage-search-field")?.classList.remove("has-value");
+
     updateAdminUI();
-    
-    renderCategories(document.getElementById("searchInput")?.value.trim().toLowerCase());
+    renderCategories("");
 }
 
 function renderAllSearch() {
     const container = document.getElementById("allSearchContainer");
     if (!container) return;
 
-    const rawVal = document.getElementById("searchInput")?.value.trim();
+    const mainVal = document.getElementById("searchInput")?.value.trim() || "";
+    const subVal = document.getElementById("subPageSearchInput")?.value.trim() || "";
+    const rawVal = subVal || mainVal;
     const searchVal = rawVal ? rawVal.toLowerCase() : "";
     container.innerHTML = "";
 
@@ -1298,7 +1375,6 @@ function showMainDashboardView() {
 
     setNavState(false);
 
-    // প্রথম পেজে সার্চ অপশন লুকানো থাকবে
     document.getElementById("searchBtn")?.classList.add("hidden");
 
     document.getElementById("categoryDetailsView")?.classList.add("hidden");
@@ -1591,7 +1667,6 @@ function renderDataDetailsContent(item) {
         }
     });
 
-    // প্রোফাইল ছবিতে ক্লিক করলে বড় করে ওপেন ও জুম করার ইভেন্ট
     const avatarWrapper = container.querySelector(".avatar-wrapper");
     if (avatarWrapper) {
         avatarWrapper.addEventListener("click", () => {
@@ -2145,17 +2220,6 @@ function initOfflineLanguageSystem() {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
 /* ==========================================
    FULL-SCREEN PROFILE IMAGE ZOOM VIEWER
 ========================================== */
@@ -2209,7 +2273,6 @@ function openProfileImageViewer(photoUrl, personName) {
     resetZoom();
     modal.classList.remove("hidden");
 
-    // ব্যাক বাটনের জন্য হিস্ট্রি স্টেট যোগ করা হলো
     history.pushState({ page: "imageZoom" }, "");
 
     const closeViewer = () => {
@@ -2322,4 +2385,3 @@ function openProfileImageViewer(photoUrl, personName) {
         window.removeEventListener("popstate", popStateListener);
     };
 }
-
