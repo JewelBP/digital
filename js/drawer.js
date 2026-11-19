@@ -364,7 +364,6 @@ function initSettingsModal() {
     const existing = document.getElementById("settingsModal");
     if (existing) existing.remove();
 
-    // ব্যাক বাটন সাপোর্ট করার জন্য হিস্ট্রিতে স্টেট পুশ করা হলো
     history.pushState({ modal: "settings" }, "");
 
     const themeColor = localStorage.getItem("app_theme_color") || "#ff0000";
@@ -482,7 +481,6 @@ function initSettingsModal() {
 
     const modal = document.getElementById("settingsModal");
 
-    // ব্যাক বাটন প্রেস করলে মোডাল বন্ধ করার লজিক
     const handlePopState = (e) => {
         if (document.getElementById("settingsModal")) {
             window.removeEventListener("popstate", handlePopState);
@@ -502,7 +500,6 @@ function initSettingsModal() {
         }
     };
 
-    // ভাষা পরিবর্তন হ্যান্ডলার (Google Translate Cookie সেট করা)
     modal.addEventListener("change", e => {
         if (e.target && e.target.name === "appLang") {
             const selectedLang = e.target.value; 
@@ -565,7 +562,6 @@ function initSettingsModal() {
         }
     });
 
-    // রিসেট সেটিংস
     document.getElementById("resetSettingsBtn").addEventListener("click", () => {
         localStorage.removeItem("app_theme_color");
         localStorage.removeItem("app_bg_color");
@@ -609,8 +605,14 @@ function handleDrawerAction(action) {
             }
             break;
         case "search":
-            const allSearchBtn = document.getElementById("allSearchBtn");
-            if (allSearchBtn) allSearchBtn.click();
+            if (typeof window.openAllSearchPage === "function") {
+                window.openAllSearchPage(true);
+            } else if (typeof window.activateAllSearchUI === "function") {
+                window.activateAllSearchUI(true);
+            } else {
+                const allSearchBtn = document.getElementById("allSearchBtn");
+                if (allSearchBtn) allSearchBtn.click();
+            }
             break;
         case "favorite":
             if (typeof renderFavoriteView === "function") {
@@ -660,7 +662,6 @@ function bootSavedTheme() {
 bootSavedTheme();
 document.addEventListener("DOMContentLoaded", bootSavedTheme);
 
-// পেজ লোড হওয়ার পর ক্যাশ বা কুকি চেক করে ভাষা বজায় রাখা
 (function () {
     const savedLang = localStorage.getItem('app_language');
     const matchCookie = document.cookie.match(/googtrans=\/bn\/([a-z]+)/);
