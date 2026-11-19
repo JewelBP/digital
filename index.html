@@ -1189,6 +1189,46 @@
                     <div id="dataPageContent"></div>
                 </div>
             </div>
+
+            <!-- ড্রাইভিং নোট গাইড পেজ -->
+            <div id="drivingNoteView" class="hidden" style="padding-bottom: 24px;">
+                <div id="drivingAdminPanel" class="admin-only hidden" style="background: var(--card-bg, #ffffff); border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px; margin-bottom: 14px; box-shadow: 0 3px 10px rgba(0,0,0,0.06);">
+                    <h3 id="drivingFormTitle" style="margin: 0 0 10px; font-size: 16px; color: var(--app-main-color, #020624);">📝 Driving Note ব্লক যোগ করুন</h3>
+
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">ব্লকের ধরন</label>
+                        <select id="drivingBlockType" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
+                            <option value="heading">শিরোনাম (Heading)</option>
+                            <option value="text">বিস্তারিত লেখা (Text)</option>
+                            <option value="note">বিশেষ নোট / সতর্কতা (Note Box)</option>
+                            <option value="image">ছবি (Image URL)</option>
+                            <option value="link">লিংক বাটন (Link)</option>
+                        </select>
+                    </div>
+
+                    <div id="drivingFieldText" class="form-group" style="margin-bottom: 10px;">
+                        <label id="drivingTextLabel" style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">লেখা / শিরোনাম</label>
+                        <textarea id="drivingInputText" rows="3" placeholder="এখানে লিখুন..." style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;"></textarea>
+                    </div>
+
+                    <div id="drivingFieldUrl" class="form-group hidden" style="margin-bottom: 10px;">
+                        <label id="drivingUrlLabel" style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">ছবি বা লিংকের URL</label>
+                        <input id="drivingInputUrl" type="url" placeholder="https://..." style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
+                    </div>
+
+                    <div id="drivingFieldExtra" class="form-group hidden" style="margin-bottom: 10px;">
+                        <label id="drivingExtraLabel" style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">ক্যাপশন / বাটনের লেখা</label>
+                        <input id="drivingInputExtra" type="text" placeholder="যেমন: বিস্তারিত দেখুন" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
+                    </div>
+
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button id="saveDrivingBlockBtn" class="primary-btn" type="button">সেভ করুন</button>
+                        <button id="cancelDrivingEditBtn" class="secondary-btn hidden" type="button">বাতিল</button>
+                    </div>
+                </div>
+
+                <div id="drivingNoteContent" style="display:flex; flex-direction:column; gap:12px;"></div>
+            </div>
         </main>
     </div>
 
@@ -1521,6 +1561,7 @@
         const mainDashboard = document.getElementById('mainDashboardView');
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
+        const drivingNoteView = document.getElementById('drivingNoteView');
         const allSearchContainer = document.getElementById('allSearchContainer');
         const heroSlider = document.getElementById('heroSlider');
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
@@ -1554,18 +1595,19 @@
             const isHomeHidden = mainDashboard && mainDashboard.classList.contains('hidden');
             const isSubPage = categoryDetails && !categoryDetails.classList.contains('hidden');
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
+            const isDrivingNotePage = drivingNoteView && !drivingNoteView.classList.contains('hidden');
             const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
             const isFavoritePage = isFavoriteViewActive();
             const isAllSearchPage = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleText.includes('search all');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage || isAllSearchPage;
+            const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage || isAllSearchPage || isDrivingNotePage;
             heroSlider.style.display = hideSlider ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
 
             // Favorite Numbers পেজসহ সব সাব-পেজ এবং অল সার্চ পেজে সার্চ ফিল্ড দেখাবে
-            const showSubSearch = (isSubPage || isAllSearchPage || isFavoritePage) && !isDataPage;
+            const showSubSearch = (isSubPage || isAllSearchPage || isFavoritePage) && !isDataPage && !isDrivingNotePage;
             subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
             subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
 
