@@ -502,7 +502,7 @@ function initSettingsModal() {
 
     modal.addEventListener("change", e => {
         if (e.target && e.target.name === "appLang") {
-            const selectedLang = e.target.value; 
+            const selectedLang = e.target.value;
             const value = `/bn/${selectedLang}`;
             
             document.cookie = `googtrans=${value};path=/;max-age=31536000`;
@@ -631,6 +631,11 @@ function handleDrawerAction(action) {
             break;
         case "notice-box":
             console.log("Notice Box clicked");
+            break;
+        case "driving":
+            if (typeof window.openDrivingNotePage === "function") {
+                window.openDrivingNotePage(true);
+            }
             break;
         case "share":
             if (navigator.share) {
