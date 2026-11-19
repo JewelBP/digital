@@ -51,8 +51,9 @@ let isFavoriteActive = false;
 let isDrivingNoteActive = false;
 let drivingBlocks = [];
 let drivingEditIndex = -1;
-const DRIVING_STORAGE_KEY = "rmp_mt_driving_note_blocks_v1";
-const DRIVING_FIREBASE_PATH = "webapp/driving_note_blocks";
+let expandedDrivingIndex = -1;
+const DRIVING_STORAGE_KEY = "rmp_mt_driving_note_chapters_v2";
+const DRIVING_FIREBASE_PATH = "webapp/driving_note_chapters";
 
 window.currentUserRole = "guest";
 let isDeviceVerified = false;
@@ -2462,25 +2463,24 @@ function openProfileImageViewer(photoUrl, personName) {
 }
 
 /* =====================================================================
-   DRIVING NOTE GUIDE (USER + ADMIN + FIREBASE + OFFLINE CACHE)
+   CHAPTER-WISE DRIVING NOTE GUIDE (COLLAPSIBLE + IMAGE + LINK + ADMIN)
 ===================================================================== */
 const defaultDrivingBlocks = [
     {
-        type: "heading",
-        text: "১. ড্রাইভিং শুরু করার আগে প্রয়োজনীয় প্রস্তুতি"
+        title: "১. গাড়ি চালানোর পূর্বপ্রস্তুতি",
+        body: "গাড়ি স্টার্ট করার আগে সিট বেল্ট, লুকিং গ্লাস, টায়ারের হাওয়া, ব্রেক, হেডলাইট ও ইন্ডিকেটর সঠিকভাবে কাজ করছে কি না তা পরীক্ষা করুন।",
+        imageUrl: "",
+        imageCaption: "",
+        linkUrl: "https://brta.gov.bd",
+        linkText: "BRTA তথ্য ও নির্দেশিকা"
     },
     {
-        type: "text",
-        text: "গাড়ি স্টার্ট করার আগে সিট বেল্ট, লুকিং গ্লাস, টায়ারের চাপ, ব্রেক এবং হেডলাইট ও ইন্ডিকেটর সঠিকভাবে কাজ করছে কি না তা পরীক্ষা করুন।"
-    },
-    {
-        type: "note",
-        text: "গুরুত্বপূর্ণ সতর্কতা: যানজট, বৃষ্টির ভেজা রাস্তা বা রাতে চলার সময় গতিসীমা ও নিরাপদ দূরত্ব বজায় রাখুন।"
-    },
-    {
-        type: "link",
-        url: "https://brta.gov.bd",
-        extra: "BRTA তথ্য ও নির্দেশিকা দেখুন"
+        title: "২. সড়কে নিরাপদ গতি ও দূরত্ব বজায় রাখা",
+        body: "সামনের গাড়ির সাথে নিরাপদ দূরত্ব রাখুন। বৃষ্টি, কুয়াশা বা জনবহুল এলাকায় গতি কমিয়ে সতর্কতার সাথে গাড়ি চালান।",
+        imageUrl: "",
+        imageCaption: "",
+        linkUrl: "",
+        linkText: ""
     }
 ];
 
@@ -2534,129 +2534,129 @@ async function persistDrivingBlocks() {
 
     try {
         await set(ref(db, DRIVING_FIREBASE_PATH), drivingBlocks);
-        showToast("Driving Note আপডেট হয়েছে");
+        showToast("Driving Note অধ্যায় সেভ হয়েছে");
     } catch (e) {
         console.error("Driving note save error:", e);
         showToast("ক্লাউডে সেভ করতে সমস্যা হয়েছে");
     }
 }
 
-function updateDrivingFormFields() {
-    const type = document.getElementById("drivingBlockType")?.value || "text";
-    const fieldText = document.getElementById("drivingFieldText");
-    const fieldUrl = document.getElementById("drivingFieldUrl");
-    const fieldExtra = document.getElementById("drivingFieldExtra");
-    const textLabel = document.getElementById("drivingTextLabel");
-    const urlLabel = document.getElementById("drivingUrlLabel");
-    const extraLabel = document.getElementById("drivingExtraLabel");
-
-    fieldText?.classList.add("hidden");
-    fieldUrl?.classList.add("hidden");
-    fieldExtra?.classList.add("hidden");
-
-    if (type === "heading" || type === "text" || type === "note") {
-        fieldText?.classList.remove("hidden");
-        if (textLabel) {
-            textLabel.textContent =
-                type === "heading" ? "শিরোনাম লিখুন" :
-                type === "note" ? "বিশেষ নোট লিখুন" : "বিস্তারিত লেখা";
-        }
-    } else if (type === "image") {
-        fieldUrl?.classList.remove("hidden");
-        fieldExtra?.classList.remove("hidden");
-        if (urlLabel) urlLabel.textContent = "ছবির লিংক (Image URL)";
-        if (extraLabel) extraLabel.textContent = "ছবির ক্যাপশন (ঐচ্ছিক)";
-    } else if (type === "link") {
-        fieldUrl?.classList.remove("hidden");
-        fieldExtra?.classList.remove("hidden");
-        if (urlLabel) urlLabel.textContent = "ওয়েবসাইট বা পেজের লিংক (URL)";
-        if (extraLabel) extraLabel.textContent = "বাটনের লেখা";
-    }
-}
-
 function resetDrivingForm() {
     drivingEditIndex = -1;
-    const textEl = document.getElementById("drivingInputText");
-    const urlEl = document.getElementById("drivingInputUrl");
-    const extraEl = document.getElementById("drivingInputExtra");
-    const saveBtn = document.getElementById("saveDrivingBlockBtn");
+    const fields = [
+        "drivingChapterTitle",
+        "drivingChapterBody",
+        "drivingChapterImageUrl",
+        "drivingChapterImageCaption",
+        "drivingChapterLinkUrl",
+        "drivingChapterLinkText"
+    ];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+    });
+
+    const saveBtn = document.getElementById("saveDrivingChapterBtn");
     const cancelBtn = document.getElementById("cancelDrivingEditBtn");
     const formTitle = document.getElementById("drivingFormTitle");
 
-    if (textEl) textEl.value = "";
-    if (urlEl) urlEl.value = "";
-    if (extraEl) extraEl.value = "";
-    if (saveBtn) saveBtn.textContent = "সেভ করুন";
+    if (saveBtn) saveBtn.textContent = "অধ্যায় সেভ করুন";
     if (cancelBtn) cancelBtn.classList.add("hidden");
-    if (formTitle) formTitle.textContent = "📝 Driving Note ব্লক যোগ করুন";
+    if (formTitle) formTitle.textContent = "📘 নতুন অধ্যায় যোগ করুন";
 }
 
-function saveDrivingBlock() {
+function saveDrivingChapter() {
     if (window.currentUserRole !== "admin") return;
 
-    const type = document.getElementById("drivingBlockType")?.value || "text";
-    const text = document.getElementById("drivingInputText")?.value.trim() || "";
-    const url = document.getElementById("drivingInputUrl")?.value.trim() || "";
-    const extra = document.getElementById("drivingInputExtra")?.value.trim() || "";
+    const title = document.getElementById("drivingChapterTitle")?.value.trim() || "";
+    const body = document.getElementById("drivingChapterBody")?.value.trim() || "";
+    const imageUrl = document.getElementById("drivingChapterImageUrl")?.value.trim() || "";
+    const imageCaption = document.getElementById("drivingChapterImageCaption")?.value.trim() || "";
+    const linkUrl = document.getElementById("drivingChapterLinkUrl")?.value.trim() || "";
+    const linkText = document.getElementById("drivingChapterLinkText")?.value.trim() || "";
 
-    if ((type === "heading" || type === "text" || type === "note") && !text) {
-        return showToast("দয়া করে প্রয়োজনীয় লেখা দিন");
-    }
-    if ((type === "image" || type === "link") && !url) {
-        return showToast("দয়া করে সঠিক URL দিন");
+    if (!title) {
+        return showToast("অধ্যায়ের শিরোনাম লিখুন");
     }
 
-    const blockData = { type, text, url, extra };
+    if (!body && !imageUrl && !linkUrl) {
+        return showToast("লেখা, ছবি বা লিংকের অন্তত একটি দিন");
+    }
+
+    const chapterData = {
+        title,
+        body,
+        imageUrl,
+        imageCaption,
+        linkUrl,
+        linkText
+    };
 
     if (drivingEditIndex >= 0 && drivingBlocks[drivingEditIndex]) {
-        drivingBlocks[drivingEditIndex] = blockData;
+        drivingBlocks[drivingEditIndex] = chapterData;
+        expandedDrivingIndex = drivingEditIndex;
     } else {
-        drivingBlocks.push(blockData);
+        drivingBlocks.push(chapterData);
+        expandedDrivingIndex = drivingBlocks.length - 1;
     }
 
     persistDrivingBlocks();
     resetDrivingForm();
 }
 
-function startEditDrivingBlock(index) {
-    const b = drivingBlocks[index];
-    if (!b) return;
+function startEditDrivingChapter(index) {
+    const item = drivingBlocks[index];
+    if (!item) return;
     drivingEditIndex = index;
 
-    const typeSelect = document.getElementById("drivingBlockType");
-    if (typeSelect) typeSelect.value = b.type;
-    updateDrivingFormFields();
+    const map = {
+        drivingChapterTitle: item.title || "",
+        drivingChapterBody: item.body || "",
+        drivingChapterImageUrl: item.imageUrl || "",
+        drivingChapterImageCaption: item.imageCaption || "",
+        drivingChapterLinkUrl: item.linkUrl || "",
+        drivingChapterLinkText: item.linkText || ""
+    };
 
-    const textEl = document.getElementById("drivingInputText");
-    const urlEl = document.getElementById("drivingInputUrl");
-    const extraEl = document.getElementById("drivingInputExtra");
-    const saveBtn = document.getElementById("saveDrivingBlockBtn");
+    Object.entries(map).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+    });
+
+    const saveBtn = document.getElementById("saveDrivingChapterBtn");
     const cancelBtn = document.getElementById("cancelDrivingEditBtn");
     const formTitle = document.getElementById("drivingFormTitle");
 
-    if (textEl) textEl.value = b.text || "";
-    if (urlEl) urlEl.value = b.url || "";
-    if (extraEl) extraEl.value = b.extra || "";
-    if (saveBtn) saveBtn.textContent = "আপডেট করুন";
+    if (saveBtn) saveBtn.textContent = "অধ্যায় আপডেট করুন";
     if (cancelBtn) cancelBtn.classList.remove("hidden");
-    if (formTitle) formTitle.textContent = "✏️ Driving Note ব্লক এডিট করুন";
+    if (formTitle) formTitle.textContent = "✏️ অধ্যায় এডিট করুন";
 
     document.getElementById("drivingAdminPanel")?.scrollIntoView({ behavior: "smooth" });
 }
 
-async function deleteDrivingBlock(index) {
-    const ok = await customConfirm("এই Driving Note অংশটি মুছে ফেলতে চান?");
+async function deleteDrivingChapter(index) {
+    const ok = await customConfirm("এই অধ্যায়টি মুছে ফেলতে চান?");
     if (!ok) return;
     drivingBlocks.splice(index, 1);
+    if (expandedDrivingIndex === index) {
+        expandedDrivingIndex = -1;
+    } else if (expandedDrivingIndex > index) {
+        expandedDrivingIndex -= 1;
+    }
     await persistDrivingBlocks();
 }
 
-async function moveDrivingBlock(index, dir) {
+async function moveDrivingChapter(index, dir) {
     const target = index + dir;
     if (target < 0 || target >= drivingBlocks.length) return;
     const temp = drivingBlocks[index];
     drivingBlocks[index] = drivingBlocks[target];
     drivingBlocks[target] = temp;
+    if (expandedDrivingIndex === index) {
+        expandedDrivingIndex = target;
+    } else if (expandedDrivingIndex === target) {
+        expandedDrivingIndex = index;
+    }
     await persistDrivingBlocks();
 }
 
@@ -2673,56 +2673,79 @@ function renderDrivingNoteBlocks() {
     container.innerHTML = "";
 
     if (!drivingBlocks.length) {
-        container.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted);">কোনো Driving Note যুক্ত করা হয়নি।</div>`;
+        container.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted);">কোনো অধ্যায় যুক্ত করা হয়নি।</div>`;
         return;
     }
 
-    drivingBlocks.forEach((block, idx) => {
+    drivingBlocks.forEach((chapter, idx) => {
+        const isOpen = expandedDrivingIndex === idx;
         const card = document.createElement("div");
-        card.style.cssText = "background:var(--card-bg, #ffffff); border:1px solid #e2e8f0; border-radius:14px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.04);";
+        card.className = "driving-chapter-card";
 
-        if (block.type === "heading") {
-            card.innerHTML = `<h3 style="margin:0; font-size:18px; color:var(--app-main-color, #020624); font-weight:700;">${escapeHTML(block.text)}</h3>`;
-        } else if (block.type === "text") {
-            card.innerHTML = `<p style="margin:0; font-size:15px; line-height:1.65; white-space:pre-line;">${escapeHTML(block.text)}</p>`;
-        } else if (block.type === "note") {
-            card.style.borderLeft = "4px solid #020624";
-            card.style.background = "#eef2ff";
-            card.innerHTML = `<div style="font-size:14px; line-height:1.6; color:#1e293b; white-space:pre-line;">${escapeHTML(block.text)}</div>`;
-        } else if (block.type === "image" && block.url) {
-            const safeUrl = escapeHTML(block.url);
-            const safeCaption = escapeHTML(block.extra || "Driving Note ছবি");
-            card.innerHTML = `
-                <img src="${safeUrl}" alt="${safeCaption}" style="width:100%; border-radius:10px; display:block; cursor:zoom-in;" onerror="this.style.display='none'">
-                ${block.extra ? `<div style="text-align:center; font-size:13px; color:#64748b; margin-top:6px;">${safeCaption}</div>` : ""}
+        const headerBtn = document.createElement("button");
+        headerBtn.type = "button";
+        headerBtn.className = "driving-chapter-header";
+        headerBtn.setAttribute("aria-expanded", String(isOpen));
+        headerBtn.innerHTML = `
+            <span class="driving-chapter-title">${escapeHTML(chapter.title || "শিরোনামহীন অধ্যায়")}</span>
+            <span class="driving-chapter-toggle">${isOpen ? "−" : "+"}</span>
+        `;
+
+        const bodyPanel = document.createElement("div");
+        bodyPanel.className = "driving-chapter-body" + (isOpen ? " open" : "");
+
+        let bodyHtml = "";
+        if (chapter.body) {
+            bodyHtml += `<p class="driving-chapter-text">${escapeHTML(chapter.body)}</p>`;
+        }
+        if (chapter.imageUrl) {
+            const safeImg = escapeHTML(chapter.imageUrl);
+            const safeCap = escapeHTML(chapter.imageCaption || chapter.title || "ছবি");
+            bodyHtml += `
+                <div class="driving-chapter-media">
+                    <img src="${safeImg}" alt="${safeCap}" class="driving-chapter-img" onerror="this.parentElement.style.display='none'">
+                    ${chapter.imageCaption ? `<div class="driving-chapter-caption">${safeCap}</div>` : ""}
+                </div>
             `;
-            card.querySelector("img")?.addEventListener("click", () => {
-                openProfileImageViewer(block.url, block.extra || "Driving Note");
-            });
-        } else if (block.type === "link" && block.url) {
-            const safeUrl = escapeHTML(block.url);
-            const safeLabel = escapeHTML(block.extra || "লিংক খুলুন");
-            card.innerHTML = `
-                <a href="${safeUrl}" target="_blank" rel="noopener noreferrer"
-                   style="display:inline-block; background:var(--app-main-color, #020624); color:#ffffff; text-decoration:none; padding:9px 16px; border-radius:10px; font-size:14px; font-weight:600;">
-                    🔗 ${safeLabel}
-                </a>
+        }
+        if (chapter.linkUrl) {
+            const safeLink = escapeHTML(chapter.linkUrl);
+            const safeBtnLabel = escapeHTML(chapter.linkText || "লিংক ওপেন করুন");
+            bodyHtml += `
+                <div class="driving-chapter-link-wrap">
+                    <a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="driving-chapter-link-btn">🔗 ${safeBtnLabel}</a>
+                </div>
             `;
         }
 
+        bodyPanel.innerHTML = `<div class="driving-chapter-inner">${bodyHtml}</div>`;
+
+        bodyPanel.querySelector(".driving-chapter-img")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openProfileImageViewer(chapter.imageUrl, chapter.imageCaption || chapter.title);
+        });
+
+        headerBtn.addEventListener("click", () => {
+            expandedDrivingIndex = expandedDrivingIndex === idx ? -1 : idx;
+            renderDrivingNoteBlocks();
+        });
+
+        card.appendChild(headerBtn);
+        card.appendChild(bodyPanel);
+
         if (isAdmin) {
             const actions = document.createElement("div");
-            actions.style.cssText = "display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; padding-top:8px; border-top:1px dashed #cbd5e1;";
+            actions.className = "driving-chapter-admin-bar";
             actions.innerHTML = `
                 <button type="button" class="secondary-btn btn-up" style="padding:5px 10px; font-size:12px;">↑ উপরে</button>
                 <button type="button" class="secondary-btn btn-down" style="padding:5px 10px; font-size:12px;">↓ নিচে</button>
                 <button type="button" class="primary-btn btn-edit" style="padding:5px 10px; font-size:12px;">✏️ এডিট</button>
                 <button type="button" class="danger-btn btn-del" style="padding:5px 10px; font-size:12px;">🗑️ ডিলিট</button>
             `;
-            actions.querySelector(".btn-up")?.addEventListener("click", () => moveDrivingBlock(idx, -1));
-            actions.querySelector(".btn-down")?.addEventListener("click", () => moveDrivingBlock(idx, 1));
-            actions.querySelector(".btn-edit")?.addEventListener("click", () => startEditDrivingBlock(idx));
-            actions.querySelector(".btn-del")?.addEventListener("click", () => deleteDrivingBlock(idx));
+            actions.querySelector(".btn-up")?.addEventListener("click", () => moveDrivingChapter(idx, -1));
+            actions.querySelector(".btn-down")?.addEventListener("click", () => moveDrivingChapter(idx, 1));
+            actions.querySelector(".btn-edit")?.addEventListener("click", () => startEditDrivingChapter(idx));
+            actions.querySelector(".btn-del")?.addEventListener("click", () => deleteDrivingChapter(idx));
             card.appendChild(actions);
         }
 
@@ -2762,7 +2785,6 @@ function openDrivingNotePage(pushHistory = true) {
     const mainScrollSheet = document.getElementById("mainScrollSheet");
     if (mainScrollSheet) mainScrollSheet.scrollTop = 0;
 
-    updateDrivingFormFields();
     renderDrivingNoteBlocks();
 }
 
@@ -2770,7 +2792,6 @@ window.openDrivingNotePage = openDrivingNotePage;
 
 document.addEventListener("DOMContentLoaded", () => {
     subscribeDrivingNoteLive();
-    document.getElementById("drivingBlockType")?.addEventListener("change", updateDrivingFormFields);
-    document.getElementById("saveDrivingBlockBtn")?.addEventListener("click", saveDrivingBlock);
+    document.getElementById("saveDrivingChapterBtn")?.addEventListener("click", saveDrivingChapter);
     document.getElementById("cancelDrivingEditBtn")?.addEventListener("click", resetDrivingForm);
 });
