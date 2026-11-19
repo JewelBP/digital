@@ -1111,10 +1111,11 @@ body {
 
 #mainDashboardView,
 #categoryDetailsView,
-#dataDetailsView {
+#dataDetailsView,
+#drivingNoteView {
     min-height: calc(100vh - 220px);
     min-height: calc(100dvh - 220px);
-    padding-bottom: 90px !important; /* কন্টাক্ট ডিটেইলস পেজের Get VIP বাটন যেন ফিক্সড নেভিগেশনের নিচে ঢাকা না পড়ে */
+    padding-bottom: 90px !important; /* কন্টাক্ট ডিটেইলস ও ড্রাইভিং নোট যেন ফিক্সড নেভিগেশনের নিচে ঢাকা না পড়ে */
     box-sizing: border-box;
 }
 
@@ -1176,4 +1177,20 @@ body.dark-mode .data-card-name {
 
 body.dark-mode .data-card-detail {
     color: var(--text-muted, #94a3b8) !important;
+}
+
+/* ===== DRIVING NOTE GUIDE STYLES ===== */
+#drivingNoteView .driving-block-card {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+body.has-bg-image #drivingNoteView .driving-block-card {
+    background-color: rgba(255, 255, 255, 0.62) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }
