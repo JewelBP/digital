@@ -356,7 +356,7 @@
         }
         #categoryList .category-card h3 {
             color: #ffffff !important;
-            font-size: 16px !important;
+            font-size: 12px !important;
             font-weight: 600 !important;
             line-height: 1.25 !important;
             display: -webkit-box;
@@ -1014,6 +1014,23 @@
         html body #dataDetailsView #dataPageContent > .details-header-section p {
             color: #e2e8f0 !important;
         }
+
+        /* ব্যাকগ্রাউন্ড ফটো (has-bg-image) সাপোর্ট */
+        body.has-bg-image {
+            background-image: var(--app-bg-image) !important;
+            background-size: cover !important;
+            background-position: center center !important;
+            background-repeat: no-repeat !important;
+            background-attachment: fixed !important;
+        }
+        body.has-bg-image .curved-main-sheet {
+            background-color: rgba(248, 250, 252, 0.72) !important;
+            backdrop-filter: blur(2px);
+        }
+        body.dark-mode.has-bg-image .curved-main-sheet {
+            background-color: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(2px);
+        }
     </style>
 </head>
 
@@ -1382,7 +1399,7 @@
 
     <div id="toast" class="toast"></div>
 
-    <!-- ফুল-স্ক্রিন ছবি জুম উইন্ডো -->
+    <!-- ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো -->
     <div id="imageZoomModal" class="image-zoom-modal hidden">
         <div class="zoom-modal-header">
             <span id="zoomModalTitle" class="zoom-modal-title">প্রোফাইল ছবি</span>
