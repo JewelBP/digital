@@ -59,7 +59,7 @@
             padding-bottom: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden; /* মূল পেজ স্ক্রল বন্ধ রেখে ভেতরের শিট স্ক্রল হবে যাতে কর্নার সবসময় অক্ষত থাকে */
+            overflow: hidden;
             height: 100vh;
             height: 100dvh;
         }
@@ -78,7 +78,7 @@
         .modern-top-wrapper {
             background: var(--primary-color, #020624);
             color: #ffffff;
-            padding-bottom: 24px; /* নিচের সাদা শিটের বাঁকানো কর্নারের পেছনে ডার্ক ব্যাকগ্রাউন্ড রাখার জন্য */
+            padding-bottom: 24px;
             flex-shrink: 0;
             position: relative;
             z-index: 10;
@@ -306,11 +306,11 @@
             border-top-left-radius: 24px;
             border-top-right-radius: 24px;
             flex: 1;
-            margin-top: -16px; /* হেডারের ডার্ক অংশের ওপর উঠে এসে দুই পাশের কর্নার পরিষ্কারভাবে দেখাবে */
+            margin-top: -16px;
             position: relative;
             z-index: 20;
             box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.2);
-            overflow-y: auto; /* শুধুমাত্র এই সাদা অংশের ভেতরের কন্টেন্ট স্ক্রল হবে */
+            overflow-y: auto;
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             padding: 16px 14px 80px 14px;
@@ -483,7 +483,7 @@
             padding: 0 !important;
         }
 
-        /* ১. একদম ওপরের প্রোফাইল অংশ (থিম কালার অনুযায়ী পরিবর্তনশীল) */
+        /* ১. একদম ওপরের প্রোফাইল অংশ */
         #dataPageContent > div:first-child {
             background: var(--primary-color, #020624) !important;
             color: #ffffff !important;
@@ -618,7 +618,7 @@
             color: #f1f5f9 !important;
         }
 
-        /* ২. মোবাইল, টেলিফোন ও ইমেইল বাটন — ৩ কলাম গ্রিড আকারে এক সারিতে সুবিন্যস্ত */
+        /* ২. মোবাইল, টেলিফোন ও ইমেইল বাটন */
         #dataPageContent .action-buttons,
         #dataPageContent .detail-actions,
         #dataPageContent .btn-group,
@@ -676,7 +676,7 @@
             background: linear-gradient(135deg, #ea4335, #c5221f) !important;
         }
 
-        /* ৩. শেয়ার কন্টাক্ট — নিচে আলাদা পূর্ণ প্রস্থের (Full-width) স্বতন্ত্র ঘর ও আইকন */
+        /* ৩. শেয়ার কন্টাক্ট */
         #dataPageContent .share-contact-card,
         #dataPageContent a[href*="share"],
         #dataPageContent button[id*="share"],
@@ -706,7 +706,7 @@
             cursor: pointer !important;
         }
 
-        /* একদম ছবির মতো বাঁকানো গর্ত ও মাঝখানের লোগোসহ নিচের নেভিগেশন বার */
+        /* নিচের নেভিগেশন বার */
         .custom-bottom-nav {
             position: fixed;
             bottom: 0;
@@ -854,32 +854,26 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-/* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন নিশ্চিত করতে */
-#detailsContent .subcategory-card,
-#detailsContent .data-card-item:has(img[src*="bell"]),
-#detailsContent > div > div.subcategory-card,
-#categoryDetailsView .subcategory-card,
-.subcategory-card {
-    background-color: var(--primary-color, #020624) !important;
-    background: var(--primary-color, #020624) !important;
-    color: #ffffff !important;
-}
+        /* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন */
+        #detailsContent .subcategory-card,
+        #detailsContent .data-card-item:has(img[src*="bell"]),
+        #detailsContent > div > div.subcategory-card,
+        #categoryDetailsView .subcategory-card,
+        .subcategory-card {
+            background-color: var(--primary-color, #020624) !important;
+            background: var(--primary-color, #020624) !important;
+            color: #ffffff !important;
+        }
+        #detailsContent .subcategory-card *,
+        .subcategory-card * {
+            color: #ffffff !important;
+        }
 
-/* সাব-ক্যাটাগরি কার্ডের ভেতরের লেখার কালার সাদা রাখার জন্য */
-#detailsContent .subcategory-card *,
-.subcategory-card * {
-    color: #ffffff !important;
-}
-
-        
-
-        /* =====================================================================
-           ফিক্স: Favorite Numbers পেজের কার্ড অনুভূমিক (সাইডে স্ক্রল) না হয়ে
-           অন্য ক্যাটাগরির মতো উপর-নিচ উল্লম্বভাবে সাজানো থাকবে
-           ===================================================================== */
+        /* Favorite Numbers ও All Search কার্ড উল্লম্বভাবে সাজানো */
         #categoryList:has(> .data-card-item),
         #categoryDetailsView :has(> .data-card-item),
-        #detailsContent :has(> .data-card-item) {
+        #detailsContent :has(> .data-card-item),
+        #allSearchContainer:has(> .data-card-item) {
             display: flex !important;
             flex-direction: column !important;
             flex-wrap: nowrap !important;
@@ -895,7 +889,8 @@
         }
         #categoryList .data-card-item,
         #categoryDetailsView .data-card-item,
-        #detailsContent .data-card-item {
+        #detailsContent .data-card-item,
+        #allSearchContainer .data-card-item {
             margin-bottom: 12px !important;
             flex: 0 0 auto !important;
             width: 100% !important;
@@ -905,18 +900,16 @@
             scroll-snap-align: none !important;
         }
         #categoryDetailsView .data-card-item > *,
-        #detailsContent .data-card-item > * {
+        #detailsContent .data-card-item > *,
+        #allSearchContainer .data-card-item > * {
             min-width: 0;
         }
 
-        /* =====================================================================
-           ডাটা কার্ডে ডার্ক মোড সাপোর্ট (ক্যাটাগরি পেজ + Favorite Numbers পেজ)
-           ডার্ক মোড বন্ধ থাকলে আগের ডিফল্ট সাদা কার্ডই থাকবে
-           ===================================================================== */
+        /* ডাটা কার্ডে ডার্ক মোড সাপোর্ট */
         body.dark-mode #categoryDetailsView .data-card-item,
         body.dark-mode #detailsContent .data-card-item,
-        body.dark-mode #categoryList .data-card-item {
-            /* ক্যাটাগরি কার্ডের মতো একই কালার (থিম কালার, না থাকলে ডিফল্ট) */
+        body.dark-mode #categoryList .data-card-item,
+        body.dark-mode #allSearchContainer .data-card-item {
             background-color: var(--app-main-color, #020624) !important;
             background: var(--app-main-color, #020624) !important;
             border: none !important;
@@ -924,26 +917,25 @@
         }
         body.dark-mode #categoryDetailsView .data-card-name,
         body.dark-mode #detailsContent .data-card-name,
-        body.dark-mode #categoryList .data-card-name {
+        body.dark-mode #categoryList .data-card-name,
+        body.dark-mode #allSearchContainer .data-card-name {
             color: #ffffff !important;
         }
         body.dark-mode #categoryDetailsView .data-card-detail,
         body.dark-mode #detailsContent .data-card-detail,
-        body.dark-mode #categoryList .data-card-detail {
+        body.dark-mode #categoryList .data-card-detail,
+        body.dark-mode #allSearchContainer .data-card-detail {
             color: rgba(255, 255, 255, 0.75) !important;
         }
         body.dark-mode #categoryDetailsView .data-card-avatar,
         body.dark-mode #detailsContent .data-card-avatar,
-        body.dark-mode #categoryList .data-card-avatar {
+        body.dark-mode #categoryList .data-card-avatar,
+        body.dark-mode #allSearchContainer .data-card-avatar {
             background: rgba(255, 255, 255, 0.15) !important;
             border-color: rgba(255, 255, 255, 0.25) !important;
         }
 
-        /* =====================================================================
-           কন্টাক্ট ডিটেইলস পেজের ওপরের প্রোফাইল অংশ:
-           ডার্ক মোড অন/অফ যাই হোক, থিম কালার (--primary-color) থাকবে;
-           থিম কালার সেট না থাকলে ডিফল্ট #020624
-           ===================================================================== */
+        /* কন্টাক্ট ডিটেইলস পেজের ওপরের প্রোফাইল অংশ */
         html body #dataDetailsView #dataPageContent > .details-header-section,
         html body.dark-mode #dataDetailsView #dataPageContent > .details-header-section,
         html body.is-data-details-mode #dataDetailsView #dataPageContent > .details-header-section {
@@ -1016,7 +1008,7 @@
             <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
         </div>
 
-        <!-- ক্যাটাগরি বা সাব-পেজের সার্চ বক্স -->
+        <!-- ক্যাটাগরি, সাব-পেজ বা অল সার্চ পেজের সার্চ বক্স -->
         <div id="subPageHeaderSearchWrapper" class="header-search-inline hidden">
             <div class="subpage-search-field">
                 <span class="subpage-search-icon" aria-hidden="true">⌕</span>
@@ -1057,7 +1049,7 @@
         </div>
     </div>
 
-    <!-- সাদা বাঁকানো মূল শিট (এর ভেতরেই স্ক্রল হবে যাতে দুই পাশের কর্নার অক্ষত থাকে) -->
+    <!-- সাদা বাঁকানো মূল শিট -->
     <div class="curved-main-sheet" id="mainScrollSheet">
         
         <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
@@ -1077,7 +1069,9 @@
                 
                 <!-- ৩-কলাম ক্যাটাগরি লিস্ট -->
                 <section id="categoryList" class="category-list grid-3-col"></section>
-                <div id="allSearchContainer" class="hidden" style="margin-top: 15px;"></div>
+
+                <!-- অল সার্চ পেজ কন্টেইনার -->
+                <div id="allSearchContainer" class="hidden" style="margin-top: 8px;"></div>
                 
                 <section id="emptyState" class="empty-state hidden">
                     <div class="empty-icon">📂</div>
@@ -1439,11 +1433,12 @@
         }, 3500);
     })();
 
-    // Category details, Data details এবং Favorite Numbers সহ অন্যান্য সাব-পেজে ইমেজ স্লাইডার লুকানো এবং শুধুমাত্র Home page-এ দেখানো
+    // Category details, Data details, Favorite Numbers এবং Search All পেজ ভিজিবিলিটি সিঙ্ক
     (function initSubPageHeaderSearch() {
         const mainDashboard = document.getElementById('mainDashboardView');
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
+        const allSearchContainer = document.getElementById('allSearchContainer');
         const heroSlider = document.getElementById('heroSlider');
         const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
         const homeSearchBox = document.getElementById('searchBox');
@@ -1462,23 +1457,23 @@
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
             const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
             const isFavoritePage = titleText.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
+            const isAllSearchPage = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleText.includes('search all');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
 
-            // শুধুমাত্র মূল হোম পেজ খোলা থাকলেই স্লাইডার দেখাবে; Favorite Numbers বা অন্য কোনো পেজে লুকানো থাকবে
-            const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage;
+            const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage || isAllSearchPage;
             heroSlider.style.display = hideSlider ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
 
-            subPageSearchWrapper.classList.toggle('is-visible', isSubPage && !isDataPage);
-            subPageSearchWrapper.classList.toggle('hidden', !isSubPage || isDataPage);
+            const showSubSearch = (isSubPage || isAllSearchPage) && !isDataPage;
+            subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
+            subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
 
-            // পেজ পরিবর্তন হলে স্ক্রল পজিশন একদম ওপরে রিসেট হবে
-            if (mainScrollSheet) {
+            if (mainScrollSheet && !document.activeElement?.matches('#subPageSearchInput, #searchInput')) {
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!isSubPage && subInput) {
+            if (!isSubPage && !isAllSearchPage && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
@@ -1539,7 +1534,6 @@
 
 <script>
     // নেভিগেশন বার/টুলবারের আসল কালার পড়ে --app-main-color সেট করে
-    // (থিম কালার থাকলে থিম কালার, নইলে ডার্ক/ডিফল্ট মোডে #020624)
     (function syncMainColor() {
         const DEFAULT = '#020624';
         function apply() {
