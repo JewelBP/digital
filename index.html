@@ -386,29 +386,34 @@
             background-color: #ffffff !important;
             border: 1px solid #e2e8f0 !important;
             border-radius: 20px !important;
-            padding: 14px 16px !important;
+            padding: 12px 12px !important;
             margin-bottom: 12px !important;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
             display: flex !important;
             align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
             position: relative;
             cursor: pointer;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
         }
         #categoryDetailsView .data-card-avatar {
-            width: 65px !important;
-            height: 65px !important;
-            min-width: 65px !important;
-            max-width: 65px !important;
-            max-height: 65px !important;
+            width: 58px !important;
+            height: 58px !important;
+            min-width: 58px !important;
+            max-width: 58px !important;
+            max-height: 58px !important;
             border-radius: 50% !important;
             background: #e2e8f0;
-            margin-right: 14px !important;
+            margin-right: 4px !important;
             object-fit: cover !important;
             border: 2px solid #cbd5e1;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0 !important;
         }
         #categoryDetailsView .data-card-avatar img {
             width: 100%;
@@ -416,19 +421,55 @@
             object-fit: cover;
         }
         #categoryDetailsView .data-card-info {
-            flex-grow: 1;
-            overflow: hidden;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
         }
         #categoryDetailsView .data-card-name {
-            font-size: 16px !important;
+            font-size: 15.5px !important;
             font-weight: 700 !important;
             color: #463758 !important;
             margin-bottom: 2px;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
         }
         #categoryDetailsView .data-card-detail {
-            font-size: 12.5px !important;
+            font-size: 12px !important;
             color: #64748b !important;
             line-height: 1.4;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        /* অ্যাডমিন প্যানেলে পিন, মুভ, এডিট, ডিলিট বাটন কার্ডের ভেতরে ফিক্সড রাখা */
+        .data-card-item > div:last-child:not(.data-card-info):not(.data-card-avatar),
+        .data-card-actions,
+        .card-admin-actions {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            gap: 3px !important;
+            flex-shrink: 0 !important;
+            max-width: fit-content !important;
+            margin-left: auto !important;
+            padding: 0 !important;
+        }
+        .data-card-item > div:last-child:not(.data-card-info):not(.data-card-avatar) button,
+        .data-card-actions button,
+        .card-admin-actions button {
+            padding: 4px 5px !important;
+            min-width: 26px !important;
+            width: 26px !important;
+            height: 26px !important;
+            font-size: 13px !important;
+            margin: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 6px !important;
+            flex-shrink: 0 !important;
         }
 
         /* =====================================================================
@@ -906,6 +947,7 @@
             max-width: 100% !important;
             box-sizing: border-box !important;
             scroll-snap-align: none !important;
+            overflow: hidden !important;
         }
         #categoryDetailsView .data-card-item > *,
         #detailsContent .data-card-item > *,
@@ -1032,7 +1074,7 @@
             <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
         </div>
 
-        <!-- ক্যাটাগরি, সাব-পেজ বা অল সার্চ পেজের সার্চ বক্স -->
+        <!-- ক্যাটাগরি, সাব-পেজ, ফেভারিট বা অল সার্চ পেজের সার্চ বক্স -->
         <div id="subPageHeaderSearchWrapper" class="header-search-inline hidden">
             <div class="subpage-search-field">
                 <span class="subpage-search-icon" aria-hidden="true">⌕</span>
@@ -1475,12 +1517,28 @@
 
         if (!heroSlider || !subPageSearchWrapper) return;
 
+        function isFavoriteViewActive() {
+            const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
+            return titleText.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
+        }
+
+        // Favorite পেজে থাকা ডাটা কার্ডগুলো লাইভ ফিল্টার করার ফাংশন
+        function filterFavoriteCards(query) {
+            if (!isFavoriteViewActive()) return;
+            const q = (query || '').trim().toLowerCase();
+            const cards = document.querySelectorAll('#categoryList .data-card-item, #favoriteNumbersView .data-card-item, #favoritesView .data-card-item');
+            cards.forEach(card => {
+                const text = (card.textContent || '').toLowerCase();
+                card.style.display = (!q || text.includes(q)) ? '' : 'none';
+            });
+        }
+
         function syncSearchVisibility() {
             const isHomeHidden = mainDashboard && mainDashboard.classList.contains('hidden');
             const isSubPage = categoryDetails && !categoryDetails.classList.contains('hidden');
             const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
             const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
-            const isFavoritePage = titleText.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
+            const isFavoritePage = isFavoriteViewActive();
             const isAllSearchPage = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleText.includes('search all');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
@@ -1489,7 +1547,8 @@
             heroSlider.style.display = hideSlider ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
 
-            const showSubSearch = (isSubPage || isAllSearchPage) && !isDataPage;
+            // Favorite Numbers পেজসহ সব সাব-পেজ এবং অল সার্চ পেজে সার্চ ফিল্ড দেখাবে
+            const showSubSearch = (isSubPage || isAllSearchPage || isFavoritePage) && !isDataPage;
             subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
             subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
 
@@ -1497,29 +1556,39 @@
                 mainScrollSheet.scrollTop = 0;
             }
 
-            if (!isSubPage && !isAllSearchPage && subInput) {
+            if (!isSubPage && !isAllSearchPage && !isFavoritePage && subInput) {
                 subInput.value = '';
                 searchField?.classList.remove('has-value');
                 if (mainInput && mainInput.value) {
                     mainInput.value = '';
                     mainInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
+            } else if (isFavoritePage && subInput && subInput.value) {
+                filterFavoriteCards(subInput.value);
             }
         }
 
         if (subInput && mainInput) {
             subInput.addEventListener('input', () => {
-                mainInput.value = subInput.value;
-                mainInput.dispatchEvent(new Event('input', { bubbles: true }));
                 searchField?.classList.toggle('has-value', subInput.value.length > 0);
+                if (isFavoriteViewActive()) {
+                    filterFavoriteCards(subInput.value);
+                } else {
+                    mainInput.value = subInput.value;
+                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
             });
 
             subInput.addEventListener('keydown', event => {
                 if (event.key === 'Escape') {
                     subInput.value = '';
-                    mainInput.value = '';
-                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
                     searchField?.classList.remove('has-value');
+                    if (isFavoriteViewActive()) {
+                        filterFavoriteCards('');
+                    } else {
+                        mainInput.value = '';
+                        mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
                     subInput.blur();
                 }
             });
@@ -1528,9 +1597,13 @@
         clearButton?.addEventListener('click', () => {
             if (!subInput || !mainInput) return;
             subInput.value = '';
-            mainInput.value = '';
-            mainInput.dispatchEvent(new Event('input', { bubbles: true }));
             searchField?.classList.remove('has-value');
+            if (isFavoriteViewActive()) {
+                filterFavoriteCards('');
+            } else {
+                mainInput.value = '';
+                mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
             subInput.focus();
         });
 
