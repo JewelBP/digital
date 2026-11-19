@@ -23,7 +23,7 @@ export function initDrawer() {
 
                     <div class="drawer-title-texts">
                         <h3>RMP MT Contacts</h3>
-                        <p>Rajshahi Metropolitan Police</p>
+                        <p>RMP,Rajshahi</p>
                     </div>
 
                 </div>
