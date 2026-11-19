@@ -76,7 +76,9 @@ function applyBackground() {
   const color = localStorage.getItem(CS_BG);
 
   if (image) {
-    document.body.style.setProperty("background-image", 'url("' + image + '")', "important");
+    const bgUrl = 'url("' + image + '")';
+    document.documentElement.style.setProperty("--app-bg-image", bgUrl);
+    document.body.style.setProperty("background-image", bgUrl, "important");
     document.body.style.setProperty("background-size", "cover", "important");
     document.body.style.setProperty("background-position", "center center", "important");
     document.body.style.setProperty("background-repeat", "no-repeat", "important");
@@ -88,6 +90,7 @@ function applyBackground() {
       document.body.style.setProperty("background-color", color, "important");
     }
   } else {
+    document.documentElement.style.removeProperty("--app-bg-image");
     document.body.classList.remove("has-bg-image");
     document.body.style.removeProperty("background-image");
 
@@ -283,6 +286,13 @@ window.addEventListener("DOMContentLoaded", function () {
 
   setTimeout(createBackgroundImageUI, 500);
 });
+
+const bgUiObserver = new MutationObserver(function () {
+  if (document.getElementById("bgColorInput") && !document.getElementById("customBackgroundImageBox")) {
+    createBackgroundImageUI();
+  }
+});
+bgUiObserver.observe(document.documentElement, { childList: true, subtree: true });
 
 window.createBackgroundImageUI = createBackgroundImageUI;
 window.applyCustomSettings = applyCustomSettings;
