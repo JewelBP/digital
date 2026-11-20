@@ -4,10 +4,10 @@ importScripts("https://www.gstatic.com/firebasejs/12.1.0/firebase-messaging-comp
 firebase.initializeApp({
     apiKey: "AIzaSyBCnqpIJqMWTI_qXv96hyVs6_UV_60s3Mc",
     authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "qrt-team-default-rtdb.firebaseio.com",
+    databaseURL: "https://qrt-team-default-rtdb.firebaseio.com",
     projectId: "qrt-team",
     storageBucket: "qrt-team.firebasestorage.app",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    messagingSenderId: "855875068920",
     appId: "1:855875068920:android:601ffc0cbed4fa36b8ec0d"
 });
 
