@@ -342,8 +342,96 @@ function injectModernNotebookStyles() {
             display:flex; align-items:center; justify-content:center; padding:16px; cursor:zoom-out;
         }
         .dg-lightbox img { max-width:100%; max-height:100%; border-radius:12px; }
-    `;
+    ` + buildThemeCss();
     document.head.appendChild(style);
+}
+
+/* ============================== থিম কালার সাপোর্ট ==============================
+ * অ্যাপের থিম রং (--app-main-color / --primary-color) নোটবুকে প্রয়োগ হয়।
+ * - ডার্ক মোড বা কাস্টম থিমে: কার্ডগুলো থিমের রঙে (অ্যাপের ক্যাটাগরি/ডাটা কার্ডের মতো), লেখা সাদা
+ * - ডে মোডে (ডিফল্ট থিম): সাদা কার্ড, তবে অ্যাকসেন্ট রং থিম অনুযায়ী
+ * ============================================================================ */
+
+function buildThemeCss() {
+    const V = "#drivingGuideSheetView";
+    const T = (sel) => sel.split(",").map(x =>
+        `body.dark-mode ${V} ${x.trim()}, body.has-custom-theme ${V} ${x.trim()}`).join(",\n");
+
+    return `
+        ${V} { --dg-main: var(--app-main-color, var(--primary-color, #020624)); }
+
+        /* ---- সব মোডে: অ্যাকসেন্ট = থিম রং ---- */
+        ${V} .dg-add-btn,
+        ${V} .dg-mini-btn.tag {
+            background: var(--dg-main);
+            border: 1px solid rgba(255,255,255,0.28);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.22);
+        }
+        ${V} .dg-chap-num { background: var(--dg-main); border: 1px solid rgba(255,255,255,0.22); }
+        ${V} .dg-notebook-chapter::before { background: var(--dg-main); }
+        ${V} .dg-chapter-chip {
+            color: var(--dg-main);
+            background: color-mix(in srgb, var(--dg-main) 14%, transparent);
+        }
+        ${V} .dg-page-title,
+        ${V} .dg-rich h4.dg-h2 { color: var(--dg-main); }
+        ${V} .dg-notebook-page::before { background: color-mix(in srgb, var(--dg-main) 55%, transparent); }
+        ${V} .dg-editor-panel { border-color: color-mix(in srgb, var(--dg-main) 45%, transparent); }
+        ${V} .dg-media-link { color: var(--dg-main); border-color: color-mix(in srgb, var(--dg-main) 55%, transparent); }
+        ${V} .dg-rich a.dg-inline-link { color: var(--dg-main); }
+        ${V} .dg-notebook-chapter:focus-within { outline: none; }
+
+        /* ---- ডার্ক মোড / কাস্টম থিম: থিম রঙের কার্ড ---- */
+        ${T(".dg-notebook-chapter, .dg-notebook-page, .dg-editor-panel")} {
+            background: var(--dg-main) !important;
+            border: none !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.18) !important;
+        }
+        ${T(".dg-notebook-chapter::before")} { background: rgba(255,255,255,0.55) !important; }
+        ${T(".dg-notebook-page::before")} { background: rgba(255,255,255,0.35) !important; }
+        ${T(".dg-chap-num")} {
+            background: rgba(255,255,255,0.16) !important;
+            border-color: rgba(255,255,255,0.28) !important;
+            color: #fff;
+        }
+        ${T(".dg-chapter-chip")} { background: rgba(255,255,255,0.16) !important; color: #fff !important; }
+        ${T(".dg-chapter-heading, .dg-page-title, .dg-rich h3.dg-h1, .dg-rich h4.dg-h2")} { color: #ffffff !important; }
+        ${T(".dg-chapter-desc, .dg-media-caption, .dg-gallery figcaption, .dg-result-count")} { color: rgba(255,255,255,0.78) !important; }
+        ${T(".dg-rich p, .dg-rich li")} { color: rgba(255,255,255,0.94) !important; }
+        ${T(".dg-page-top")} { border-bottom-color: rgba(255,255,255,0.28) !important; }
+        ${T(".dg-rich hr")} { border-top-color: rgba(255,255,255,0.3) !important; }
+        ${T(".dg-media-figure, .dg-gallery figure")} {
+            background: rgba(255,255,255,0.10) !important;
+            border-color: rgba(255,255,255,0.18) !important;
+        }
+        ${T(".dg-media-link, .dg-rich a.dg-inline-link")} {
+            background: rgba(255,255,255,0.14) !important;
+            border-color: rgba(255,255,255,0.35) !important;
+            color: #ffffff !important;
+        }
+        ${T(".dg-callout.tip")} { background: rgba(255,255,255,0.14); border-color: #ffffff; color: #ffffff; }
+        ${T(".dg-callout.warn")} { background: rgba(0,0,0,0.28); border-color: #fca5a5; color: #fff; }
+        ${T(".dg-editor-panel input, .dg-editor-panel textarea")} {
+            background: rgba(255,255,255,0.12) !important;
+            border-color: rgba(255,255,255,0.25) !important;
+            color: #ffffff !important;
+        }
+        ${T(".dg-editor-panel input::placeholder, .dg-editor-panel textarea::placeholder")} { color: rgba(255,255,255,0.6); }
+        ${T(".dg-editor-tip")} { background: rgba(255,255,255,0.12); border-left-color: #fff; color: rgba(255,255,255,0.9); }
+        ${T(".dg-editor-tip code")} { background: rgba(0,0,0,0.25); color: #fff; }
+        ${T(".dg-preview-box")} { border-color: rgba(255,255,255,0.4); }
+        ${T(".dg-mini-btn.ghost")} { background: rgba(255,255,255,0.18) !important; color: #fff !important; }
+        ${T(".dg-mini-btn.tag")} {
+            background: rgba(0,0,0,0.30) !important;
+            border: 1px solid rgba(255,255,255,0.35) !important;
+        }
+        ${T(".dg-mini-btn.del")} {
+            background: rgba(0,0,0,0.35) !important;
+            border: 1px solid rgba(255,255,255,0.35);
+        }
+        ${T(".dg-rich mark, .dg-rich .dg-hl")} { background: #fde68a; color: #111827; }
+    `;
 }
 
 /* ============================== Rich Text Renderer ==============================
