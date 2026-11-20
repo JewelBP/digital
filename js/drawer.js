@@ -654,6 +654,9 @@ function handleDrawerAction(action) {
             } else {
                 alert("Sharing not supported on this browser.");
             }
+             break;
+                    case "about":
+            window.location.href = "about.html";            
             break;
         default:
             console.log(action + " clicked");
