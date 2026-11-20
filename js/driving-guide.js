@@ -483,21 +483,72 @@ function ensureSheetContainer() {
     return view;
 }
 
+/* ------------------- ব্রাউজার/ফোনের ব্যাক বাটন (History) -------------------
+ * গাইড খুললে history-তে একটি এন্ট্রি, অধ্যায় খুললে আরেকটি এন্ট্রি যোগ হয়।
+ * তাই ফোনের ব্যাক: নোট → অধ্যায় তালিকা → আগের পেজ (অ্যাপ থেকে বের হয় না)।
+ * ------------------------------------------------------------------------- */
+
+let dgDepth = 0;      // আমাদের পুশ করা history এন্ট্রির সংখ্যা (০, ১ বা ২)
+let swallowPop = 0;   // নিজের চালানো history.back()/go() এর popstate উপেক্ষা করার কাউন্টার
+let viewSnapshot = null;
+
+function pushGuideState(level) {
+    try { history.pushState({ dgLevel: level }, "", location.href); } catch (e) { /* ignore */ }
+    dgDepth = level;
+}
+
+function syncHistoryDepth() {
+    if (!isGuideActive) return;
+    if (activeChapterId && dgDepth < 2) {
+        pushGuideState(2);
+    } else if (!activeChapterId && dgDepth > 1) {
+        // কোড থেকে অধ্যায় বন্ধ হলে (যেমন অধ্যায় মুছলে) history ঠিক রাখা
+        swallowPop++;
+        history.back();
+        dgDepth = 1;
+    }
+}
+
+window.addEventListener("popstate", (e) => {
+    if (swallowPop > 0) {
+        swallowPop--;
+        e.stopImmediatePropagation();
+        return;
+    }
+    if (!isGuideActive) return;
+
+    // গাইড চালু থাকলে এই ব্যাক শুধু গাইডের, অ্যাপের অন্য হ্যান্ডলারে যাবে না
+    e.stopImmediatePropagation();
+    const lvl = e.state && typeof e.state.dgLevel === "number" ? e.state.dgLevel : 0;
+
+    if (lvl >= 2) { dgDepth = lvl; return; }
+
+    if (lvl === 1) {
+        dgDepth = 1;
+        if (activeChapterId) {
+            activeChapterId = null;
+            editingDocId = null;
+            editingChapterId = null;
+            guideSearchQuery = "";
+            renderDrivingGuideInSheet();
+        }
+        return;
+    }
+
+    dgDepth = 0;
+    closeDrivingGuide(true);
+}, true);
+
+/* ------------------- হেডার ------------------- */
+
 function setHeaderBackMode(titleText) {
     const appTitleText = document.querySelector(".app-title-text");
     const menuIcon = document.getElementById("menuIcon");
     const backIcon = document.getElementById("backIcon");
     const navBtn = document.getElementById("navToggleBtn");
 
-    if (appTitleText) {
-        if (!isGuideActive) prevTitleText = appTitleText.textContent;
-        appTitleText.textContent = titleText;
-    }
+    if (appTitleText) appTitleText.textContent = titleText;
     if (menuIcon && backIcon) {
-        if (!isGuideActive) {
-            prevMenuHidden = menuIcon.classList.contains("hidden");
-            prevBackHidden = backIcon.classList.contains("hidden");
-        }
         menuIcon.classList.add("hidden");
         backIcon.classList.remove("hidden");
     }
@@ -508,7 +559,10 @@ function setHeaderBackMode(titleText) {
             if (!isGuideActive) return;
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (activeChapterId) {
+            // টুলবারের ব্যাক = ফোনের ব্যাকের মতোই (history ঠিক থাকে)
+            if (dgDepth > 0) {
+                history.back();
+            } else if (activeChapterId) {
                 activeChapterId = null;
                 editingDocId = null;
                 guideSearchQuery = "";
@@ -520,29 +574,58 @@ function setHeaderBackMode(titleText) {
     }
 }
 
+function captureHeaderState() {
+    const appTitleText = document.querySelector(".app-title-text");
+    const menuIcon = document.getElementById("menuIcon");
+    const backIcon = document.getElementById("backIcon");
+    prevTitleText = appTitleText ? appTitleText.textContent : "";
+    prevMenuHidden = menuIcon ? menuIcon.classList.contains("hidden") : false;
+    prevBackHidden = backIcon ? backIcon.classList.contains("hidden") : true;
+}
+
 function restoreHeaderMode() {
     const appTitleText = document.querySelector(".app-title-text");
     const menuIcon = document.getElementById("menuIcon");
     const backIcon = document.getElementById("backIcon");
 
     if (appTitleText) appTitleText.textContent = prevTitleText || "RMP MT Contacts";
-    if (menuIcon && backIcon) {
-        menuIcon.classList.remove("hidden");
-        backIcon.classList.add("hidden");
-    }
+    if (menuIcon) menuIcon.classList.toggle("hidden", prevMenuHidden);
+    if (backIcon) backIcon.classList.toggle("hidden", prevBackHidden);
 }
 
+/* ------------------- মূল ভিউ লুকানো/ফেরানো -------------------
+ * আগে বের হওয়ার সময় সব ভিউ থেকে "hidden" সরিয়ে দেওয়া হতো, ফলে লুকানো থাকা
+ * Category Details / Data Details পেজও দেখা যেত। এখন খোলার আগের অবস্থা হুবহু ফেরত যায়।
+ * ------------------------------------------------------------------------- */
+
+const GUIDE_HIDE_IDS = [
+    "mainDashboardView", "categoryDetailsView", "dataDetailsView",
+    "heroSlider", "searchBox", "subPageHeaderSearchWrapper", "slidingNoticeContainer"
+];
+
 function hideMainViewsForGuide(hide) {
-    const ids = [
-        "mainDashboardView", "categoryDetailsView", "dataDetailsView",
-        "heroSlider", "searchBox", "subPageHeaderSearchWrapper", "slidingNoticeContainer"
-    ];
-    ids.forEach(id => {
+    if (hide) {
+        viewSnapshot = {};
+        GUIDE_HIDE_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            viewSnapshot[id] = { hidden: el.classList.contains("hidden"), display: el.style.display };
+            el.classList.add("hidden");
+        });
+        const slider = document.getElementById("heroSlider");
+        if (slider) slider.style.display = "none";
+        return;
+    }
+
+    if (!viewSnapshot) return;
+    GUIDE_HIDE_IDS.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.classList.toggle("hidden", hide);
+        const snap = viewSnapshot[id];
+        if (!el || !snap) return;
+        el.classList.toggle("hidden", snap.hidden);
+        el.style.display = snap.display;
     });
-    const slider = document.getElementById("heroSlider");
-    if (slider) slider.style.display = hide ? "none" : "";
+    viewSnapshot = null;
 }
 
 /* ============================== Header Search ==============================
@@ -995,12 +1078,14 @@ export function renderDrivingGuideInSheet() {
     if (activeChapterId) {
         const chapter = guideState.chapters.find(c => c.id === activeChapterId);
         if (chapter) {
+            syncHistoryDepth();
             renderChapterDocsView(view, chapter, admin);
             return;
         }
         activeChapterId = null;
     }
 
+    syncHistoryDepth();
     renderChapterListView(view, admin);
 }
 
@@ -1020,11 +1105,17 @@ export async function openDrivingGuide() {
         }
     }
 
+    if (!isGuideActive) {
+        captureHeaderState();          // খোলার আগের টাইটেল/আইকন মনে রাখা
+        hideMainViewsForGuide(true);   // খোলার আগের ভিউ অবস্থা মনে রেখে লুকানো
+        pushGuideState(1);             // ফোনের ব্যাকের জন্য history এন্ট্রি
+    }
+
     isGuideActive = true;
     guideSearchQuery = "";
+    activeChapterId = null;
     editingChapterId = null;
     editingDocId = null;
-    hideMainViewsForGuide(true);
 
     const view = ensureSheetContainer();
     if (view) {
@@ -1033,12 +1124,23 @@ export async function openDrivingGuide() {
     }
 }
 
-export function closeDrivingGuide() {
+// fromPop === true মানে ফোনের ব্যাক থেকে এসেছে (history আগেই পিছিয়েছে)
+export function closeDrivingGuide(fromPop = false) {
+    if (!isGuideActive) return;
+
+    if (fromPop !== true && dgDepth > 0) {
+        swallowPop++;
+        try { history.go(-dgDepth); } catch (e) { swallowPop = 0; }
+    }
+    dgDepth = 0;
+
     isGuideActive = false;
     activeChapterId = null;
     editingChapterId = null;
     editingDocId = null;
     guideSearchQuery = "";
+
+    unmountHeaderSearch();
 
     const view = document.getElementById("drivingGuideSheetView");
     if (view) {
@@ -1046,16 +1148,9 @@ export function closeDrivingGuide() {
         view.innerHTML = "";
     }
 
-    unmountHeaderSearch();
     restoreHeaderMode();
     hideMainViewsForGuide(false);
-
-    if (typeof window.showMainDashboardView === "function") {
-        window.showMainDashboardView(false);
-    } else if (typeof window.refreshCurrentView === "function") {
-        window.refreshCurrentView();
-    }
 }
 
 window.openDrivingGuide = openDrivingGuide;
-window.closeDrivingGuide = closeDrivingGuide;
+window.closeDrivingGuide = () => closeDrivingGuide();
