@@ -105,10 +105,54 @@ function injectAboutDeveloperStyles() {
         }
 
         /* স্ক্রিনের দুই কিনারা পর্যন্ত পুরো প্রস্থ জুড়ে ফিক্সড/স্টিকি হিরো অংশ */
-        .ad-hero-full-fixed {
+        /* উপরের স্টিকি হেডার বার: ব্যাক + টাইটেল + ভাষা + থিম */
+        .ad-topbar {
             position: sticky;
             top: 0;
-            z-index: 30;
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100vw;
+            max-width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
+            box-sizing: border-box;
+            padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+            background: rgba(7, 16, 58, 0.94);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            color: #ffffff;
+            box-shadow: 0 4px 16px rgba(2, 6, 36, 0.35);
+        }
+        .ad-topbar-title {
+            flex: 1;
+            min-width: 0;
+            font-size: 15px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .ad-topbar .ad-pill-btn { min-height: 34px; }
+        .ad-back-btn { width: 36px; height: 36px; padding: 0; justify-content: center; font-size: 15px; }
+
+        /* অ্যাবাউট পেজ চালু থাকলে মূল শিট একদম উপর থেকে শুরু হবে */
+        body.ad-about-active #mainScrollSheet {
+            margin-top: 0 !important;
+            top: 0 !important;
+            padding-top: 0 !important;
+            border-radius: 0 !important;
+            transform: none !important;
+        }
+        body.ad-about-active #mainScrollSheet main.container {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
+
+        .ad-hero-full-fixed {
+            position: relative;
+            z-index: 2;
             width: 100vw;
             max-width: 100vw;
             margin-left: calc(50% - 50vw);
@@ -116,7 +160,7 @@ function injectAboutDeveloperStyles() {
             overflow: hidden;
             background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%);
             border-radius: 0 0 32px 32px;
-            padding: 18px 16px 24px;
+            padding: 14px 16px 24px;
             text-align: center;
             color: #ffffff;
             box-shadow: 0 14px 28px rgba(2, 6, 36, 0.28);
@@ -970,18 +1014,22 @@ function renderAboutDeveloperView(view) {
     setAboutHeaderMode();
 
     view.innerHTML = `
+        <div class="ad-topbar">
+            <button type="button" class="ad-pill-btn ad-back-btn" id="adBackBtn" aria-label="Back">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="ad-topbar-title" data-bn="ডেভেলপার পরিচিতি" data-en="About Developer">ডেভেলপার পরিচিতি</div>
+            <button type="button" class="ad-pill-btn" id="adLangBtn">
+                <i class="fas fa-language"></i> <span id="adLangText">${aboutCurrentLang === "bn" ? "EN" : "বাংলা"}</span>
+            </button>
+            <button type="button" class="ad-pill-btn" id="adThemeBtn" title="Toggle Dark Mode">
+                <i class="fas fa-moon" id="adThemeIcon"></i>
+            </button>
+        </div>
+
         <section class="ad-hero-full-fixed">
             <canvas id="adParticleCanvas"></canvas>
             <div class="ad-hero-content">
-                <div class="ad-top-controls">
-                    <button type="button" class="ad-pill-btn" id="adLangBtn">
-                        <i class="fas fa-language"></i> <span id="adLangText">${aboutCurrentLang === "bn" ? "EN" : "বাংলা"}</span>
-                    </button>
-                    <button type="button" class="ad-pill-btn" id="adThemeBtn" title="Toggle Dark Mode">
-                        <i class="fas fa-moon" id="adThemeIcon"></i>
-                    </button>
-                </div>
-
                 <div class="ad-status-pill">
                     <span class="ad-pulse-dot"></span>
                     <span data-bn="অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়" data-en="Available for App Dev & Support">অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়</span>
@@ -1204,6 +1252,10 @@ function renderAboutDeveloperView(view) {
         themeIcon.className = document.body.classList.contains("dark-mode") ? "fas fa-sun" : "fas fa-moon";
     }
 
+    view.querySelector("#adBackBtn")?.addEventListener("click", () => {
+        if (adDepth > 0) history.back(); else closeAboutDeveloper();
+    });
+
     view.querySelector("#adLangBtn")?.addEventListener("click", () => {
         const nextLang = aboutCurrentLang === "bn" ? "en" : "bn";
         applyAboutLanguage(view, nextLang);
@@ -1285,6 +1337,7 @@ export function openAboutDeveloper() {
     }
 
     isAboutActive = true;
+    document.body.classList.add("ad-about-active");
     const view = ensureAboutSheetContainer();
     if (view) {
         view.classList.remove("hidden");
@@ -1306,6 +1359,7 @@ export function closeAboutDeveloper(fromPop = false) {
     if (aboutParticleFrame) cancelAnimationFrame(aboutParticleFrame);
     stopAboutObserver();
     isAboutActive = false;
+    document.body.classList.remove("ad-about-active");
 
     const view = document.getElementById("aboutDeveloperSheetView");
     if (view) {
