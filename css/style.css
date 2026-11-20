@@ -1111,11 +1111,10 @@ body {
 
 #mainDashboardView,
 #categoryDetailsView,
-#dataDetailsView,
-#drivingNoteView {
+#dataDetailsView {
     min-height: calc(100vh - 220px);
     min-height: calc(100dvh - 220px);
-    padding-bottom: 90px !important; /* কন্টাক্ট ডিটেইলস ও ড্রাইভিং নোট যেন ফিক্সড নেভিগেশনের নিচে ঢাকা না পড়ে */
+    padding-bottom: 90px !important; /* কন্টাক্ট ডিটেইলস পেজের Get VIP বাটন যেন ফিক্সড নেভিগেশনের নিচে ঢাকা না পড়ে */
     box-sizing: border-box;
 }
 
@@ -1177,124 +1176,4 @@ body.dark-mode .data-card-name {
 
 body.dark-mode .data-card-detail {
     color: var(--text-muted, #94a3b8) !important;
-}
-
-/* ===== CHAPTER-WISE DRIVING NOTE STYLES ===== */
-.driving-chapter-card {
-    background: var(--card-bg, #ffffff);
-    border: 1px solid var(--border-color, #e2e8f0);
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.driving-chapter-card:hover {
-    box-shadow: var(--shadow-md);
-}
-
-body.has-bg-image .driving-chapter-card {
-    background-color: rgba(255, 255, 255, 0.68) !important;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-color: rgba(255, 255, 255, 0.45);
-}
-
-.driving-chapter-header {
-    width: 100%;
-    background: transparent;
-    border: none;
-    padding: 15px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    text-align: left;
-    cursor: pointer;
-    color: var(--text-main);
-}
-
-.driving-chapter-title {
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.45;
-    color: var(--text-main);
-}
-
-.driving-chapter-toggle {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: var(--bg-color);
-    border: 1px solid var(--border-color);
-    color: var(--primary-color);
-    font-size: 18px;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.driving-chapter-body {
-    display: none;
-    border-top: 1px solid var(--border-color);
-}
-
-.driving-chapter-body.open {
-    display: block;
-}
-
-.driving-chapter-inner {
-    padding: 14px 16px 16px;
-}
-
-.driving-chapter-text {
-    margin: 0;
-    font-size: 15px;
-    line-height: 1.65;
-    white-space: pre-line;
-    color: var(--text-main);
-}
-
-.driving-chapter-media {
-    margin-top: 12px;
-}
-
-.driving-chapter-img {
-    width: 100%;
-    border-radius: 10px;
-    display: block;
-    cursor: zoom-in;
-    border: 1px solid var(--border-color);
-}
-
-.driving-chapter-caption {
-    text-align: center;
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-top: 6px;
-}
-
-.driving-chapter-link-wrap {
-    margin-top: 12px;
-}
-
-.driving-chapter-link-btn {
-    display: inline-block;
-    background: var(--primary-color, #020624);
-    color: #ffffff !important;
-    text-decoration: none;
-    padding: 9px 16px;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.driving-chapter-admin-bar {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    padding: 10px 16px 14px;
-    border-top: 1px dashed var(--border-color);
 }
