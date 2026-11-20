@@ -9,7 +9,7 @@ import {
 
 import { db } from "./firebase.js";
 
-const STORAGE_KEY = "rmp_driving_guide_v1";
+const STORAGE_KEY = "rmp_driving_guide_v2";
 const DB_PATH = "webapp/driving_guide";
 const DEFAULT_GUIDE_IMG = "https://cdn-icons-png.flaticon.com/512/3097/3097144.png";
 
@@ -18,8 +18,11 @@ let guideState = {
 };
 
 let activeChapterId = null;
+let isGuideActive = false;
 let isListening = false;
-let currentBlockType = "text";
+let prevTitleText = "";
+let prevBackHidden = true;
+let prevMenuHidden = false;
 
 function escapeHTML(str) {
     return String(str || "").replace(
@@ -44,8 +47,6 @@ function showGuideToast(msg) {
         toast.textContent = msg;
         toast.classList.add("show");
         setTimeout(() => toast.classList.remove("show"), 2400);
-    } else {
-        alert(msg);
     }
 }
 
@@ -77,7 +78,7 @@ function loadLocalGuide() {
 
 async function persistGuide() {
     saveLocalGuide();
-    renderDrivingGuideUI();
+    renderDrivingGuideInSheet();
 
     if (!navigator.onLine) {
         showGuideToast("অফলাইনে সেভ হয়েছে! অনলাইন হলে সিঙ্ক হবে।");
@@ -86,7 +87,7 @@ async function persistGuide() {
 
     try {
         await set(ref(db, DB_PATH), guideState);
-        showGuideToast("ড্রাইভিং গাইড সেভ ও সিঙ্ক হয়েছে");
+        showGuideToast("ড্রাইভিং গাইড সেভ হয়েছে");
     } catch (err) {
         console.error("Firebase driving guide save error:", err);
         showGuideToast("ক্লাউডে সিঙ্ক করতে সমস্যা হয়েছে");
@@ -99,858 +100,569 @@ function startRealtimeSync() {
 
     loadLocalGuide();
 
-    const guideRef = ref(db, DB_PATH);
-    onValue(guideRef, (snapshot) => {
+    onValue(ref(db, DB_PATH), (snapshot) => {
         if (snapshot.exists()) {
             const val = snapshot.val();
             if (val && Array.isArray(val.chapters)) {
                 guideState = val;
                 saveLocalGuide();
-                if (document.getElementById("drivingGuideModal") && !document.getElementById("drivingGuideModal").classList.contains("hidden")) {
-                    renderDrivingGuideUI();
+                if (isGuideActive) {
+                    renderDrivingGuideInSheet();
                 }
             }
         }
     }, (err) => {
-        console.warn("Driving guide realtime listener error:", err);
+        console.warn("Driving guide realtime error:", err);
     });
 }
 
-function injectStyles() {
-    if (document.getElementById("drivingGuideStyles")) return;
+function injectNativeStyles() {
+    if (document.getElementById("drivingGuideNativeStyles")) return;
 
     const style = document.createElement("style");
-    style.id = "drivingGuideStyles";
+    style.id = "drivingGuideNativeStyles";
     style.textContent = `
-        .dg-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(2, 6, 36, 0.72);
-            backdrop-filter: blur(6px);
-            z-index: 100000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px;
-        }
-        .dg-modal.hidden {
-            display: none !important;
-        }
-        .dg-sheet {
-            width: 100%;
-            max-width: 780px;
-            height: 90dvh;
-            max-height: 860px;
-            background: #f8fafc;
-            color: #0f172a;
-            border-radius: 22px;
+        #drivingGuideSheetView {
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-            border: 1px solid rgba(255, 255, 255, 0.14);
-        }
-        body.dark-mode .dg-sheet {
-            background: #0f172a;
-            color: #f1f5f9;
-            border-color: #1e293b;
-        }
-        .dg-header {
-            background: var(--app-main-color, #020624);
-            color: #ffffff;
-            padding: 14px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-        .dg-header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-        .dg-title {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 700;
-            color: #ffffff;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .dg-badge {
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 999px;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.16);
-            color: #e2e8f0;
-            flex-shrink: 0;
-        }
-        .dg-icon-btn {
-            background: rgba(255, 255, 255, 0.14);
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            color: #ffffff;
-            border-radius: 10px;
-            height: 36px;
-            padding: 0 11px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            flex-shrink: 0;
-        }
-        .dg-icon-btn:active {
-            transform: scale(0.97);
-        }
-        .dg-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-        .dg-chapter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
             gap: 12px;
         }
-        .dg-chapter-card {
+        #drivingGuideSheetView.hidden {
+            display: none !important;
+        }
+        .dg-native-toolbar {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            padding: 14px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            gap: 10px;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        body.dark-mode .dg-chapter-card {
-            background: #1e293b;
-            border-color: #334155;
-        }
-        .dg-chapter-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-        }
-        .dg-chapter-num {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: #0ea5e9;
-            letter-spacing: 0.4px;
-        }
-        .dg-chapter-title {
-            margin: 3px 0 0 0;
-            font-size: 16px;
-            font-weight: 700;
-            line-height: 1.35;
-        }
-        .dg-chapter-meta {
-            font-size: 12px;
-            color: #64748b;
-        }
-        body.dark-mode .dg-chapter-meta {
-            color: #94a3b8;
-        }
-        .dg-admin-toolbar {
-            background: #eef2ff;
-            border: 1px solid #c7d2fe;
-            border-radius: 16px;
-            padding: 12px;
+            padding: 10px 12px;
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
             align-items: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
         }
-        body.dark-mode .dg-admin-toolbar {
-            background: rgba(30, 41, 59, 0.9);
+        body.dark-mode .dg-native-toolbar {
+            background: #0f172a;
             border-color: #334155;
         }
-        .dg-btn-primary {
+        .dg-native-btn {
             background: var(--app-main-color, #020624);
             color: #ffffff;
             border: none;
             border-radius: 10px;
-            padding: 9px 14px;
+            padding: 8px 13px;
             font-size: 13px;
             font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
-        .dg-btn-accent {
+        .dg-native-btn.secondary {
             background: #0ea5e9;
-            color: #ffffff;
-            border: none;
-            border-radius: 10px;
-            padding: 9px 14px;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
         }
-        .dg-btn-danger {
+        .dg-native-btn.danger {
             background: #ef4444;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
             padding: 5px 9px;
             font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
         }
-        .dg-btn-soft {
-            background: #e2e8f0;
-            color: #1e293b;
-            border: none;
-            border-radius: 8px;
-            padding: 5px 9px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        body.dark-mode .dg-btn-soft {
-            background: #334155;
-            color: #f8fafc;
-        }
-        .dg-block-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 14px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
-        }
-        body.dark-mode .dg-block-card {
-            background: #1e293b;
-            border-color: #334155;
-        }
-        .dg-block-admin-bar {
-            display: flex;
-            justify-content: flex-end;
-            gap: 6px;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px dashed #cbd5e1;
-        }
-        body.dark-mode .dg-block-admin-bar {
-            border-bottom-color: #334155;
-        }
-        .dg-text-content {
-            font-size: 15px;
-            line-height: 1.7;
-            white-space: pre-line;
-            margin: 0;
-        }
-        .dg-image-block {
+        .dg-chapter-list {
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
-        .dg-image-block.side-layout {
-            display: grid;
-            grid-template-columns: 150px 1fr;
-            gap: 14px;
-            align-items: center;
-        }
-        @media (max-width: 540px) {
-            .dg-image-block.side-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-        .dg-image-block img {
-            width: 100%;
-            max-height: 260px;
-            object-fit: cover;
-            border-radius: 12px;
+        .dg-chapter-row {
+            background: #ffffff;
             border: 1px solid #e2e8f0;
-        }
-        body.dark-mode .dg-image-block img {
-            border-color: #334155;
-        }
-        .dg-image-caption-title {
-            font-weight: 700;
-            font-size: 15px;
-            margin: 0 0 4px 0;
-        }
-        .dg-image-caption-text {
-            font-size: 14px;
-            line-height: 1.6;
-            color: #475569;
-            margin: 0;
-            white-space: pre-line;
-        }
-        body.dark-mode .dg-image-caption-text {
-            color: #cbd5e1;
-        }
-        .dg-link-card {
+            border-radius: 16px;
+            padding: 13px 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            padding: 12px 14px;
-            border-radius: 14px;
-            background: rgba(14, 165, 233, 0.08);
-            border: 1px solid rgba(14, 165, 233, 0.3);
-            text-decoration: none;
-            color: inherit;
+            gap: 10px;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
         }
-        .dg-link-title {
-            font-weight: 700;
-            font-size: 14.5px;
-            color: #0284c7;
-            margin: 0 0 2px 0;
+        body.dark-mode .dg-chapter-row {
+            background: #0f172a;
+            border-color: #334155;
         }
-        body.dark-mode .dg-link-title {
-            color: #38bdf8;
-        }
-        .dg-link-desc {
-            font-size: 12.5px;
-            color: #64748b;
+        .dg-chapter-row-title {
             margin: 0;
+            font-size: 15.5px;
+            font-weight: 700;
+            color: var(--app-main-color, #020624);
         }
-        body.dark-mode .dg-link-desc {
-            color: #94a3b8;
-        }
-        .dg-submodal {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 100010;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .dg-submodal.hidden {
-            display: none !important;
-        }
-        .dg-submodal-box {
-            width: 100%;
-            max-width: 440px;
-            background: #ffffff;
-            color: #0f172a;
-            border-radius: 18px;
-            padding: 18px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        body.dark-mode .dg-submodal-box {
-            background: #1e293b;
+        body.dark-mode .dg-chapter-row-title {
             color: #f8fafc;
         }
-        .dg-field {
+        .dg-chapter-row-sub {
+            margin: 3px 0 0 0;
+            font-size: 12.5px;
+            color: #64748b;
+        }
+        body.dark-mode .dg-chapter-row-sub {
+            color: #94a3b8;
+        }
+        .dg-doc-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 15px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 12px;
         }
-        .dg-field label {
-            font-size: 13px;
+        body.dark-mode .dg-doc-card {
+            background: #0f172a;
+            border-color: #334155;
+        }
+        .dg-doc-heading {
+            margin: 0;
+            font-size: 16.5px;
+            font-weight: 700;
+            color: var(--app-main-color, #020624);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        body.dark-mode .dg-doc-heading {
+            color: #f8fafc;
+        }
+        .dg-doc-text {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.75;
+            white-space: pre-line;
+            color: #1e293b;
+        }
+        body.dark-mode .dg-doc-text {
+            color: #e2e8f0;
+        }
+        .dg-inline-img-box {
+            margin: 12px 0;
+            padding: 10px;
+            border-radius: 14px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        body.dark-mode .dg-inline-img-box {
+            background: #1e293b;
+            border-color: #334155;
+        }
+        .dg-inline-img-box img {
+            width: 100%;
+            max-height: 250px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        .dg-inline-img-caption {
+            margin: 0;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: #475569;
+            font-weight: 500;
+        }
+        body.dark-mode .dg-inline-img-caption {
+            color: #cbd5e1;
+        }
+        .dg-inline-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 6px 6px 6px 0;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(14, 165, 233, 0.12);
+            border: 1px solid rgba(14, 165, 233, 0.35);
+            color: #0284c7;
+            font-size: 13.5px;
             font-weight: 600;
+            text-decoration: none;
         }
-        .dg-field input,
-        .dg-field textarea,
-        .dg-field select {
+        body.dark-mode .dg-inline-link {
+            color: #38bdf8;
+        }
+        .dg-editor-box {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        body.dark-mode .dg-editor-box {
+            background: #0f172a;
+            border-color: #334155;
+        }
+        .dg-editor-box input,
+        .dg-editor-box textarea {
             width: 100%;
             box-sizing: border-box;
-            padding: 9px 11px;
+            padding: 10px 12px;
             border-radius: 10px;
             border: 1px solid #cbd5e1;
-            background: #ffffff;
+            background: #f8fafc;
             color: #0f172a;
             font-size: 14px;
             font-family: inherit;
         }
-        body.dark-mode .dg-field input,
-        body.dark-mode .dg-field textarea,
-        body.dark-mode .dg-field select {
-            background: #0f172a;
+        body.dark-mode .dg-editor-box input,
+        body.dark-mode .dg-editor-box textarea {
+            background: #1e293b;
             color: #f8fafc;
             border-color: #334155;
         }
-        .dg-empty {
-            text-align: center;
-            padding: 36px 16px;
-            color: #64748b;
+        .dg-tag-helper {
+            font-size: 12px;
+            line-height: 1.5;
+            background: rgba(14, 165, 233, 0.08);
+            border-left: 3px solid #0ea5e9;
+            padding: 8px 10px;
+            border-radius: 8px;
+            color: #334155;
+        }
+        body.dark-mode .dg-tag-helper {
+            color: #cbd5e1;
         }
     `;
     document.head.appendChild(style);
 }
 
-function buildModalDOM() {
-    if (document.getElementById("drivingGuideModal")) return;
+/* একটিমাত্র লেখার ভেতরে একাধিক [img: url | caption] ও [link: text | url] রেন্ডার করে */
+function renderRichTextWithMedia(rawText) {
+    const normalized = String(rawText || "").replace(/\r\n/g, "\n");
+    const tokenRegex = /(\[img:[^\]]+\]|\[link:[^\]]+\])/gi;
+    const parts = normalized.split(tokenRegex);
 
-    const html = `
-        <div id="drivingGuideModal" class="dg-modal hidden" role="dialog" aria-modal="true">
-            <div class="dg-sheet">
-                <div class="dg-header">
-                    <div class="dg-header-left">
-                        <button id="dgBackBtn" type="button" class="dg-icon-btn hidden">← অধ্যায়</button>
-                        <h2 id="dgHeaderTitle" class="dg-title">🚗 ড্রাইভিং গাইড</h2>
-                        <span id="dgRoleBadge" class="dg-badge">User</span>
-                    </div>
-                    <button id="dgCloseBtn" type="button" class="dg-icon-btn" title="বন্ধ করুন">✕</button>
+    return parts.map(part => {
+        if (!part) return "";
+
+        const imgMatch = part.match(/^\[img:\s*([^|\]]+?)(?:\s*\|\s*([^\]]*))?\]$/i);
+        if (imgMatch) {
+            const url = escapeHTML(imgMatch[1].trim());
+            const caption = escapeHTML((imgMatch[2] || "").trim());
+            return `
+                <div class="dg-inline-img-box">
+                    <img src="${url}" alt="${caption || "Driving Guide Image"}" onerror="this.src='${DEFAULT_GUIDE_IMG}'">
+                    ${caption ? `<p class="dg-inline-img-caption">${caption}</p>` : ""}
                 </div>
+            `;
+        }
 
-                <div id="dgBody" class="dg-body"></div>
-            </div>
-        </div>
+        const linkMatch = part.match(/^\[link:\s*([^|\]]+?)\s*\|\s*([^\]]+)\]$/i);
+        if (linkMatch) {
+            const label = escapeHTML(linkMatch[1].trim());
+            let href = linkMatch[2].trim();
+            if (!/^https?:\/\//i.test(href)) href = `https://${href}`;
+            return `
+                <a class="dg-inline-link" href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">
+                    🔗 ${label} ↗
+                </a>
+            `;
+        }
 
-        <!-- অধ্যায় তৈরির মডাল -->
-        <div id="dgChapterModal" class="dg-submodal hidden">
-            <div class="dg-submodal-box">
-                <h3 style="margin:0;font-size:17px;">নতুন অধ্যায় যোগ করুন</h3>
-                <div class="dg-field">
-                    <label>অধ্যায়ের শিরোনাম *</label>
-                    <input id="dgChapterTitleInput" type="text" placeholder="যেমন: ট্রাফিক আইন ও সিগন্যাল">
-                </div>
-                <div class="dg-field">
-                    <label>সংক্ষিপ্ত বর্ণনা</label>
-                    <input id="dgChapterDescInput" type="text" placeholder="যেমন: সড়কে নিরাপদ চলাচলের নিয়মাবলি">
-                </div>
-                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
-                    <button id="dgCancelChapterBtn" type="button" class="dg-btn-soft">বাতিল</button>
-                    <button id="dgSaveChapterBtn" type="button" class="dg-btn-primary">সেভ করুন</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- কন্টেন্ট ব্লক (Text / Image / Link) তৈরির মডাল -->
-        <div id="dgBlockModal" class="dg-submodal hidden">
-            <div class="dg-submodal-box">
-                <h3 id="dgBlockModalTitle" style="margin:0;font-size:17px;">নতুন কন্টেন্ট যুক্ত করুন</h3>
-
-                <div id="dgTextFields" class="dg-field">
-                    <label>লেখা / ডকুমেন্ট *</label>
-                    <textarea id="dgTextContentInput" rows="5" placeholder="এখানে অধ্যায়ের লেখা লিখুন..."></textarea>
-                </div>
-
-                <div id="dgImageFields" class="hidden" style="display:flex;flex-direction:column;gap:10px;">
-                    <div class="dg-field">
-                        <label>ছবির লিঙ্ক (URL) *</label>
-                        <input id="dgImageUrlInput" type="url" placeholder="https://example.com/sign.png">
-                    </div>
-                    <div class="dg-field">
-                        <label>ছবির অবস্থান / লেআউট</label>
-                        <select id="dgImageLayoutInput">
-                            <option value="full">ছবির নিচে লেখা (Full Width)</option>
-                            <option value="side">ছবির পাশে লেখা (Side by Side)</option>
-                        </select>
-                    </div>
-                    <div class="dg-field">
-                        <label>ছবির শিরোনাম (ঐচ্ছিক)</label>
-                        <input id="dgImageHeadingInput" type="text" placeholder="যেমন: ওয়ান-ওয়ে সাইন">
-                    </div>
-                    <div class="dg-field">
-                        <label>ছবির সাথে অতিরিক্ত লেখা / ক্যাপশন</label>
-                        <textarea id="dgImageCaptionInput" rows="3" placeholder="ছবিটি সম্পর্কে বিস্তারিত বা নির্দেশনা লিখুন..."></textarea>
-                    </div>
-                </div>
-
-                <div id="dgLinkFields" class="hidden" style="display:flex;flex-direction:column;gap:10px;">
-                    <div class="dg-field">
-                        <label>লিংকের নাম / শিরোনাম *</label>
-                        <input id="dgLinkTitleInput" type="text" placeholder="যেমন: BRTA ড্রাইভিং লাইসেন্স নির্দেশিকা">
-                    </div>
-                    <div class="dg-field">
-                        <label>লিংক (URL) *</label>
-                        <input id="dgLinkUrlInput" type="url" placeholder="https://example.com">
-                    </div>
-                    <div class="dg-field">
-                        <label>লিংক সম্পর্কে সংক্ষিপ্ত নোট</label>
-                        <input id="dgLinkDescInput" type="text" placeholder="যেমন: প্রয়োজনীয় কাগজপত্র ও নিয়ম">
-                    </div>
-                </div>
-
-                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
-                    <button id="dgCancelBlockBtn" type="button" class="dg-btn-soft">বাতিল</button>
-                    <button id="dgSaveBlockBtn" type="button" class="dg-btn-accent">যুক্ত করুন</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML("beforeend", html);
-
-    document.getElementById("dgCloseBtn").addEventListener("click", closeDrivingGuide);
-    document.getElementById("dgBackBtn").addEventListener("click", () => {
-        activeChapterId = null;
-        renderDrivingGuideUI();
-    });
-
-    document.getElementById("drivingGuideModal").addEventListener("click", (e) => {
-        if (e.target.id === "drivingGuideModal") closeDrivingGuide();
-    });
-
-    document.getElementById("dgCancelChapterBtn").addEventListener("click", () => {
-        document.getElementById("dgChapterModal").classList.add("hidden");
-    });
-    document.getElementById("dgSaveChapterBtn").addEventListener("click", handleSaveChapter);
-
-    document.getElementById("dgCancelBlockBtn").addEventListener("click", () => {
-        document.getElementById("dgBlockModal").classList.add("hidden");
-    });
-    document.getElementById("dgSaveBlockBtn").addEventListener("click", handleSaveBlock);
+        return `<span class="dg-doc-text">${escapeHTML(part)}</span>`;
+    }).join("");
 }
 
-function openChapterModal() {
-    if (!isAdminUser()) return;
-    document.getElementById("dgChapterTitleInput").value = "";
-    document.getElementById("dgChapterDescInput").value = "";
-    document.getElementById("dgChapterModal").classList.remove("hidden");
+function ensureSheetContainer() {
+    const sheet = document.getElementById("mainScrollSheet");
+    if (!sheet) return null;
+
+    let view = document.getElementById("drivingGuideSheetView");
+    if (!view) {
+        view = document.createElement("div");
+        view.id = "drivingGuideSheetView";
+        view.className = "hidden";
+        const mainEl = sheet.querySelector("main.container") || sheet;
+        mainEl.appendChild(view);
+    }
+    return view;
 }
 
-async function handleSaveChapter() {
-    if (!isAdminUser()) return;
-    const title = document.getElementById("dgChapterTitleInput").value.trim();
-    const desc = document.getElementById("dgChapterDescInput").value.trim();
+function setHeaderBackMode(titleText) {
+    const appTitleText = document.querySelector(".app-title-text");
+    const menuIcon = document.getElementById("menuIcon");
+    const backIcon = document.getElementById("backIcon");
+    const navBtn = document.getElementById("navToggleBtn");
 
-    if (!title) {
-        return showGuideToast("অধ্যায়ের শিরোনাম লিখুন");
+    if (appTitleText) {
+        if (!isGuideActive) prevTitleText = appTitleText.textContent;
+        appTitleText.textContent = titleText;
+    }
+    if (menuIcon && backIcon) {
+        if (!isGuideActive) {
+            prevMenuHidden = menuIcon.classList.contains("hidden");
+            prevBackHidden = backIcon.classList.contains("hidden");
+        }
+        menuIcon.classList.add("hidden");
+        backIcon.classList.remove("hidden");
     }
 
-    const newChapter = {
-        id: generateGuideId("chap"),
-        title,
-        description: desc,
-        blocks: [],
-        createdAt: Date.now()
-    };
-
-    guideState.chapters.push(newChapter);
-    activeChapterId = newChapter.id;
-    document.getElementById("dgChapterModal").classList.add("hidden");
-    await persistGuide();
-}
-
-function openBlockModal(type) {
-    if (!isAdminUser() || !activeChapterId) return;
-    currentBlockType = type;
-
-    const modal = document.getElementById("dgBlockModal");
-    const titleEl = document.getElementById("dgBlockModalTitle");
-    const textBox = document.getElementById("dgTextFields");
-    const imgBox = document.getElementById("dgImageFields");
-    const linkBox = document.getElementById("dgLinkFields");
-
-    textBox.classList.add("hidden");
-    imgBox.classList.add("hidden");
-    linkBox.classList.add("hidden");
-
-    if (type === "text") {
-        titleEl.textContent = "📝 নতুন লেখা / ডকুমেন্ট যুক্ত করুন";
-        textBox.classList.remove("hidden");
-        document.getElementById("dgTextContentInput").value = "";
-    } else if (type === "image") {
-        titleEl.textContent = "🖼️ লেখা/ক্যাপশনসহ ইমেজ যুক্ত করুন";
-        imgBox.classList.remove("hidden");
-        document.getElementById("dgImageUrlInput").value = "";
-        document.getElementById("dgImageLayoutInput").value = "full";
-        document.getElementById("dgImageHeadingInput").value = "";
-        document.getElementById("dgImageCaptionInput").value = "";
-    } else if (type === "link") {
-        titleEl.textContent = "🔗 লিংক যুক্ত করুন";
-        linkBox.classList.remove("hidden");
-        document.getElementById("dgLinkTitleInput").value = "";
-        document.getElementById("dgLinkUrlInput").value = "";
-        document.getElementById("dgLinkDescInput").value = "";
-    }
-
-    modal.classList.remove("hidden");
-}
-
-async function handleSaveBlock() {
-    if (!isAdminUser() || !activeChapterId) return;
-    const chapter = guideState.chapters.find(c => c.id === activeChapterId);
-    if (!chapter) return;
-
-    if (!Array.isArray(chapter.blocks)) chapter.blocks = [];
-
-    let newBlock = null;
-
-    if (currentBlockType === "text") {
-        const text = document.getElementById("dgTextContentInput").value.trim();
-        if (!text) return showGuideToast("লেখা লিখুন");
-        newBlock = {
-            id: generateGuideId("blk"),
-            type: "text",
-            content: text
-        };
-    } else if (currentBlockType === "image") {
-        const imageUrl = document.getElementById("dgImageUrlInput").value.trim();
-        const layout = document.getElementById("dgImageLayoutInput").value;
-        const heading = document.getElementById("dgImageHeadingInput").value.trim();
-        const caption = document.getElementById("dgImageCaptionInput").value.trim();
-
-        if (!imageUrl) return showGuideToast("ছবির লিঙ্ক দিন");
-        newBlock = {
-            id: generateGuideId("blk"),
-            type: "image",
-            imageUrl,
-            layout,
-            heading,
-            caption
-        };
-    } else if (currentBlockType === "link") {
-        const linkTitle = document.getElementById("dgLinkTitleInput").value.trim();
-        const url = document.getElementById("dgLinkUrlInput").value.trim();
-        const description = document.getElementById("dgLinkDescInput").value.trim();
-
-        if (!linkTitle || !url) return showGuideToast("লিংকের নাম ও URL দিন");
-        const safeUrl = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-        newBlock = {
-            id: generateGuideId("blk"),
-            type: "link",
-            title: linkTitle,
-            url: safeUrl,
-            description
-        };
-    }
-
-    if (newBlock) {
-        chapter.blocks.push(newBlock);
-        document.getElementById("dgBlockModal").classList.add("hidden");
-        await persistGuide();
+    if (navBtn && !navBtn.dataset.dgBound) {
+        navBtn.dataset.dgBound = "1";
+        navBtn.addEventListener("click", (e) => {
+            if (!isGuideActive) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (activeChapterId) {
+                activeChapterId = null;
+                renderDrivingGuideInSheet();
+            } else {
+                closeDrivingGuide();
+            }
+        }, true);
     }
 }
 
-async function moveBlock(chapterId, blockId, direction) {
-    if (!isAdminUser()) return;
-    const chapter = guideState.chapters.find(c => c.id === chapterId);
-    if (!chapter || !Array.isArray(chapter.blocks)) return;
+function restoreHeaderMode() {
+    const appTitleText = document.querySelector(".app-title-text");
+    const menuIcon = document.getElementById("menuIcon");
+    const backIcon = document.getElementById("backIcon");
 
-    const idx = chapter.blocks.findIndex(b => b.id === blockId);
-    if (idx < 0) return;
-
-    const targetIdx = idx + direction;
-    if (targetIdx < 0 || targetIdx >= chapter.blocks.length) return;
-
-    const temp = chapter.blocks[idx];
-    chapter.blocks[idx] = chapter.blocks[targetIdx];
-    chapter.blocks[targetIdx] = temp;
-
-    await persistGuide();
+    if (appTitleText && prevTitleText) {
+        appTitleText.textContent = prevTitleText;
+    }
+    if (menuIcon && backIcon) {
+        menuIcon.classList.toggle("hidden", prevMenuHidden);
+        backIcon.classList.toggle("hidden", prevBackHidden);
+    }
 }
 
-async function deleteBlock(chapterId, blockId) {
-    if (!isAdminUser()) return;
-    const chapter = guideState.chapters.find(c => c.id === chapterId);
-    if (!chapter || !Array.isArray(chapter.blocks)) return;
-
-    chapter.blocks = chapter.blocks.filter(b => b.id !== blockId);
-    await persistGuide();
+function hideMainViewsForGuide(hide) {
+    const ids = [
+        "mainDashboardView",
+        "categoryDetailsView",
+        "dataDetailsView",
+        "heroSlider",
+        "searchBox",
+        "subPageHeaderSearchWrapper",
+        "slidingNoticeContainer"
+    ];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.toggle("hidden", hide);
+    });
+    const slider = document.getElementById("heroSlider");
+    if (slider) slider.style.display = hide ? "none" : "";
 }
 
-async function deleteChapter(chapterId) {
-    if (!isAdminUser()) return;
-    guideState.chapters = guideState.chapters.filter(c => c.id !== chapterId);
-    if (activeChapterId === chapterId) activeChapterId = null;
-    await persistGuide();
-}
+function renderChapterListView(container, admin) {
+    setHeaderBackMode("ড্রাইভিং গাইড");
 
-function renderChapterList(bodyEl, admin) {
     let html = "";
-
     if (admin) {
         html += `
-            <div class="dg-admin-toolbar">
-                <button id="dgAddChapterBtn" type="button" class="dg-btn-primary">＋ নতুন অধ্যায় যোগ করুন</button>
-                <span style="font-size:12px;opacity:0.8;">অ্যাডমিন প্যানেল সক্রিয়</span>
+            <div class="dg-native-toolbar">
+                <button id="dgNewChapterBtn" type="button" class="dg-native-btn">＋ নতুন অধ্যায়</button>
+            </div>
+            <div id="dgChapterFormBox" class="dg-editor-box hidden">
+                <input id="dgChapTitleIn" type="text" placeholder="অধ্যায়ের নাম (যেমন: ট্রাফিক আইন ও সিগন্যাল)">
+                <input id="dgChapDescIn" type="text" placeholder="অধ্যায়ের সংক্ষিপ্ত বিবরণ (ঐচ্ছিক)">
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button id="dgChapCancelBtn" type="button" class="dg-native-btn danger">বাতিল</button>
+                    <button id="dgChapSaveBtn" type="button" class="dg-native-btn secondary">সেভ করুন</button>
+                </div>
             </div>
         `;
     }
 
     if (!guideState.chapters.length) {
         html += `
-            <div class="dg-empty">
-                <div style="font-size:40px;margin-bottom:8px;">📘</div>
-                <h3 style="margin:0 0 6px 0;">এখনো কোনো অধ্যায় যুক্ত করা হয়নি</h3>
-                <p style="margin:0;font-size:13px;">${admin ? "উপরের বাটনে ক্লিক করে প্রথম অধ্যায় তৈরি করুন।" : "অ্যাডমিন অধ্যায় যুক্ত করলে এখানে দেখা যাবে।"}</p>
-            </div>
-        `;
-        bodyEl.innerHTML = html;
-        document.getElementById("dgAddChapterBtn")?.addEventListener("click", openChapterModal);
-        return;
-    }
-
-    html += `<div class="dg-chapter-grid">`;
-    guideState.chapters.forEach((chap, index) => {
-        const blockCount = Array.isArray(chap.blocks) ? chap.blocks.length : 0;
-        html += `
-            <div class="dg-chapter-card" data-chap-id="${escapeHTML(chap.id)}">
-                <div>
-                    <div class="dg-chapter-num">অধ্যায় ${index + 1}</div>
-                    <h3 class="dg-chapter-title">${escapeHTML(chap.title)}</h3>
-                    ${chap.description ? `<p class="dg-chapter-meta" style="margin:6px 0 0 0;">${escapeHTML(chap.description)}</p>` : ""}
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
-                    <span class="dg-chapter-meta">${blockCount}টি সেকশন</span>
-                    ${admin ? `<button type="button" class="dg-btn-danger dg-del-chap" data-del-id="${escapeHTML(chap.id)}">🗑️</button>` : ""}
-                </div>
-            </div>
-        `;
-    });
-    html += `</div>`;
-
-    bodyEl.innerHTML = html;
-
-    document.getElementById("dgAddChapterBtn")?.addEventListener("click", openChapterModal);
-
-    bodyEl.querySelectorAll(".dg-chapter-card").forEach(card => {
-        card.addEventListener("click", () => {
-            activeChapterId = card.getAttribute("data-chap-id");
-            renderDrivingGuideUI();
-        });
-    });
-
-    bodyEl.querySelectorAll(".dg-del-chap").forEach(btn => {
-        btn.addEventListener("click", async (e) => {
-            e.stopPropagation();
-            const id = btn.getAttribute("data-del-id");
-            await deleteChapter(id);
-        });
-    });
-}
-
-function renderChapterReader(bodyEl, chapter, admin) {
-    let html = "";
-
-    if (admin) {
-        html += `
-            <div class="dg-admin-toolbar">
-                <button id="dgAddTextBtn" type="button" class="dg-btn-primary">📝 লেখা যুক্ত করুন</button>
-                <button id="dgAddImageBtn" type="button" class="dg-btn-accent">🖼️ ছবি + লেখা যুক্ত করুন</button>
-                <button id="dgAddLinkBtn" type="button" class="dg-btn-primary" style="background:#059669;">🔗 লিংক যুক্ত করুন</button>
-            </div>
-        `;
-    }
-
-    if (chapter.description) {
-        html += `
-            <div class="dg-block-card" style="border-left:4px solid #0ea5e9;">
-                <p class="dg-text-content" style="font-size:14px;">${escapeHTML(chapter.description)}</p>
-            </div>
-        `;
-    }
-
-    const blocks = Array.isArray(chapter.blocks) ? chapter.blocks : [];
-
-    if (!blocks.length) {
-        html += `
-            <div class="dg-empty">
-                <p style="margin:0;">এই অধ্যায়ে এখনো কোনো ডকুমেন্ট বা কন্টেন্ট নেই।</p>
+            <div class="dg-doc-card" style="text-align:center;">
+                <p class="dg-doc-text" style="opacity:0.75;">এখনো কোনো অধ্যায় যুক্ত করা হয়নি।</p>
             </div>
         `;
     } else {
-        blocks.forEach((blk, idx) => {
-            html += `<div class="dg-block-card">`;
-
-            if (admin) {
-                html += `
-                    <div class="dg-block-admin-bar">
-                        ${idx > 0 ? `<button type="button" class="dg-btn-soft dg-move-up" data-blk-id="${escapeHTML(blk.id)}">↑ উপরে</button>` : ""}
-                        ${idx < blocks.length - 1 ? `<button type="button" class="dg-btn-soft dg-move-down" data-blk-id="${escapeHTML(blk.id)}">↓ নিচে</button>` : ""}
-                        <button type="button" class="dg-btn-danger dg-del-blk" data-blk-id="${escapeHTML(blk.id)}">🗑️</button>
+        html += `<div class="dg-chapter-list">`;
+        guideState.chapters.forEach((chap, idx) => {
+            const docCount = Array.isArray(chap.docs) ? chap.docs.length : 0;
+            html += `
+                <div class="dg-chapter-row" data-chap-id="${escapeHTML(chap.id)}">
+                    <div>
+                        <h3 class="dg-chapter-row-title">${idx + 1}. ${escapeHTML(chap.title)}</h3>
+                        <p class="dg-chapter-row-sub">${escapeHTML(chap.description || `${docCount}টি ডকুমেন্ট`)}</p>
                     </div>
-                `;
-            }
-
-            if (blk.type === "text") {
-                html += `<p class="dg-text-content">${escapeHTML(blk.content)}</p>`;
-            } else if (blk.type === "image") {
-                const layoutClass = blk.layout === "side" ? "dg-image-block side-layout" : "dg-image-block";
-                const safeImg = escapeHTML(blk.imageUrl || DEFAULT_GUIDE_IMG);
-                html += `
-                    <div class="${layoutClass}">
-                        <img src="${safeImg}" alt="${escapeHTML(blk.heading || "Driving Guide Image")}" onerror="this.src='${DEFAULT_GUIDE_IMG}'">
-                        <div>
-                            ${blk.heading ? `<h4 class="dg-image-caption-title">${escapeHTML(blk.heading)}</h4>` : ""}
-                            ${blk.caption ? `<p class="dg-image-caption-text">${escapeHTML(blk.caption)}</p>` : ""}
-                        </div>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        ${admin ? `<button type="button" class="dg-native-btn danger dg-del-chap" data-id="${escapeHTML(chap.id)}">🗑️</button>` : ""}
+                        <span style="font-size:18px;opacity:0.6;">›</span>
                     </div>
-                `;
-            } else if (blk.type === "link") {
-                html += `
-                    <a class="dg-link-card" href="${escapeHTML(blk.url)}" target="_blank" rel="noopener noreferrer">
-                        <div>
-                            <h4 class="dg-link-title">🔗 ${escapeHTML(blk.title)}</h4>
-                            ${blk.description ? `<p class="dg-link-desc">${escapeHTML(blk.description)}</p>` : ""}
-                        </div>
-                        <span style="font-size:16px;font-weight:700;color:#0284c7;">↗</span>
-                    </a>
-                `;
-            }
-
-            html += `</div>`;
+                </div>
+            `;
         });
+        html += `</div>`;
     }
 
-    bodyEl.innerHTML = html;
+    container.innerHTML = html;
 
-    if (admin) {
-        document.getElementById("dgAddTextBtn")?.addEventListener("click", () => openBlockModal("text"));
-        document.getElementById("dgAddImageBtn")?.addEventListener("click", () => openBlockModal("image"));
-        document.getElementById("dgAddLinkBtn")?.addEventListener("click", () => openBlockModal("link"));
+    document.getElementById("dgNewChapterBtn")?.addEventListener("click", () => {
+        document.getElementById("dgChapterFormBox")?.classList.remove("hidden");
+    });
+    document.getElementById("dgChapCancelBtn")?.addEventListener("click", () => {
+        document.getElementById("dgChapterFormBox")?.classList.add("hidden");
+    });
+    document.getElementById("dgChapSaveBtn")?.addEventListener("click", async () => {
+        const title = document.getElementById("dgChapTitleIn")?.value.trim();
+        const description = document.getElementById("dgChapDescIn")?.value.trim() || "";
+        if (!title) return showGuideToast("অধ্যায়ের নাম লিখুন");
 
-        bodyEl.querySelectorAll(".dg-move-up").forEach(btn => {
-            btn.addEventListener("click", () => moveBlock(chapter.id, btn.getAttribute("data-blk-id"), -1));
+        const chap = {
+            id: generateGuideId("chap"),
+            title,
+            description,
+            docs: [],
+            createdAt: Date.now()
+        };
+        guideState.chapters.push(chap);
+        activeChapterId = chap.id;
+        await persistGuide();
+    });
+
+    container.querySelectorAll(".dg-chapter-row").forEach(row => {
+        row.addEventListener("click", () => {
+            activeChapterId = row.getAttribute("data-chap-id");
+            renderDrivingGuideInSheet();
         });
-        bodyEl.querySelectorAll(".dg-move-down").forEach(btn => {
-            btn.addEventListener("click", () => moveBlock(chapter.id, btn.getAttribute("data-blk-id"), 1));
+    });
+
+    container.querySelectorAll(".dg-del-chap").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute("data-id");
+            guideState.chapters = guideState.chapters.filter(c => c.id !== id);
+            if (activeChapterId === id) activeChapterId = null;
+            await persistGuide();
         });
-        bodyEl.querySelectorAll(".dg-del-blk").forEach(btn => {
-            btn.addEventListener("click", () => deleteBlock(chapter.id, btn.getAttribute("data-blk-id")));
-        });
-    }
+    });
 }
 
-export function renderDrivingGuideUI() {
-    const modal = document.getElementById("drivingGuideModal");
-    const bodyEl = document.getElementById("dgBody");
-    const titleEl = document.getElementById("dgHeaderTitle");
-    const badgeEl = document.getElementById("dgRoleBadge");
-    const backBtn = document.getElementById("dgBackBtn");
+function renderChapterDocsView(container, chapter, admin) {
+    setHeaderBackMode(chapter.title);
 
-    if (!modal || !bodyEl) return;
-
-    const admin = isAdminUser();
-    if (badgeEl) {
-        badgeEl.textContent = admin ? "Admin Panel" : "User View";
+    let html = "";
+    if (admin) {
+        html += `
+            <div class="dg-native-toolbar">
+                <button id="dgToggleDocEditorBtn" type="button" class="dg-native-btn">＋ নতুন ডকুমেন্ট / লেখা</button>
+            </div>
+            <div id="dgDocEditorBox" class="dg-editor-box hidden">
+                <input id="dgDocTitleIn" type="text" placeholder="ডকুমেন্টের শিরোনাম (ঐচ্ছিক)">
+                <div class="dg-tag-helper">
+                    একটিমাত্র লেখার ভেতরে একাধিক ছবি ও লিংক দিতে নিচের ফরম্যাট ব্যবহার করুন:<br>
+                    <strong>[img: ছবির_লিংক | ছবির_ক্যাপশন_বা_ব্যাখ্যা]</strong><br>
+                    <strong>[link: লিংকের_নাম | https://example.com]</strong>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                    <button id="dgInsertImgTagBtn" type="button" class="dg-native-btn secondary">+ ছবি ট্যাগ</button>
+                    <button id="dgInsertLinkTagBtn" type="button" class="dg-native-btn secondary">+ লিংক ট্যাগ</button>
+                </div>
+                <textarea id="dgDocBodyIn" rows="7" placeholder="এখানে মূল লেখা লিখুন এবং লেখার মাঝে মাঝে [img: ...] ট্যাগ দিয়ে যত খুশি ছবি যুক্ত করুন..."></textarea>
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button id="dgDocCancelBtn" type="button" class="dg-native-btn danger">বাতিল</button>
+                    <button id="dgDocSaveBtn" type="button" class="dg-native-btn secondary">ডকুমেন্ট সেভ করুন</button>
+                </div>
+            </div>
+        `;
     }
 
+    const docs = Array.isArray(chapter.docs) ? chapter.docs : [];
+    if (!docs.length) {
+        html += `
+            <div class="dg-doc-card" style="text-align:center;">
+                <p class="dg-doc-text" style="opacity:0.75;">এই অধ্যায়ে এখনো কোনো ডকুমেন্ট নেই।</p>
+            </div>
+        `;
+    } else {
+        docs.forEach(doc => {
+            html += `
+                <article class="dg-doc-card">
+                    ${(doc.title || admin) ? `
+                        <h3 class="dg-doc-heading">
+                            <span>${escapeHTML(doc.title || "নোট")}</span>
+                            ${admin ? `<button type="button" class="dg-native-btn danger dg-del-doc" data-doc-id="${escapeHTML(doc.id)}">🗑️</button>` : ""}
+                        </h3>
+                    ` : ""}
+                    <div>${renderRichTextWithMedia(doc.body || "")}</div>
+                </article>
+            `;
+        });
+    }
+
+    container.innerHTML = html;
+
+    const bodyArea = document.getElementById("dgDocBodyIn");
+    document.getElementById("dgToggleDocEditorBtn")?.addEventListener("click", () => {
+        document.getElementById("dgDocEditorBox")?.classList.remove("hidden");
+    });
+    document.getElementById("dgDocCancelBtn")?.addEventListener("click", () => {
+        document.getElementById("dgDocEditorBox")?.classList.add("hidden");
+    });
+
+    document.getElementById("dgInsertImgTagBtn")?.addEventListener("click", () => {
+        if (!bodyArea) return;
+        const snippet = `\n[img: https://example.com/image.jpg | ছবির সাথে অতিরিক্ত লেখা বা ক্যাপশন]\n`;
+        bodyArea.value += snippet;
+        bodyArea.focus();
+    });
+
+    document.getElementById("dgInsertLinkTagBtn")?.addEventListener("click", () => {
+        if (!bodyArea) return;
+        const snippet = `\n[link: রেফারেন্স লিংক | https://example.com]\n`;
+        bodyArea.value += snippet;
+        bodyArea.focus();
+    });
+
+    document.getElementById("dgDocSaveBtn")?.addEventListener("click", async () => {
+        const title = document.getElementById("dgDocTitleIn")?.value.trim() || "";
+        const body = document.getElementById("dgDocBodyIn")?.value.trim() || "";
+        if (!body) return showGuideToast("ডকুমেন্টের লেখা লিখুন");
+
+        if (!Array.isArray(chapter.docs)) chapter.docs = [];
+        chapter.docs.push({
+            id: generateGuideId("doc"),
+            title,
+            body,
+            createdAt: Date.now()
+        });
+
+        await persistGuide();
+    });
+
+    container.querySelectorAll(".dg-del-doc").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const docId = btn.getAttribute("data-doc-id");
+            chapter.docs = (chapter.docs || []).filter(d => d.id !== docId);
+            await persistGuide();
+        });
+    });
+}
+
+export function renderDrivingGuideInSheet() {
+    const view = ensureSheetContainer();
+    if (!view) return;
+
+    const admin = isAdminUser();
     if (activeChapterId) {
         const chapter = guideState.chapters.find(c => c.id === activeChapterId);
         if (chapter) {
-            if (titleEl) titleEl.textContent = chapter.title;
-            backBtn?.classList.remove("hidden");
-            renderChapterReader(bodyEl, chapter, admin);
+            renderChapterDocsView(view, chapter, admin);
             return;
         }
         activeChapterId = null;
     }
 
-    if (titleEl) titleEl.textContent = "🚗 ড্রাইভিং গাইড";
-    backBtn?.classList.add("hidden");
-    renderChapterList(bodyEl, admin);
+    renderChapterListView(view, admin);
 }
 
 export async function openDrivingGuide() {
-    injectStyles();
-    buildModalDOM();
+    injectNativeStyles();
     startRealtimeSync();
 
     if (navigator.onLine) {
@@ -961,16 +673,36 @@ export async function openDrivingGuide() {
                 saveLocalGuide();
             }
         } catch (err) {
-            console.warn("Driving guide fetch warning:", err);
+            console.warn("Driving guide fetch error:", err);
         }
     }
 
-    renderDrivingGuideUI();
-    document.getElementById("drivingGuideModal")?.classList.remove("hidden");
+    isGuideActive = true;
+    hideMainViewsForGuide(true);
+
+    const view = ensureSheetContainer();
+    if (view) {
+        view.classList.remove("hidden");
+        renderDrivingGuideInSheet();
+    }
 }
 
 export function closeDrivingGuide() {
-    document.getElementById("drivingGuideModal")?.classList.add("hidden");
+    isGuideActive = false;
+    activeChapterId = null;
+
+    const view = document.getElementById("drivingGuideSheetView");
+    if (view) {
+        view.classList.add("hidden");
+        view.innerHTML = "";
+    }
+
+    restoreHeaderMode();
+    hideMainViewsForGuide(false);
+
+    if (typeof window.refreshCurrentView === "function") {
+        window.refreshCurrentView();
+    }
 }
 
 window.openDrivingGuide = openDrivingGuide;
