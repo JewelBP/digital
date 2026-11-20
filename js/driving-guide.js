@@ -9,7 +9,7 @@ import {
 
 import { db } from "./firebase.js";
 
-const STORAGE_KEY = "rmp_driving_guide_v4";
+const STORAGE_KEY = "rmp_driving_guide_v5";
 const DB_PATH = "webapp/driving_guide";
 const DEFAULT_GUIDE_IMG = "https://cdn-icons-png.flaticon.com/512/3097/3097144.png";
 
@@ -119,216 +119,280 @@ function startRealtimeSync() {
     });
 }
 
-function injectNativeStyles() {
-    if (document.getElementById("drivingGuideNativeStyles")) return;
+function injectModernNotebookStyles() {
+    if (document.getElementById("drivingGuideModernStyles")) return;
 
     const style = document.createElement("style");
-    style.id = "drivingGuideNativeStyles";
+    style.id = "drivingGuideModernStyles";
     style.textContent = `
         #drivingGuideSheetView {
             display: flex;
             flex-direction: column;
             gap: 14px;
+            padding-bottom: 24px;
         }
         #drivingGuideSheetView.hidden {
             display: none !important;
         }
-        .dg-native-toolbar {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
+
+        /* টোলবার + ইনলাইন সার্চ */
+        .dg-notebook-toolbar {
+            background: linear-gradient(135deg, #020624 0%, #0f172a 100%);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 18px;
             padding: 10px 12px;
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
             align-items: center;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+            gap: 8px;
+            box-shadow: 0 8px 20px rgba(2, 6, 36, 0.16);
         }
-        body.dark-mode .dg-native-toolbar {
-            background: #0f172a;
-            border-color: #334155;
-        }
-        .dg-toolbar-search {
+        .dg-toolbar-search-wrap {
             flex: 1;
-            min-width: 170px;
+            min-width: 140px;
             display: flex;
             align-items: center;
-            gap: 6px;
-            background: #f1f5f9;
-            border: 1px solid #cbd5e1;
-            border-radius: 11px;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 12px;
             padding: 7px 11px;
         }
-        body.dark-mode .dg-toolbar-search {
-            background: #1e293b;
-            border-color: #334155;
+        .dg-toolbar-search-wrap span {
+            font-size: 14px;
+            line-height: 1;
+            opacity: 0.9;
         }
-        .dg-toolbar-search input {
+        .dg-toolbar-search-wrap input {
             width: 100%;
             min-width: 0;
             border: none;
             outline: none;
             background: transparent;
-            color: #0f172a;
+            color: #ffffff;
             font-size: 14px;
             font-family: inherit;
         }
-        body.dark-mode .dg-toolbar-search input {
-            color: #f8fafc;
+        .dg-toolbar-search-wrap input::placeholder {
+            color: rgba(226, 232, 240, 0.72);
         }
-        .dg-native-btn {
-            background: var(--app-main-color, #020624);
+        .dg-toolbar-clear-btn {
+            background: rgba(255, 255, 255, 0.16);
             color: #ffffff;
             border: none;
-            border-radius: 11px;
-            padding: 10px 14px;
-            font-size: 13.5px;
-            font-weight: 600;
+            border-radius: 8px;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            white-space: nowrap;
+            justify-content: center;
+            flex-shrink: 0;
         }
-        .dg-native-btn.secondary {
+        .dg-toolbar-add-btn {
             background: #0ea5e9;
-        }
-        .dg-native-btn.edit {
-            background: #f59e0b;
             color: #ffffff;
-            padding: 7px 11px;
+            border: none;
+            border-radius: 12px;
+            padding: 9px 13px;
             font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+            flex-shrink: 0;
         }
-        .dg-native-btn.danger {
-            background: #ef4444;
-            padding: 7px 11px;
-            font-size: 13px;
-        }
-        .dg-chapter-list {
+
+        /* নোটবুক অধ্যায় কার্ড */
+        .dg-chapter-stack {
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
-        .dg-chapter-row {
+        .dg-notebook-chapter {
+            position: relative;
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 18px;
-            padding: 16px;
-            min-height: 76px;
+            border-left: 5px solid #020624;
+            border-radius: 16px;
+            padding: 15px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 5px 16px rgba(2, 6, 36, 0.05);
             cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
-        body.dark-mode .dg-chapter-row {
+        body.dark-mode .dg-notebook-chapter {
             background: #0f172a;
-            border-color: #334155;
+            border-color: #1e293b;
+            border-left-color: #38bdf8;
         }
-        .dg-chapter-row-title {
+        .dg-notebook-chapter:active {
+            transform: scale(0.99);
+        }
+        .dg-chapter-chip {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #0284c7;
+            background: rgba(14, 165, 233, 0.12);
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-bottom: 5px;
+        }
+        body.dark-mode .dg-chapter-chip {
+            color: #38bdf8;
+        }
+        .dg-chapter-heading {
             margin: 0;
             font-size: 16.5px;
             font-weight: 700;
-            color: var(--app-main-color, #020624);
+            color: #0f172a;
+            line-height: 1.35;
         }
-        body.dark-mode .dg-chapter-row-title {
+        body.dark-mode .dg-chapter-heading {
             color: #f8fafc;
         }
-        .dg-chapter-row-sub {
+        .dg-chapter-desc {
             margin: 4px 0 0 0;
-            font-size: 13.5px;
+            font-size: 13px;
             color: #64748b;
+            line-height: 1.45;
         }
-        body.dark-mode .dg-chapter-row-sub {
+        body.dark-mode .dg-chapter-desc {
             color: #94a3b8;
         }
-        .dg-doc-card {
+
+        /* নোটবুক ডকুমেন্ট পেজ কার্ড */
+        .dg-notebook-page {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 18px;
+            border-radius: 20px;
             padding: 18px;
-            min-height: 110px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 8px 24px rgba(2, 6, 36, 0.06);
             display: flex;
             flex-direction: column;
             gap: 14px;
         }
-        body.dark-mode .dg-doc-card {
+        body.dark-mode .dg-notebook-page {
             background: #0f172a;
-            border-color: #334155;
+            border-color: #1e293b;
         }
-        .dg-doc-heading {
-            margin: 0;
-            font-size: 17px;
-            font-weight: 700;
-            color: var(--app-main-color, #020624);
+        .dg-page-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #cbd5e1;
         }
-        body.dark-mode .dg-doc-heading {
+        body.dark-mode .dg-page-top {
+            border-bottom-color: #334155;
+        }
+        .dg-page-title {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+            color: #020624;
+        }
+        body.dark-mode .dg-page-title {
             color: #f8fafc;
         }
-        .dg-doc-text {
+        .dg-page-body-text {
             margin: 0;
             font-size: 15.5px;
-            line-height: 1.8;
+            line-height: 1.85;
             white-space: pre-line;
             color: #1e293b;
         }
-        body.dark-mode .dg-doc-text {
+        body.dark-mode .dg-page-body-text {
             color: #e2e8f0;
         }
-        .dg-inline-img-box {
+
+        /* ইনলাইন ইমেজ ও ক্যাপশন */
+        .dg-media-figure {
             margin: 14px 0;
             padding: 12px;
             border-radius: 16px;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
         }
-        body.dark-mode .dg-inline-img-box {
+        body.dark-mode .dg-media-figure {
             background: #1e293b;
             border-color: #334155;
         }
-        .dg-inline-img-box img {
+        .dg-media-figure img {
             width: 100%;
-            max-height: 290px;
+            max-height: 300px;
             object-fit: cover;
             border-radius: 12px;
+            display: block;
         }
-        .dg-inline-img-caption {
-            margin: 0;
-            font-size: 14px;
+        .dg-media-caption {
+            margin: 9px 2px 0 2px;
+            font-size: 13.5px;
             line-height: 1.6;
             color: #475569;
             font-weight: 500;
         }
-        body.dark-mode .dg-inline-img-caption {
+        body.dark-mode .dg-media-caption {
             color: #cbd5e1;
         }
-        .dg-inline-link {
+
+        /* ইনলাইন লিংক বাটন */
+        .dg-media-link {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             margin: 6px 6px 6px 0;
-            padding: 10px 14px;
+            padding: 9px 14px;
             border-radius: 12px;
-            background: rgba(14, 165, 233, 0.12);
-            border: 1px solid rgba(14, 165, 233, 0.35);
+            background: rgba(2, 6, 36, 0.06);
+            border: 1px solid rgba(14, 165, 233, 0.45);
             color: #0284c7;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13.5px;
+            font-weight: 700;
             text-decoration: none;
         }
-        body.dark-mode .dg-inline-link {
+        body.dark-mode .dg-media-link {
+            background: rgba(56, 189, 248, 0.12);
             color: #38bdf8;
         }
-        .dg-editor-box {
+
+        /* অ্যাকশন বাটন */
+        .dg-mini-btn {
+            border: none;
+            border-radius: 9px;
+            padding: 7px 11px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dg-mini-btn.edit {
+            background: #f59e0b;
+            color: #ffffff;
+        }
+        .dg-mini-btn.del {
+            background: #ef4444;
+            color: #ffffff;
+        }
+        .dg-mini-btn.tag {
+            background: #0ea5e9;
+            color: #ffffff;
+            padding: 8px 12px;
+        }
+
+        /* বড় এডিটর বক্স */
+        .dg-editor-panel {
             background: #ffffff;
             border: 1px solid #cbd5e1;
             border-radius: 18px;
@@ -336,14 +400,14 @@ function injectNativeStyles() {
             display: flex;
             flex-direction: column;
             gap: 12px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 8px 22px rgba(2, 6, 36, 0.08);
         }
-        body.dark-mode .dg-editor-box {
+        body.dark-mode .dg-editor-panel {
             background: #0f172a;
             border-color: #334155;
         }
-        .dg-editor-box input,
-        .dg-editor-box textarea {
+        .dg-editor-panel input,
+        .dg-editor-panel textarea {
             width: 100%;
             box-sizing: border-box;
             padding: 13px 14px;
@@ -352,28 +416,28 @@ function injectNativeStyles() {
             background: #f8fafc;
             color: #0f172a;
             font-size: 15px;
-            line-height: 1.5;
+            line-height: 1.55;
             font-family: inherit;
         }
-        .dg-editor-box textarea {
-            min-height: 190px;
+        .dg-editor-panel textarea {
+            min-height: 210px;
         }
-        body.dark-mode .dg-editor-box input,
-        body.dark-mode .dg-editor-box textarea {
+        body.dark-mode .dg-editor-panel input,
+        body.dark-mode .dg-editor-panel textarea {
             background: #1e293b;
             color: #f8fafc;
             border-color: #334155;
         }
-        .dg-tag-helper {
+        .dg-editor-tip {
             font-size: 12.5px;
-            line-height: 1.55;
-            background: rgba(14, 165, 233, 0.08);
-            border-left: 3px solid #0ea5e9;
+            line-height: 1.6;
             padding: 10px 12px;
-            border-radius: 10px;
+            border-radius: 12px;
+            background: rgba(14, 165, 233, 0.09);
+            border-left: 4px solid #0ea5e9;
             color: #334155;
         }
-        body.dark-mode .dg-tag-helper {
+        body.dark-mode .dg-editor-tip {
             color: #cbd5e1;
         }
     `;
@@ -393,10 +457,10 @@ function renderRichTextWithMedia(rawText) {
             const url = escapeHTML(imgMatch[1].trim());
             const caption = escapeHTML((imgMatch[2] || "").trim());
             return `
-                <div class="dg-inline-img-box">
+                <figure class="dg-media-figure">
                     <img src="${url}" alt="${caption || "Driving Guide Image"}" onerror="this.src='${DEFAULT_GUIDE_IMG}'">
-                    ${caption ? `<p class="dg-inline-img-caption">${caption}</p>` : ""}
-                </div>
+                    ${caption ? `<figcaption class="dg-media-caption">${caption}</figcaption>` : ""}
+                </figure>
             `;
         }
 
@@ -406,13 +470,13 @@ function renderRichTextWithMedia(rawText) {
             let href = linkMatch[2].trim();
             if (!/^https?:\/\//i.test(href)) href = `https://${href}`;
             return `
-                <a class="dg-inline-link" href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">
+                <a class="dg-media-link" href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">
                     🔗 ${label} ↗
                 </a>
             `;
         }
 
-        return `<span class="dg-doc-text">${escapeHTML(part)}</span>`;
+        return `<span class="dg-page-body-text">${escapeHTML(part)}</span>`;
     }).join("");
 }
 
@@ -500,87 +564,94 @@ function hideMainViewsForGuide(hide) {
     if (slider) slider.style.display = hide ? "none" : "";
 }
 
-function renderToolbarWithSearch(placeholderText, admin, addBtnId, addBtnLabel) {
+function buildToolbarHTML(searchPlaceholder, admin, addBtnId, addBtnLabel) {
     return `
-        <div class="dg-native-toolbar">
-            ${admin ? `<button id="${escapeHTML(addBtnId)}" type="button" class="dg-native-btn">${escapeHTML(addBtnLabel)}</button>` : ""}
-            <div class="dg-toolbar-search">
+        <div class="dg-notebook-toolbar">
+            <div class="dg-toolbar-search-wrap">
                 <span>🔍</span>
-                <input id="dgSearchInput" type="search" value="${escapeHTML(guideSearchQuery)}" placeholder="${escapeHTML(placeholderText)}" autocomplete="off">
+                <input id="dgToolbarSearchInput" type="search" value="${escapeHTML(guideSearchQuery)}" placeholder="${escapeHTML(searchPlaceholder)}" autocomplete="off">
+                ${guideSearchQuery ? `<button id="dgClearSearchBtn" type="button" class="dg-toolbar-clear-btn" title="মুছুন">✕</button>` : ""}
             </div>
+            ${admin ? `<button id="${escapeHTML(addBtnId)}" type="button" class="dg-toolbar-add-btn">${escapeHTML(addBtnLabel)}</button>` : ""}
         </div>
     `;
 }
 
-function bindSearchInput() {
-    const input = document.getElementById("dgSearchInput");
-    if (!input) return;
-    input.addEventListener("input", () => {
-        guideSearchQuery = input.value.trim().toLowerCase();
+function bindToolbarEvents() {
+    const input = document.getElementById("dgToolbarSearchInput");
+    if (input) {
+        input.addEventListener("input", () => {
+            guideSearchQuery = input.value.trim().toLowerCase();
+            renderDrivingGuideInSheet();
+            const freshInput = document.getElementById("dgToolbarSearchInput");
+            if (freshInput) {
+                freshInput.focus();
+                const end = freshInput.value.length;
+                freshInput.setSelectionRange(end, end);
+            }
+        });
+    }
+
+    document.getElementById("dgClearSearchBtn")?.addEventListener("click", () => {
+        guideSearchQuery = "";
         renderDrivingGuideInSheet();
-        const updatedInput = document.getElementById("dgSearchInput");
-        if (updatedInput) {
-            updatedInput.focus();
-            const len = updatedInput.value.length;
-            updatedInput.setSelectionRange(len, len);
-        }
     });
 }
 
 function renderChapterListView(container, admin) {
     setHeaderBackMode("ড্রাইভিং গাইড");
 
-    let html = renderToolbarWithSearch("অধ্যায় খুঁজুন...", admin, "dgNewChapterBtn", "＋ নতুন অধ্যায়");
+    let html = buildToolbarHTML("অধ্যায় খুঁজুন...", admin, "dgAddChapterBtn", "＋ অধ্যায়");
 
     if (admin) {
         const editingChap = editingChapterId
             ? guideState.chapters.find(c => c.id === editingChapterId)
             : null;
-        const formVisible = editingChap ? "" : "hidden";
 
         html += `
-            <div id="dgChapterFormBox" class="dg-editor-box ${formVisible}">
-                <input id="dgChapTitleIn" type="text" value="${escapeHTML(editingChap?.title || "")}" placeholder="অধ্যায়ের নাম (যেমন: ট্রাফিক আইন ও সিগন্যাল)">
-                <input id="dgChapDescIn" type="text" value="${escapeHTML(editingChap?.description || "")}" placeholder="অধ্যায়ের সংক্ষিপ্ত বিবরণ (ঐচ্ছিক)">
+            <div id="dgChapterEditor" class="dg-editor-panel ${editingChap ? "" : "hidden"}">
+                <input id="dgChapTitleInput" type="text" value="${escapeHTML(editingChap?.title || "")}" placeholder="অধ্যায়ের শিরোনাম (যেমন: ট্রাফিক সিগন্যাল ও আইন)">
+                <input id="dgChapDescInput" type="text" value="${escapeHTML(editingChap?.description || "")}" placeholder="সংক্ষিপ্ত পরিচিতি (ঐচ্ছিক)">
                 <div style="display:flex;gap:8px;justify-content:flex-end;">
-                    <button id="dgChapCancelBtn" type="button" class="dg-native-btn danger">বাতিল</button>
-                    <button id="dgChapSaveBtn" type="button" class="dg-native-btn secondary">সেভ করুন</button>
+                    <button id="dgChapCancelBtn" type="button" class="dg-mini-btn del">বাতিল</button>
+                    <button id="dgChapSaveBtn" type="button" class="dg-mini-btn tag">সেভ করুন</button>
                 </div>
             </div>
         `;
     }
 
-    const filteredChapters = guideState.chapters.filter(chap => {
+    const filtered = guideState.chapters.filter(chap => {
         if (!guideSearchQuery) return true;
-        const titleMatch = (chap.title || "").toLowerCase().includes(guideSearchQuery);
-        const descMatch = (chap.description || "").toLowerCase().includes(guideSearchQuery);
-        const docMatch = (chap.docs || []).some(d =>
+        const cMatch = (chap.title || "").toLowerCase().includes(guideSearchQuery) ||
+            (chap.description || "").toLowerCase().includes(guideSearchQuery);
+        const dMatch = (chap.docs || []).some(d =>
             (d.title || "").toLowerCase().includes(guideSearchQuery) ||
             (d.body || "").toLowerCase().includes(guideSearchQuery)
         );
-        return titleMatch || descMatch || docMatch;
+        return cMatch || dMatch;
     });
 
-    if (!filteredChapters.length) {
+    if (!filtered.length) {
         html += `
-            <div class="dg-doc-card" style="text-align:center;">
-                <p class="dg-doc-text" style="opacity:0.75;">কোনো অধ্যায় বা তথ্য পাওয়া যায়নি।</p>
+            <div class="dg-notebook-page" style="text-align:center;">
+                <p class="dg-page-body-text" style="opacity:0.7;">কোনো অধ্যায় বা নোট পাওয়া যায়নি।</p>
             </div>
         `;
     } else {
-        html += `<div class="dg-chapter-list">`;
-        filteredChapters.forEach((chap, idx) => {
-            const docCount = Array.isArray(chap.docs) ? chap.docs.length : 0;
+        html += `<div class="dg-chapter-stack">`;
+        filtered.forEach((chap, idx) => {
+            const count = Array.isArray(chap.docs) ? chap.docs.length : 0;
             html += `
-                <div class="dg-chapter-row" data-chap-id="${escapeHTML(chap.id)}">
-                    <div>
-                        <h3 class="dg-chapter-row-title">${idx + 1}. ${escapeHTML(chap.title)}</h3>
-                        <p class="dg-chapter-row-sub">${escapeHTML(chap.description || `${docCount}টি ডকুমেন্ট`)}</p>
+                <div class="dg-notebook-chapter" data-chap-id="${escapeHTML(chap.id)}">
+                    <div style="min-width:0;">
+                        <span class="dg-chapter-chip">অধ্যায় ${idx + 1} • ${count}টি নোট</span>
+                        <h3 class="dg-chapter-heading">${escapeHTML(chap.title)}</h3>
+                        ${chap.description ? `<p class="dg-chapter-desc">${escapeHTML(chap.description)}</p>` : ""}
                     </div>
-                    <div style="display:flex;align-items:center;gap:6px;">
-                        ${admin ? `<button type="button" class="dg-native-btn edit dg-edit-chap" data-id="${escapeHTML(chap.id)}">✏️</button>` : ""}
-                        ${admin ? `<button type="button" class="dg-native-btn danger dg-del-chap" data-id="${escapeHTML(chap.id)}">🗑️</button>` : ""}
-                        <span style="font-size:18px;opacity:0.6;">›</span>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                        ${admin ? `<button type="button" class="dg-mini-btn edit dg-edit-chap" data-id="${escapeHTML(chap.id)}">✏️</button>` : ""}
+                        ${admin ? `<button type="button" class="dg-mini-btn del dg-del-chap" data-id="${escapeHTML(chap.id)}">🗑️</button>` : ""}
+                        <span style="font-size:20px;opacity:0.55;">›</span>
                     </div>
                 </div>
             `;
@@ -589,52 +660,52 @@ function renderChapterListView(container, admin) {
     }
 
     container.innerHTML = html;
-    bindSearchInput();
+    bindToolbarEvents();
 
-    document.getElementById("dgNewChapterBtn")?.addEventListener("click", () => {
+    document.getElementById("dgAddChapterBtn")?.addEventListener("click", () => {
         editingChapterId = null;
-        const box = document.getElementById("dgChapterFormBox");
-        if (box) {
-            box.classList.remove("hidden");
-            document.getElementById("dgChapTitleIn").value = "";
-            document.getElementById("dgChapDescIn").value = "";
+        const panel = document.getElementById("dgChapterEditor");
+        if (panel) {
+            panel.classList.remove("hidden");
+            document.getElementById("dgChapTitleInput").value = "";
+            document.getElementById("dgChapDescInput").value = "";
         }
     });
 
     document.getElementById("dgChapCancelBtn")?.addEventListener("click", () => {
         editingChapterId = null;
-        document.getElementById("dgChapterFormBox")?.classList.add("hidden");
+        document.getElementById("dgChapterEditor")?.classList.add("hidden");
     });
 
     document.getElementById("dgChapSaveBtn")?.addEventListener("click", async () => {
-        const title = document.getElementById("dgChapTitleIn")?.value.trim();
-        const description = document.getElementById("dgChapDescIn")?.value.trim() || "";
-        if (!title) return showGuideToast("অধ্যায়ের নাম লিখুন");
+        const title = document.getElementById("dgChapTitleInput")?.value.trim();
+        const description = document.getElementById("dgChapDescInput")?.value.trim() || "";
+        if (!title) return showGuideToast("অধ্যায়ের শিরোনাম লিখুন");
 
         if (editingChapterId) {
-            const target = guideState.chapters.find(c => c.id === editingChapterId);
-            if (target) {
-                target.title = title;
-                target.description = description;
+            const found = guideState.chapters.find(c => c.id === editingChapterId);
+            if (found) {
+                found.title = title;
+                found.description = description;
             }
             editingChapterId = null;
         } else {
-            const chap = {
+            const newChap = {
                 id: generateGuideId("chap"),
                 title,
                 description,
                 docs: [],
                 createdAt: Date.now()
             };
-            guideState.chapters.push(chap);
-            activeChapterId = chap.id;
+            guideState.chapters.push(newChap);
+            activeChapterId = newChap.id;
         }
         await persistGuide();
     });
 
-    container.querySelectorAll(".dg-chapter-row").forEach(row => {
-        row.addEventListener("click", () => {
-            activeChapterId = row.getAttribute("data-chap-id");
+    container.querySelectorAll(".dg-notebook-chapter").forEach(card => {
+        card.addEventListener("click", () => {
+            activeChapterId = card.getAttribute("data-chap-id");
             editingDocId = null;
             guideSearchQuery = "";
             renderDrivingGuideInSheet();
@@ -664,29 +735,28 @@ function renderChapterListView(container, admin) {
 function renderChapterDocsView(container, chapter, admin) {
     setHeaderBackMode(chapter.title);
 
-    let html = renderToolbarWithSearch("বিষয় খুঁজুন...", admin, "dgToggleDocEditorBtn", "＋ নতুন ডকুমেন্ট");
+    let html = buildToolbarHTML("বিষয় বা ক্যাপশন খুঁজুন...", admin, "dgAddDocBtn", "＋ নোট");
 
     const docs = Array.isArray(chapter.docs) ? chapter.docs : [];
     const editingDoc = editingDocId ? docs.find(d => d.id === editingDocId) : null;
 
     if (admin) {
-        const editorVisible = editingDoc ? "" : "hidden";
         html += `
-            <div id="dgDocEditorBox" class="dg-editor-box ${editorVisible}">
-                <input id="dgDocTitleIn" type="text" value="${escapeHTML(editingDoc?.title || "")}" placeholder="ডকুমেন্টের শিরোনাম (ঐচ্ছিক)">
-                <div class="dg-tag-helper">
-                    একটিমাত্র লেখার ভেতরে একাধিক ছবি ও লিংক দিতে নিচের ফরম্যাট ব্যবহার করুন:<br>
-                    <strong>[img: ছবির_লিংক | ছবির_ক্যাপশন_বা_ব্যাখ্যা]</strong><br>
+            <div id="dgDocEditor" class="dg-editor-panel ${editingDoc ? "" : "hidden"}">
+                <input id="dgDocTitleInput" type="text" value="${escapeHTML(editingDoc?.title || "")}" placeholder="ডকুমেন্ট বা নোটের শিরোনাম (ঐচ্ছিক)">
+                <div class="dg-editor-tip">
+                    একটিমাত্র লেখার ভেতরে একাধিক ছবি ও লিংক যুক্ত করতে:<br>
+                    <strong>[img: ছবির_লিংক | ছবির_ক্যাপশন_বা_অতিরিক্ত_লেখা]</strong><br>
                     <strong>[link: লিংকের_নাম | https://example.com]</strong>
                 </div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                    <button id="dgInsertImgTagBtn" type="button" class="dg-native-btn secondary">+ ছবি ট্যাগ</button>
-                    <button id="dgInsertLinkTagBtn" type="button" class="dg-native-btn secondary">+ লিংক ট্যাগ</button>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button id="dgAddImgTagBtn" type="button" class="dg-mini-btn tag">+ ছবি যুক্ত করুন</button>
+                    <button id="dgAddLinkTagBtn" type="button" class="dg-mini-btn tag">+ লিংক যুক্ত করুন</button>
                 </div>
-                <textarea id="dgDocBodyIn" rows="8" placeholder="এখানে মূল লেখা লিখুন এবং লেখার মাঝে মাঝে [img: ...] ট্যাগ দিয়ে যত খুশি ছবি যুক্ত করুন...">${escapeHTML(editingDoc?.body || "")}</textarea>
+                <textarea id="dgDocBodyInput" placeholder="এখানে মূল লেখা লিখুন এবং লেখার মাঝে মাঝে যত খুশি [img: ...] ট্যাগ ব্যবহার করুন...">${escapeHTML(editingDoc?.body || "")}</textarea>
                 <div style="display:flex;gap:8px;justify-content:flex-end;">
-                    <button id="dgDocCancelBtn" type="button" class="dg-native-btn danger">বাতিল</button>
-                    <button id="dgDocSaveBtn" type="button" class="dg-native-btn secondary">ডকুমেন্ট সেভ করুন</button>
+                    <button id="dgDocCancelBtn" type="button" class="dg-mini-btn del">বাতিল</button>
+                    <button id="dgDocSaveBtn" type="button" class="dg-mini-btn tag">সেভ করুন</button>
                 </div>
             </div>
         `;
@@ -702,22 +772,24 @@ function renderChapterDocsView(container, chapter, admin) {
 
     if (!filteredDocs.length) {
         html += `
-            <div class="dg-doc-card" style="text-align:center;">
-                <p class="dg-doc-text" style="opacity:0.75;">কোনো ডকুমেন্ট পাওয়া যায়নি।</p>
+            <div class="dg-notebook-page" style="text-align:center;">
+                <p class="dg-page-body-text" style="opacity:0.7;">এই অধ্যায়ে কোনো ডকুমেন্ট পাওয়া যায়নি।</p>
             </div>
         `;
     } else {
         filteredDocs.forEach(doc => {
             html += `
-                <article class="dg-doc-card">
+                <article class="dg-notebook-page">
                     ${(doc.title || admin) ? `
-                        <h3 class="dg-doc-heading">
-                            <span>${escapeHTML(doc.title || "নোট")}</span>
-                            <span style="display:inline-flex;gap:6px;">
-                                ${admin ? `<button type="button" class="dg-native-btn edit dg-edit-doc" data-doc-id="${escapeHTML(doc.id)}">✏️</button>` : ""}
-                                ${admin ? `<button type="button" class="dg-native-btn danger dg-del-doc" data-doc-id="${escapeHTML(doc.id)}">🗑️</button>` : ""}
-                            </span>
-                        </h3>
+                        <div class="dg-page-top">
+                            <h3 class="dg-page-title">${escapeHTML(doc.title || "ডকুমেন্ট নোট")}</h3>
+                            ${admin ? `
+                                <div style="display:flex;gap:6px;">
+                                    <button type="button" class="dg-mini-btn edit dg-edit-doc" data-id="${escapeHTML(doc.id)}">✏️</button>
+                                    <button type="button" class="dg-mini-btn del dg-del-doc" data-id="${escapeHTML(doc.id)}">🗑️</button>
+                                </div>
+                            ` : ""}
+                        </div>
                     ` : ""}
                     <div>${renderRichTextWithMedia(doc.body || "")}</div>
                 </article>
@@ -726,51 +798,49 @@ function renderChapterDocsView(container, chapter, admin) {
     }
 
     container.innerHTML = html;
-    bindSearchInput();
+    bindToolbarEvents();
 
-    const bodyArea = document.getElementById("dgDocBodyIn");
+    const bodyInput = document.getElementById("dgDocBodyInput");
 
-    document.getElementById("dgToggleDocEditorBtn")?.addEventListener("click", () => {
+    document.getElementById("dgAddDocBtn")?.addEventListener("click", () => {
         editingDocId = null;
-        const box = document.getElementById("dgDocEditorBox");
-        if (box) {
-            box.classList.remove("hidden");
-            document.getElementById("dgDocTitleIn").value = "";
-            document.getElementById("dgDocBodyIn").value = "";
+        const panel = document.getElementById("dgDocEditor");
+        if (panel) {
+            panel.classList.remove("hidden");
+            document.getElementById("dgDocTitleInput").value = "";
+            document.getElementById("dgDocBodyInput").value = "";
         }
     });
 
     document.getElementById("dgDocCancelBtn")?.addEventListener("click", () => {
         editingDocId = null;
-        document.getElementById("dgDocEditorBox")?.classList.add("hidden");
+        document.getElementById("dgDocEditor")?.classList.add("hidden");
     });
 
-    document.getElementById("dgInsertImgTagBtn")?.addEventListener("click", () => {
-        if (!bodyArea) return;
-        const snippet = `\n[img: https://example.com/image.jpg | ছবির সাথে অতিরিক্ত লেখা বা ক্যাপশন]\n`;
-        bodyArea.value += snippet;
-        bodyArea.focus();
+    document.getElementById("dgAddImgTagBtn")?.addEventListener("click", () => {
+        if (!bodyInput) return;
+        bodyInput.value += `\n[img: https://example.com/photo.jpg | ছবির নিচে বা পাশে অতিরিক্ত লেখা]\n`;
+        bodyInput.focus();
     });
 
-    document.getElementById("dgInsertLinkTagBtn")?.addEventListener("click", () => {
-        if (!bodyArea) return;
-        const snippet = `\n[link: রেফারেন্স লিংক | https://example.com]\n`;
-        bodyArea.value += snippet;
-        bodyArea.focus();
+    document.getElementById("dgAddLinkTagBtn")?.addEventListener("click", () => {
+        if (!bodyInput) return;
+        bodyInput.value += `\n[link: প্রয়োজনীয় লিংক | https://example.com]\n`;
+        bodyInput.focus();
     });
 
     document.getElementById("dgDocSaveBtn")?.addEventListener("click", async () => {
-        const title = document.getElementById("dgDocTitleIn")?.value.trim() || "";
-        const body = document.getElementById("dgDocBodyIn")?.value.trim() || "";
+        const title = document.getElementById("dgDocTitleInput")?.value.trim() || "";
+        const body = document.getElementById("dgDocBodyInput")?.value.trim() || "";
         if (!body) return showGuideToast("ডকুমেন্টের লেখা লিখুন");
 
         if (!Array.isArray(chapter.docs)) chapter.docs = [];
 
         if (editingDocId) {
-            const targetDoc = chapter.docs.find(d => d.id === editingDocId);
-            if (targetDoc) {
-                targetDoc.title = title;
-                targetDoc.body = body;
+            const target = chapter.docs.find(d => d.id === editingDocId);
+            if (target) {
+                target.title = title;
+                target.body = body;
             }
             editingDocId = null;
         } else {
@@ -781,20 +851,19 @@ function renderChapterDocsView(container, chapter, admin) {
                 createdAt: Date.now()
             });
         }
-
         await persistGuide();
     });
 
     container.querySelectorAll(".dg-edit-doc").forEach(btn => {
         btn.addEventListener("click", () => {
-            editingDocId = btn.getAttribute("data-doc-id");
+            editingDocId = btn.getAttribute("data-id");
             renderDrivingGuideInSheet();
         });
     });
 
     container.querySelectorAll(".dg-del-doc").forEach(btn => {
         btn.addEventListener("click", async () => {
-            const docId = btn.getAttribute("data-doc-id");
+            const docId = btn.getAttribute("data-id");
             chapter.docs = (chapter.docs || []).filter(d => d.id !== docId);
             if (editingDocId === docId) editingDocId = null;
             await persistGuide();
@@ -820,7 +889,7 @@ export function renderDrivingGuideInSheet() {
 }
 
 export async function openDrivingGuide() {
-    injectNativeStyles();
+    injectModernNotebookStyles();
     startRealtimeSync();
 
     if (navigator.onLine) {
@@ -831,7 +900,7 @@ export async function openDrivingGuide() {
                 saveLocalGuide();
             }
         } catch (err) {
-            console.warn("Driving guide fetch error:", err);
+            console.warn("Driving guide fetch warning:", err);
         }
     }
 
