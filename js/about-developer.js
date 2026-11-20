@@ -27,6 +27,9 @@ let aboutCharIndex = 0;
 let aboutIsDeleting = false;
 let aboutTypingTimer = null;
 let aboutParticleFrame = null;
+let aboutScrollHandler = null;
+let aboutResizeHandler = null;
+let aboutMeasureHeader = null;
 
 const ABOUT_ROLES = {
     bn: [
@@ -105,25 +108,29 @@ function injectAboutDeveloperStyles() {
         }
 
         /* স্ক্রিনের দুই কিনারা পর্যন্ত পুরো প্রস্থ জুড়ে ফিক্সড/স্টিকি হিরো অংশ */
-        /* উপরের স্টিকি হেডার বার: ব্যাক + টাইটেল + ভাষা + থিম */
-        .ad-topbar {
-            position: sticky;
+        /* পুরো কালো অংশ (টপবার + অ্যানিমেটেড হিরো) এখন ফিক্সড হেডার */
+        .ad-header {
+            position: fixed;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 40;
+            background: #07103a;
+            box-shadow: 0 8px 22px rgba(2, 6, 36, 0.35);
+            border-radius: 0 0 32px 32px;
+            overflow: hidden;
+        }
+        .ad-header-spacer { width: 100%; }
+        .ad-topbar {
+            position: relative;
+            z-index: 3;
             display: flex;
             align-items: center;
             gap: 8px;
-            width: 100vw;
-            max-width: 100vw;
-            margin-left: calc(50% - 50vw);
-            margin-right: calc(50% - 50vw);
             box-sizing: border-box;
-            padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
-            background: rgba(7, 16, 58, 0.94);
-            -webkit-backdrop-filter: blur(10px);
-            backdrop-filter: blur(10px);
+            padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 4px;
             color: #ffffff;
-            box-shadow: 0 4px 16px rgba(2, 6, 36, 0.35);
+            background: #07103a;
         }
         .ad-topbar-title {
             flex: 1;
@@ -152,18 +159,13 @@ function injectAboutDeveloperStyles() {
 
         .ad-hero-full-fixed {
             position: relative;
-            z-index: 2;
-            width: 100vw;
-            max-width: 100vw;
-            margin-left: calc(50% - 50vw);
-            margin-right: calc(50% - 50vw);
+            width: 100%;
             overflow: hidden;
             background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%);
-            border-radius: 0 0 32px 32px;
-            padding: 14px 16px 24px;
+            padding: 10px 16px 24px;
             text-align: center;
             color: #ffffff;
-            box-shadow: 0 14px 28px rgba(2, 6, 36, 0.28);
+            transition: padding 0.3s ease;
         }
 
         .ad-hero-full-fixed::after {
@@ -178,6 +180,33 @@ function injectAboutDeveloperStyles() {
         }
 
         /* নিচের স্ক্রলযোগ্য কন্টেন্ট এরিয়া */
+        /* স্ক্রল করলে হেডার ছোট হয় (অ্যানিমেশন থাকে, জায়গা কম নেয়) */
+        .ad-status-pill, .ad-dev-subname, .ad-typing-role {
+            max-height: 80px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease, padding 0.3s ease, border-width 0.3s ease;
+        }
+        .ad-avatar-wrapper { transition: width 0.3s ease, height 0.3s ease, margin 0.3s ease; }
+        .ad-verified-badge { transition: all 0.3s ease; }
+        .ad-dev-name { transition: font-size 0.3s ease; }
+
+        .ad-header.ad-compact .ad-status-pill,
+        .ad-header.ad-compact .ad-dev-subname,
+        .ad-header.ad-compact .ad-typing-role {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            min-height: 0;
+            border-width: 0;
+        }
+        .ad-header.ad-compact .ad-hero-full-fixed { padding-top: 4px; padding-bottom: 12px; }
+        .ad-header.ad-compact .ad-avatar-wrapper { width: 52px; height: 52px; margin-bottom: 4px; }
+        .ad-header.ad-compact .ad-verified-badge { width: 16px; height: 16px; font-size: 8px; border-width: 2px; bottom: 0; right: 0; }
+        .ad-header.ad-compact .ad-dev-name { font-size: 17px; margin: 0; }
+
         .ad-scroll-body {
             display: flex;
             flex-direction: column;
@@ -189,9 +218,8 @@ function injectAboutDeveloperStyles() {
 
         #adParticleCanvas {
             position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
+            top: 0;
+            left: 0;
             pointer-events: none;
             opacity: 0.45;
         }
@@ -226,7 +254,10 @@ function injectAboutDeveloperStyles() {
         }
 
         .ad-status-pill {
-            display: inline-flex;
+            display: flex;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
             align-items: center;
             gap: 7px;
             background: rgba(16, 185, 129, 0.16);
@@ -325,7 +356,9 @@ function injectAboutDeveloperStyles() {
         }
 
         .ad-typing-role {
-            display: inline-block;
+            display: block;
+            width: fit-content;
+            margin: 0 auto;
             background: rgba(255, 255, 255, 0.12);
             border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 5px 15px;
@@ -930,6 +963,8 @@ function startAboutParticles() {
     const resize = () => {
         canvas.width = canvas.parentElement ? canvas.parentElement.offsetWidth : 360;
         canvas.height = canvas.parentElement ? canvas.parentElement.offsetHeight : 280;
+        canvas.style.width = canvas.width + "px";
+        canvas.style.height = canvas.height + "px";
     };
     resize();
 
@@ -1008,12 +1043,65 @@ function applyAboutLanguage(view, lang) {
     });
 
     startAboutTyping();
+    setTimeout(() => aboutMeasureHeader && aboutMeasureHeader(), 60);
+}
+
+function teardownAboutHeaderBehavior() {
+    if (aboutScrollHandler) window.removeEventListener("scroll", aboutScrollHandler, true);
+    if (aboutResizeHandler) window.removeEventListener("resize", aboutResizeHandler);
+    aboutScrollHandler = null;
+    aboutResizeHandler = null;
+    aboutMeasureHeader = null;
+}
+
+function setupAboutHeaderBehavior(view) {
+    teardownAboutHeaderBehavior();
+    const header = view.querySelector("#adHeader");
+    const spacer = view.querySelector("#adHeaderSpacer");
+    if (!header || !spacer) return;
+
+    let compact = false;
+
+    // খোলা (বড়) অবস্থার উচ্চতা স্পেসারে বসানো হয়, তাই কন্টেন্ট লাফায় না
+    aboutMeasureHeader = () => {
+        if (compact) return;
+        spacer.style.height = header.offsetHeight + "px";
+    };
+    aboutMeasureHeader();
+    requestAnimationFrame(aboutMeasureHeader);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(aboutMeasureHeader);
+
+    const sheet = document.getElementById("mainScrollSheet");
+    if (sheet) sheet.scrollTop = 0;
+    window.scrollTo(0, 0);
+
+    const getTop = (t) => (t === document || t === document.documentElement || t === document.body)
+        ? (window.scrollY || document.documentElement.scrollTop || 0)
+        : t.scrollTop;
+
+    aboutScrollHandler = (e) => {
+        const t = e.target;
+        if (t !== document && !(t.contains && t.contains(view))) return;
+        const st = getTop(t);
+        if (!compact && st > 60) {
+            compact = true;
+            header.classList.add("ad-compact");
+        } else if (compact && st < 8) {
+            compact = false;
+            header.classList.remove("ad-compact");
+        }
+    };
+    window.addEventListener("scroll", aboutScrollHandler, { capture: true, passive: true });
+
+    aboutResizeHandler = () => aboutMeasureHeader && aboutMeasureHeader();
+    window.addEventListener("resize", aboutResizeHandler);
 }
 
 function renderAboutDeveloperView(view) {
     setAboutHeaderMode();
 
     view.innerHTML = `
+        <div class="ad-header" id="adHeader">
         <div class="ad-topbar">
             <button type="button" class="ad-pill-btn ad-back-btn" id="adBackBtn" aria-label="Back">
                 <i class="fas fa-arrow-left"></i>
@@ -1054,6 +1142,8 @@ function renderAboutDeveloperView(view) {
                 </div>
             </div>
         </section>
+        </div>
+        <div class="ad-header-spacer" id="adHeaderSpacer"></div>
 
         <div class="ad-scroll-body">
             <div class="ad-card">
@@ -1324,6 +1414,7 @@ function renderAboutDeveloperView(view) {
     });
 
     applyAboutLanguage(view, aboutCurrentLang);
+    setupAboutHeaderBehavior(view);
     startAboutParticles();
 }
 
@@ -1358,6 +1449,7 @@ export function closeAboutDeveloper(fromPop = false) {
     clearTimeout(aboutTypingTimer);
     if (aboutParticleFrame) cancelAnimationFrame(aboutParticleFrame);
     stopAboutObserver();
+    teardownAboutHeaderBehavior();
     isAboutActive = false;
     document.body.classList.remove("ad-about-active");
 
