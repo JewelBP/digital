@@ -187,32 +187,6 @@ function injectModernNotebookStyles() {
         .dg-result-count { font-size:12px; color:#64748b; margin:6px 4px 0; }
         body.dark-mode .dg-result-count { color:#94a3b8; }
 
-        /* ===== হেডার সার্চ (পিল) ===== */
-        .dg-header-search {
-            flex: 0 0 100%; width: 100%; box-sizing: border-box;
-            display: flex; justify-content: center; padding: 16px 16px 6px;
-        }
-        .dg-header-search.standalone { background: #020624; padding: 10px 16px 14px; }
-        .dg-header-search.hidden { display: none !important; }
-        .dg-hs-pill {
-            width: 62%; min-width: 250px; max-width: 560px; height: 54px; box-sizing: border-box;
-            display: flex; align-items: center; gap: 14px; padding: 0 20px;
-            border-radius: 999px; background: #1c1c3b;
-            border: 1px solid rgba(255,255,255,0.16);
-            color: #e5e7eb; transition: border-color .2s, box-shadow .2s;
-        }
-        .dg-hs-pill:focus-within { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.22); }
-        .dg-hs-icon { flex-shrink: 0; opacity: .95; }
-        .dg-hs-pill input {
-            flex: 1; min-width: 0; border: none; outline: none; background: transparent;
-            color: #ffffff; font-size: 17px; font-family: inherit; letter-spacing: .3px;
-        }
-        .dg-hs-pill input::placeholder { color: rgba(226,232,240,0.85); }
-        .dg-hs-pill input::-webkit-search-cancel-button { display: none; }
-        .dg-hs-clear {
-            border: none; background: rgba(255,255,255,0.18); color: #fff; width: 24px; height: 24px;
-            border-radius: 50%; font-size: 12px; cursor: pointer; flex-shrink: 0;
-        }
         .dg-action-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
         .dg-action-row .dg-result-count { margin: 0 4px; flex: 1; }
 
@@ -571,11 +545,12 @@ function hideMainViewsForGuide(hide) {
     if (slider) slider.style.display = hide ? "none" : "";
 }
 
-/* ============================== Header Search (ছবির মতো পিল ডিজাইন) ============================== */
+/* ============================== Header Search ==============================
+ * অ্যাপের নিজস্ব সার্চ ফিল্ডের ক্লাস (header-search-inline / subpage-search-field) ব্যবহার করা হয়েছে,
+ * তাই সাইজ, রং ও ডার্ক/লাইট থিম index.html-এর সার্চ ফিল্ডের সাথে হুবহু মিলে যায়।
+ * ============================================================================ */
 
 let searchHandler = null;
-let headerElRef = null;
-let headerPrevFlexWrap = "";
 
 function mountHeaderSearch(placeholder) {
     let wrap = document.getElementById("dgHeaderSearch");
@@ -583,62 +558,55 @@ function mountHeaderSearch(placeholder) {
     if (!wrap) {
         wrap = document.createElement("div");
         wrap.id = "dgHeaderSearch";
-        wrap.className = "dg-header-search";
+        wrap.className = "header-search-inline is-visible";
         wrap.innerHTML = `
-            <div class="dg-hs-pill">
-                <svg class="dg-hs-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="14" cy="10" r="6.5"></circle>
-                    <line x1="9.4" y1="14.6" x2="3.5" y2="20.5"></line>
-                </svg>
+            <div class="subpage-search-field">
+                <span class="subpage-search-icon" aria-hidden="true">⌕</span>
                 <input id="dgToolbarSearchInput" type="search" autocomplete="off">
-                <button id="dgClearSearchBtn" type="button" class="dg-hs-clear hidden" title="মুছুন">✕</button>
+                <button id="dgClearSearchBtn" type="button" class="subpage-search-clear" aria-label="Clear search" title="Clear search">×</button>
             </div>`;
 
-        const title = document.querySelector(".app-title-text");
-        const header = title ? (title.closest("header") || title.closest(".app-header") || title.parentElement?.parentElement) : null;
-
+        const top = document.querySelector(".modern-top-wrapper");
+        const header = top?.querySelector(".modern-header");
         if (header) {
-            headerElRef = header;
-            headerPrevFlexWrap = header.style.flexWrap;
-            header.style.flexWrap = "wrap";
-            header.appendChild(wrap);
+            header.insertAdjacentElement("afterend", wrap);
+        } else if (top) {
+            top.appendChild(wrap);
         } else {
-            wrap.classList.add("standalone");
             const sheet = document.getElementById("mainScrollSheet");
-            if (sheet && sheet.parentElement) sheet.parentElement.insertBefore(wrap, sheet);
+            if (sheet?.parentElement) sheet.parentElement.insertBefore(wrap, sheet);
             else document.body.prepend(wrap);
         }
 
+        const field = wrap.querySelector(".subpage-search-field");
         const input = wrap.querySelector("#dgToolbarSearchInput");
         const clearBtn = wrap.querySelector("#dgClearSearchBtn");
 
         input.addEventListener("input", () => {
             guideSearchQuery = input.value.trim().toLowerCase();
-            clearBtn.classList.toggle("hidden", !guideSearchQuery);
+            field.classList.toggle("has-value", input.value.length > 0);
             if (searchHandler) searchHandler();
         });
         clearBtn.addEventListener("click", () => {
             guideSearchQuery = "";
             input.value = "";
+            field.classList.remove("has-value");
             input.focus();
-            clearBtn.classList.add("hidden");
             if (searchHandler) searchHandler();
         });
     }
 
+    const field = wrap.querySelector(".subpage-search-field");
     const input = wrap.querySelector("#dgToolbarSearchInput");
     input.placeholder = placeholder;
     if (input.value.trim().toLowerCase() !== guideSearchQuery) input.value = guideSearchQuery;
-    wrap.querySelector("#dgClearSearchBtn").classList.toggle("hidden", !guideSearchQuery);
+    field.classList.toggle("has-value", input.value.length > 0);
+    wrap.classList.add("is-visible");
     wrap.classList.remove("hidden");
 }
 
 function unmountHeaderSearch() {
     document.getElementById("dgHeaderSearch")?.remove();
-    if (headerElRef) {
-        headerElRef.style.flexWrap = headerPrevFlexWrap;
-        headerElRef = null;
-    }
     searchHandler = null;
 }
 
