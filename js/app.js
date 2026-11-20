@@ -2463,12 +2463,13 @@ function openProfileImageViewer(photoUrl, personName) {
 }
 
 /* =====================================================================
-   CHAPTER-WISE DRIVING NOTE GUIDE (COLLAPSIBLE + IMAGE + LINK + ADMIN)
+   CHAPTER-WISE DRIVING NOTE GUIDE (COLLAPSIBLE + MULTI-IMAGE + LINK + ADMIN)
 ===================================================================== */
 const defaultDrivingBlocks = [
     {
         title: "১. গাড়ি চালানোর পূর্বপ্রস্তুতি",
         body: "গাড়ি স্টার্ট করার আগে সিট বেল্ট, লুকিং গ্লাস, টায়ারের হাওয়া, ব্রেক, হেডলাইট ও ইন্ডিকেটর সঠিকভাবে কাজ করছে কি না তা পরীক্ষা করুন।",
+        images: [],
         imageUrl: "",
         imageCaption: "",
         linkUrl: "https://brta.gov.bd",
@@ -2477,6 +2478,7 @@ const defaultDrivingBlocks = [
     {
         title: "২. সড়কে নিরাপদ গতি ও দূরত্ব বজায় রাখা",
         body: "সামনের গাড়ির সাথে নিরাপদ দূরত্ব রাখুন। বৃষ্টি, কুয়াশা বা জনবহুল এলাকায় গতি কমিয়ে সতর্কতার সাথে গাড়ি চালান।",
+        images: [],
         imageUrl: "",
         imageCaption: "",
         linkUrl: "",
@@ -2484,20 +2486,53 @@ const defaultDrivingBlocks = [
     }
 ];
 
+function parseMultiList(raw) {
+    if (Array.isArray(raw)) {
+        return raw.map(v => String(v || "").trim()).filter(Boolean);
+    }
+    return String(raw || "")
+        .split(/\r?\n|,|\|/)
+        .map(v => v.trim())
+        .filter(Boolean);
+}
+
+function normalizeDrivingChapter(chapter) {
+    const urls = Array.isArray(chapter.images) && chapter.images.length
+        ? chapter.images.map(img => typeof img === "string" ? { url: img.trim(), caption: "" } : { url: String(img.url || "").trim(), caption: String(img.caption || "").trim() }).filter(i => i.url)
+        : (() => {
+            const urlList = parseMultiList(chapter.imageUrl);
+            const capList = parseMultiList(chapter.imageCaption);
+            return urlList.map((url, idx) => ({
+                url,
+                caption: capList[idx] || ""
+            }));
+        })();
+
+    return {
+        title: chapter.title || "",
+        body: chapter.body || "",
+        images: urls,
+        imageUrl: urls.map(i => i.url).join("\n"),
+        imageCaption: urls.map(i => i.caption).join("\n"),
+        linkUrl: chapter.linkUrl || "",
+        linkText: chapter.linkText || ""
+    };
+}
+
 function loadDrivingCache() {
     const cached = localStorage.getItem(DRIVING_STORAGE_KEY);
     if (cached) {
         try {
             const parsed = JSON.parse(cached);
             if (Array.isArray(parsed) && parsed.length > 0) {
-                drivingBlocks = parsed;
+                drivingBlocks = parsed.map(normalizeDrivingChapter);
                 return;
             }
         } catch (e) {
             console.error("Driving note cache error:", e);
         }
     }
-    drivingBlocks = [...defaultDrivingBlocks];
+    drivingBlocks = defaultDrivingBlocks.map(normalizeDrivingChapter);
 }
 
 function subscribeDrivingNoteLive() {
@@ -2507,7 +2542,8 @@ function subscribeDrivingNoteLive() {
     onValue(ref(db, DRIVING_FIREBASE_PATH), (snapshot) => {
         if (snapshot.exists()) {
             const val = snapshot.val();
-            drivingBlocks = Array.isArray(val) ? val : Object.values(val);
+            const arr = Array.isArray(val) ? val : Object.values(val);
+            drivingBlocks = arr.map(normalizeDrivingChapter);
             localStorage.setItem(DRIVING_STORAGE_KEY, JSON.stringify(drivingBlocks));
             if (isDrivingNoteActive) {
                 renderDrivingNoteBlocks();
@@ -2570,27 +2606,35 @@ function saveDrivingChapter() {
 
     const title = document.getElementById("drivingChapterTitle")?.value.trim() || "";
     const body = document.getElementById("drivingChapterBody")?.value.trim() || "";
-    const imageUrl = document.getElementById("drivingChapterImageUrl")?.value.trim() || "";
-    const imageCaption = document.getElementById("drivingChapterImageCaption")?.value.trim() || "";
+    const rawImageUrl = document.getElementById("drivingChapterImageUrl")?.value.trim() || "";
+    const rawImageCaption = document.getElementById("drivingChapterImageCaption")?.value.trim() || "";
     const linkUrl = document.getElementById("drivingChapterLinkUrl")?.value.trim() || "";
     const linkText = document.getElementById("drivingChapterLinkText")?.value.trim() || "";
+
+    const urlList = parseMultiList(rawImageUrl);
+    const capList = parseMultiList(rawImageCaption);
+    const images = urlList.map((url, idx) => ({
+        url,
+        caption: capList[idx] || ""
+    }));
 
     if (!title) {
         return showToast("অধ্যায়ের শিরোনাম লিখুন");
     }
 
-    if (!body && !imageUrl && !linkUrl) {
+    if (!body && images.length === 0 && !linkUrl) {
         return showToast("লেখা, ছবি বা লিংকের অন্তত একটি দিন");
     }
 
-    const chapterData = {
+    const chapterData = normalizeDrivingChapter({
         title,
         body,
-        imageUrl,
-        imageCaption,
+        images,
+        imageUrl: images.map(i => i.url).join("\n"),
+        imageCaption: images.map(i => i.caption).join("\n"),
         linkUrl,
         linkText
-    };
+    });
 
     if (drivingEditIndex >= 0 && drivingBlocks[drivingEditIndex]) {
         drivingBlocks[drivingEditIndex] = chapterData;
@@ -2605,15 +2649,16 @@ function saveDrivingChapter() {
 }
 
 function startEditDrivingChapter(index) {
-    const item = drivingBlocks[index];
-    if (!item) return;
+    const rawItem = drivingBlocks[index];
+    if (!rawItem) return;
+    const item = normalizeDrivingChapter(rawItem);
     drivingEditIndex = index;
 
     const map = {
         drivingChapterTitle: item.title || "",
         drivingChapterBody: item.body || "",
-        drivingChapterImageUrl: item.imageUrl || "",
-        drivingChapterImageCaption: item.imageCaption || "",
+        drivingChapterImageUrl: item.images.map(i => i.url).join("\n"),
+        drivingChapterImageCaption: item.images.map(i => i.caption).join("\n"),
         drivingChapterLinkUrl: item.linkUrl || "",
         drivingChapterLinkText: item.linkText || ""
     };
@@ -2660,138 +2705,52 @@ async function moveDrivingChapter(index, dir) {
     await persistDrivingBlocks();
 }
 
-function renderDrivingNoteBlocks() {
-    const container = document.getElementById("drivingNoteContent");
-    const adminPanel = document.getElementById("drivingAdminPanel");
-    if (!container) return;
-
-    const isAdmin = window.currentUserRole === "admin";
-    if (adminPanel) {
-        adminPanel.classList.toggle("hidden", !isAdmin);
-    }
-
-    container.innerHTML = "";
-
-    if (!drivingBlocks.length) {
-        container.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted);">কোনো অধ্যায় যুক্ত করা হয়নি।</div>`;
-        return;
-    }
-
-    drivingBlocks.forEach((chapter, idx) => {
-        const isOpen = expandedDrivingIndex === idx;
-        const card = document.createElement("div");
-        card.className = "driving-chapter-card";
-
-        const headerBtn = document.createElement("button");
-        headerBtn.type = "button";
-        headerBtn.className = "driving-chapter-header";
-        headerBtn.setAttribute("aria-expanded", String(isOpen));
-        headerBtn.innerHTML = `
-            <span class="driving-chapter-title">${escapeHTML(chapter.title || "শিরোনামহীন অধ্যায়")}</span>
-            <span class="driving-chapter-toggle">${isOpen ? "−" : "+"}</span>
-        `;
-
-        const bodyPanel = document.createElement("div");
-        bodyPanel.className = "driving-chapter-body" + (isOpen ? " open" : "");
-
-        let bodyHtml = "";
-        if (chapter.body) {
-            bodyHtml += `<p class="driving-chapter-text">${escapeHTML(chapter.body)}</p>`;
-        }
-        if (chapter.imageUrl) {
-            const safeImg = escapeHTML(chapter.imageUrl);
-            const safeCap = escapeHTML(chapter.imageCaption || chapter.title || "ছবি");
-            bodyHtml += `
-                <div class="driving-chapter-media">
-                    <img src="${safeImg}" alt="${safeCap}" class="driving-chapter-img" onerror="this.parentElement.style.display='none'">
-                    ${chapter.imageCaption ? `<div class="driving-chapter-caption">${safeCap}</div>` : ""}
-                </div>
-            `;
-        }
-        if (chapter.linkUrl) {
-            const safeLink = escapeHTML(chapter.linkUrl);
-            const safeBtnLabel = escapeHTML(chapter.linkText || "লিংক ওপেন করুন");
-            bodyHtml += `
-                <div class="driving-chapter-link-wrap">
-                    <a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="driving-chapter-link-btn">🔗 ${safeBtnLabel}</a>
-                </div>
-            `;
-        }
-
-        bodyPanel.innerHTML = `<div class="driving-chapter-inner">${bodyHtml}</div>`;
-
-        bodyPanel.querySelector(".driving-chapter-img")?.addEventListener("click", (e) => {
-            e.stopPropagation();
-            openProfileImageViewer(chapter.imageUrl, chapter.imageCaption || chapter.title);
-        });
-
-        headerBtn.addEventListener("click", () => {
-            expandedDrivingIndex = expandedDrivingIndex === idx ? -1 : idx;
-            renderDrivingNoteBlocks();
-        });
-
-        card.appendChild(headerBtn);
-        card.appendChild(bodyPanel);
-
-        if (isAdmin) {
-            const actions = document.createElement("div");
-            actions.className = "driving-chapter-admin-bar";
-            actions.innerHTML = `
-                <button type="button" class="secondary-btn btn-up" style="padding:5px 10px; font-size:12px;">↑ উপরে</button>
-                <button type="button" class="secondary-btn btn-down" style="padding:5px 10px; font-size:12px;">↓ নিচে</button>
-                <button type="button" class="primary-btn btn-edit" style="padding:5px 10px; font-size:12px;">✏️ এডিট</button>
-                <button type="button" class="danger-btn btn-del" style="padding:5px 10px; font-size:12px;">🗑️ ডিলিট</button>
-            `;
-            actions.querySelector(".btn-up")?.addEventListener("click", () => moveDrivingChapter(idx, -1));
-            actions.querySelector(".btn-down")?.addEventListener("click", () => moveDrivingChapter(idx, 1));
-            actions.querySelector(".btn-edit")?.addEventListener("click", () => startEditDrivingChapter(idx));
-            actions.querySelector(".btn-del")?.addEventListener("click", () => deleteDrivingChapter(idx));
-            card.appendChild(actions);
-        }
-
-        container.appendChild(card);
-    });
+function buildDrivingImageHtml(imgObj, fallbackTitle) {
+    if (!imgObj || !imgObj.url) return "";
+    const safeImg = escapeHTML(imgObj.url);
+    const safeCap = escapeHTML(imgObj.caption || fallbackTitle || "ছবি");
+    return `
+        <div class="driving-chapter-media" data-img-url="${safeImg}" data-img-caption="${safeCap}">
+            <img src="${safeImg}" alt="${safeCap}" class="driving-chapter-img" onerror="this.parentElement.style.display='none'">
+            ${imgObj.caption ? `<div class="driving-chapter-caption">${escapeHTML(imgObj.caption)}</div>` : ""}
+        </div>
+    `;
 }
 
-function openDrivingNotePage(pushHistory = true) {
-    if (pushHistory) {
-        history.pushState({ page: "drivingNote" }, "");
+function renderChapterBodyWithInlineImages(chapter) {
+    const images = normalizeDrivingChapter(chapter).images;
+    const rawBody = String(chapter.body || "");
+
+    if (!rawBody) {
+        return images.map(img => buildDrivingImageHtml(img, chapter.title)).join("");
     }
 
-    isDrivingNoteActive = true;
-    isFavoriteActive = false;
-    isAllSearchActive = false;
-    currentCategoryId = null;
-    currentDataId = null;
+    const usedIndices = new Set();
+    const tokenRegex = /\[(?:img|image|photo|ছবি)\s*(\d+)\]/gi;
+    let html = "";
+    let lastIndex = 0;
+    let match;
 
-    document.body.classList.remove("is-all-search-mode", "is-data-details-mode");
+    while ((match = tokenRegex.exec(rawBody)) !== null) {
+        const beforeText = rawBody.slice(lastIndex, match.index);
+        if (beforeText) {
+            html += `<p class="driving-chapter-text">${escapeHTML(beforeText).replace(/\r?\n/g, "<br>")}</p>`;
+        }
 
-    const appTitle = document.getElementById("appTitle");
-    if (appTitle) {
-        const titleText = appTitle.querySelector(".app-title-text") || appTitle;
-        titleText.textContent = "Driving Note";
+        const imgIdx = parseInt(match[1], 10) - 1;
+        if (imgIdx >= 0 && imgIdx < images.length) {
+            usedIndices.add(imgIdx);
+            html += buildDrivingImageHtml(images[imgIdx], chapter.title);
+        }
+
+        lastIndex = tokenRegex.lastIndex;
     }
 
-    document.getElementById("verifiedBadge")?.classList.add("hidden");
-    document.getElementById("searchBtn")?.classList.add("hidden");
-    setNavState(true);
+    const remainingText = rawBody.slice(lastIndex);
+    if (remainingText) {
+        html += `<p class="driving-chapter-text">${escapeHTML(remainingText).replace(/\r?\n/g, "<br>")}</p>`;
+    }
 
-    document.getElementById("mainDashboardView")?.classList.add("hidden");
-    document.getElementById("categoryDetailsView")?.classList.add("hidden");
-    document.getElementById("dataDetailsView")?.classList.add("hidden");
-    document.getElementById("allSearchContainer")?.classList.add("hidden");
-    document.getElementById("drivingNoteView")?.classList.remove("hidden");
-
-    const mainScrollSheet = document.getElementById("mainScrollSheet");
-    if (mainScrollSheet) mainScrollSheet.scrollTop = 0;
-
-    renderDrivingNoteBlocks();
-}
-
-window.openDrivingNotePage = openDrivingNotePage;
-
-document.addEventListener("DOMContentLoaded", () => {
-    subscribeDrivingNoteLive();
-    document.getElementById("saveDrivingChapterBtn")?.addEventListener("click", saveDrivingChapter);
-    document.getElementById("cancelDrivingEditBtn")?.addEventListener("click", resetDrivingForm);
-});
+    images.forEach((img, idx) => {
+        if (!usedIndices.has(idx)) {
+            html += buildDrivingImageHtml(img, chapter.title);
