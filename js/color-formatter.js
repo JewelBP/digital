@@ -9,7 +9,6 @@
    ✔ Data Profile safe
    ✔ Category safe
    ✔ Sub-category safe
-   ✔ Driving Note safe
    ✔ Home Notice safe
    ✔ Scrolling Notice safe
    ✔ Firebase dynamic content
@@ -1132,6 +1131,11 @@ ${TOOLBAR_SELECTOR}.firebase-toolbar-clean-ready {
             return true;
         }
 
+        /*
+         * Only determine whether THIS ELEMENT itself contains
+         * raw formatter syntax. Do not reject a parent merely
+         * because one of its children is formatted.
+         */
         const ownText = Array.from(element.childNodes || [])
             .filter(node => node.nodeType === Node.TEXT_NODE)
             .map(node => node.nodeValue || "")
@@ -1213,8 +1217,16 @@ ${TOOLBAR_SELECTOR}.firebase-toolbar-clean-ready {
 
             if (!element) return;
 
+            /*
+             * Toolbar is ALWAYS protected.
+             */
             if (isExcluded(element)) return;
 
+
+            /*
+             * Never recolor the actual Firebase formatted span.
+             * Its explicit formatter color/style must win.
+             */
             if (
                 element.classList &&
                 element.classList.contains(
@@ -1224,10 +1236,33 @@ ${TOOLBAR_SELECTOR}.firebase-toolbar-clean-ready {
                 return;
             }
 
+
+            /*
+             * Do NOT skip an element merely because it contains
+             * a formatted child.
+             *
+             * Example:
+             *   "জুয়েল রানা [#red]O+[/#red]"
+             *
+             * The parent gets the global color, while the child
+             * formatted span keeps red because its inline style
+             * uses !important.
+             */
+
+
+            /*
+             * If this element itself still contains raw formatter
+             * syntax, let formatElement() process it first.
+             */
             if (hasFirebaseFormatting(element)) {
                 return;
             }
 
+
+            /*
+             * Explicitly ignore form controls whose own UI color
+             * should not be changed by the global text setting.
+             */
             const tag =
                 element.tagName
                     ? element.tagName.toLowerCase()
@@ -1242,6 +1277,7 @@ ${TOOLBAR_SELECTOR}.firebase-toolbar-clean-ready {
             ) {
                 return;
             }
+
 
             element.style.setProperty(
                 "color",
@@ -1385,10 +1421,19 @@ ${TOOLBAR_SELECTOR}.firebase-toolbar-clean-ready {
             }
         );
 
+        /*
+         * Apply Settings text color only to content that does not
+         * have an explicit Firebase formatter style.
+         */
         applySavedAppTextColor(root);
 
         cleanToolbarCodes();
 
+        /*
+         * Final pass: formatted spans are now in their final DOM
+         * position, so all normal text around them receives the
+         * saved Settings color without touching the toolbar.
+         */
         applySavedAppTextColor(root);
 
     }
