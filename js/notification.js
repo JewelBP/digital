@@ -1,9 +1,11 @@
 /* =========================================
-   Notification System Module (Complete & Active)
+   Notification & Slider System Module (Complete & Active)
 ========================================= */
 
 import { db } from "./firebase.js";
 import { ref, push, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+let sliderInterval = null;
 
 export function initNotificationSystem() {
     createNotificationUI();
@@ -18,17 +20,18 @@ function createNotificationUI() {
     <div id="notificationModal" class="modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 9999;">
         <div class="modal-content notification-modal-content" style="background: var(--card-bg, #fff); color: var(--text-main, #333); max-width: 680px; width: 95%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
             <div class="modal-header" style="background: #0d6efd; color: #fff; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin: 0; font-size: 16px;">📢 ফায়ারবেজ রিয়েল-টাইম নোটিফিকেশন প্যানেল</h2>
+                <h2 style="margin: 0; font-size: 16px;">📢 ফায়ারবেজ রিয়েল-টাইম নোটিফিকেশন ও স্লাইডার প্যানেল</h2>
                 <button class="close-btn" data-close="notificationModal" type="button" style="background: none; border: none; color: #fff; font-size: 18px; cursor: pointer;">✕</button>
             </div>
             
             <div class="notification-body" style="max-height: 75vh; overflow-y: auto; padding: 15px;">
                 
                 <!-- Tabs -->
-                <div class="notice-tabs" style="display: flex; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color, #ddd); padding-bottom: 10px;">
-                    <button type="button" class="tab-btn active-tab" data-target="tabSliding" style="flex: 1; padding: 8px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">স্লাইডিং নোটিশ</button>
-                    <button type="button" class="tab-btn" data-target="tabHome" style="flex: 1; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">হোম নোটিশ (পপআপ)</button>
-                    <button type="button" class="tab-btn" data-target="tabPush" style="flex: 1; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">পুশ নোটিশ</button>
+                <div class="notice-tabs" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color, #ddd); padding-bottom: 10px;">
+                    <button type="button" class="tab-btn active-tab" data-target="tabSliding" style="flex: 1; min-width: 110px; padding: 8px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">স্লাইডিং নোটিশ</button>
+                    <button type="button" class="tab-btn" data-target="tabHome" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">হোম নোটিশ (পপআপ)</button>
+                    <button type="button" class="tab-btn" data-target="tabPush" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">পুশ নোটিশ</button>
+                    <button type="button" class="tab-btn" data-target="tabSlider" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">ইমেজ স্লাইডার</button>
                 </div>
 
                 <input type="hidden" id="editNoticeId" value="">
@@ -115,6 +118,36 @@ function createNotificationUI() {
                     </div>
                 </div>
 
+                <!-- TAB 4: IMAGE SLIDER -->
+                <div id="tabSlider" class="notice-tab-content" style="display: none;">
+                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
+                        <h3 class="form-title-slider" style="margin: 0 0 10px 0; font-size: 15px;">স্লাইডার ইমেজ যুক্ত/এডিট করুন</h3>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">ইমেজ লিংক (URL) *:</label>
+                            <input type="url" id="sliderImage" placeholder="https://example.com/banner.jpg" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">স্লাইড শিরোনাম *:</label>
+                            <input type="text" id="sliderTitle" placeholder="যেমন: Welcome to RMP MT Contacts" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <label style="display:block; margin-bottom: 4px; font-size: 13px;">বাটন টেক্সট:</label>
+                                <input type="text" id="sliderBtnText" placeholder="Explore" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="display:block; margin-bottom: 4px; font-size: 13px;">বাটন লিংক:</label>
+                                <input type="text" id="sliderBtnLink" placeholder="#categoryList বা https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                            </div>
+                        </div>
+                        <button type="button" class="submit-notice-btn" data-type="slider" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">স্লাইডার সেভ করুন</button>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 8px; font-size: 14px;">স্লাইডার ইমেজের তালিকা</h4>
+                        <div id="sentSliderList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
+                    </div>
+                </div>
+
                 <button id="cancelEditBtn" class="secondary-btn" style="width: 100%; padding: 8px; margin-top: 15px; background: #6c757d; color: #fff; border: none; border-radius: 4px; cursor: pointer; display: none;">এডিট বাতিল করুন</button>
             </div>
         </div>
@@ -192,24 +225,19 @@ function setupNotificationEvents() {
         cancelEditBtn.addEventListener("click", () => resetForm());
     }
 
-    // ==========================================
-    // হোম নোটিশ পপআপ ক্লোজ ইভেন্ট আপডেট করা হয়েছে
-    // ==========================================
     const popupModal = document.getElementById("homeNoticePopupModal");
     const closePopupBtn = document.getElementById("closeHomePopupBtn");
 
     if (closePopupBtn) {
-        // ক্লোজ বাটনের ব্যাকগ্রাউন্ড লাল (Red) করা হলো
         closePopupBtn.style.backgroundColor = "#dc3545"; 
         closePopupBtn.style.color = "#ffffff";
-        closePopupBtn.style.border = "none"; // স্টাইলিং সুন্দর রাখার জন্য
+        closePopupBtn.style.border = "none";
 
         closePopupBtn.addEventListener("click", () => {
             if (popupModal) {
                 popupModal.style.display = "none";
             }
             
-            // ভিডিও ব্যাকগ্রাউন্ডে চলা বন্ধ করার জন্য মিডিয়া কন্টেইনার ক্লিয়ার করা হলো
             const mediaContainer = document.getElementById("popupMediaContainer");
             if (mediaContainer) {
                 mediaContainer.innerHTML = ""; 
@@ -256,9 +284,19 @@ async function saveOrUpdateToFirebase(type) {
         title = document.getElementById("pushTitle").value.trim();
         message = document.getElementById("pushMessage").value.trim();
         img = document.getElementById("pushImageLink").value.trim();
+    } else if (type === 'slider') {
+        img = document.getElementById("sliderImage").value.trim();
+        title = document.getElementById("sliderTitle").value.trim();
+        message = document.getElementById("sliderBtnText").value.trim() || "Explore";
+        keys = document.getElementById("sliderBtnLink").value.trim() || "#categoryList";
+
+        if (!img || !title) {
+            alert("দয়া করে স্লাইডার ইমেজ লিংক এবং শিরোনাম দিন।");
+            return;
+        }
     }
 
-    if (!title || !message) {
+    if (type !== 'slider' && (!title || !message)) {
         alert("দয়া করে শিরোনাম এবং বিস্তারিত বিবরণ লিখুন।");
         return;
     }
@@ -274,7 +312,7 @@ async function saveOrUpdateToFirebase(type) {
                 keys,
                 time: new Date().toLocaleString('bn-BD') + " (এডিটেড)"
             });
-            alert("ফায়ারবেজে নোটিশ সফলভাবে আপডেট করা হয়েছে!");
+            alert("ফায়ারবেজে সফলভাবে আপডেট করা হয়েছে!");
         } else {
             const noticesRef = ref(db, 'webapp/notices');
             const newNoticeRef = push(noticesRef);
@@ -288,14 +326,14 @@ async function saveOrUpdateToFirebase(type) {
                 keys,
                 time: new Date().toLocaleString('bn-BD')
             });
-            alert("ফায়ারবেজে নোটিশ সফলভাবে পাঠানো হয়েছে!");
+            alert("ফায়ারবেজে সফলভাবে সংরক্ষণ করা হয়েছে!");
         }
 
         resetForm();
         document.getElementById("notificationModal").style.display = "none";
     } catch (error) {
         console.error("Firebase Error: ", error);
-        alert("নোটিশ প্রকাশ করতে ব্যর্থ হয়েছে");
+        alert("সংরক্ষণ করতে ব্যর্থ হয়েছে");
     }
 }
 
@@ -316,10 +354,12 @@ function loadAllFirebaseListsAndListen() {
         const slidingList = document.getElementById("sentSlidingList");
         const homeList = document.getElementById("sentHomeList");
         const pushList = document.getElementById("sentPushList");
+        const sliderList = document.getElementById("sentSliderList");
 
         const slidingNotices = notices.filter(n => n.type === 'sliding');
         const homeNotices = notices.filter(n => n.type === 'home');
         const pushNotices = notices.filter(n => n.type === 'push');
+        const sliderNotices = notices.filter(n => n.type === 'slider');
 
         const slidingContainer = document.getElementById("slidingNoticeContainer");
         const isSlidingDisabled = localStorage.getItem("sliding_notice_disabled") === "true";
@@ -344,7 +384,6 @@ function loadAllFirebaseListsAndListen() {
             }
         }
 
-        // হোম নোটিশ পপআপ লজিক
         const isHomeDisabled = localStorage.getItem("home_notice_disabled") === "true";
         const popupModal = document.getElementById("homeNoticePopupModal");
         
@@ -363,7 +402,6 @@ function loadAllFirebaseListsAndListen() {
                 const videoLink = latestHomeNotice.Video ? latestHomeNotice.Video.trim() : "";
                 const siteLink = latestHomeNotice.keys ? latestHomeNotice.keys.trim() : "";
 
-                // ভিডিও বা ইমেজ রেন্ডার করার লজিক
                 if (videoLink) {
                     mediaContainer.style.display = "flex";
                     if (videoLink.includes("youtube.com") || videoLink.includes("youtu.be")) {
@@ -385,7 +423,6 @@ function loadAllFirebaseListsAndListen() {
                     mediaContainer.innerHTML = "";
                 }
 
-                // Open Website বাটন লজিক
                 if (siteLink && siteLink.startsWith("http")) {
                     websiteBtn.href = siteLink;
                     websiteBtn.style.display = "block";
@@ -410,20 +447,87 @@ function loadAllFirebaseListsAndListen() {
             pushList.innerHTML = pushNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো পুশ নোটিশ নেই</p>' : 
             pushNotices.map(n => renderCard(n)).join('');
         }
+        if (sliderList) {
+            sliderList.innerHTML = sliderNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো স্লাইডার ইমেজ নেই</p>' : 
+            sliderNotices.map(n => renderCard(n)).join('');
+        }
 
+        renderHeroSlider(sliderNotices);
         attachCardActions();
     });
 }
 
+function renderHeroSlider(slidesData) {
+    const track = document.getElementById('sliderTrack');
+    const dotsContainer = document.getElementById('sliderDots');
+    if (!track || !dotsContainer) return;
+
+    const items = slidesData.length > 0 ? slidesData : [{
+        img: "https://images.unsplash.com/photo-1546272989-40c92939c6c2?auto=format&fit=crop&w=800&q=80",
+        title: "Welcome to Digital Phonebook",
+        message: "Explore",
+        keys: "#categoryList"
+    }];
+
+    track.innerHTML = items.map(item => `
+        <div class="slide-item">
+            <img src="${item.img}" alt="${item.title}">
+            <div class="slide-overlay">
+                <div class="slide-info">
+                    <span class="slide-badge">📢</span>
+                    <h4>${item.title}</h4>
+                </div>
+                <a href="${item.keys || '#categoryList'}" class="slide-btn">${item.message || 'Explore'}</a>
+            </div>
+        </div>
+    `).join('');
+
+    dotsContainer.innerHTML = '';
+    let currentIndex = 0;
+
+    items.forEach((_, i) => {
+        const dot = document.createElement('div');
+        dot.classList.add('slider-dot');
+        if (i === 0) dot.classList.add('active');
+        dot.addEventListener('click', () => goToSlide(i));
+        dotsContainer.appendChild(dot);
+    });
+
+    const dots = dotsContainer.children;
+
+    function goToSlide(index) {
+        currentIndex = index;
+        track.style.transform = `translateX(-${currentIndex * 100}%)`;
+        Array.from(dots).forEach((d, idx) => {
+            d.classList.toggle('active', idx === currentIndex);
+        });
+    }
+
+    if (sliderInterval) clearInterval(sliderInterval);
+    if (items.length > 1) {
+        sliderInterval = setInterval(() => {
+            currentIndex = (currentIndex + 1) % items.length;
+            goToSlide(currentIndex);
+        }, 3500);
+    }
+}
+
 function renderCard(n) {
+    const thumbHtml = n.type === 'slider' && n.img
+        ? `<img src="${n.img}" alt="${n.title}" style="width: 48px; height: 36px; object-fit: cover; border-radius: 4px; margin-right: 8px; flex-shrink: 0;">`
+        : '';
+
     return `
         <div style="padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; margin-bottom: 8px; background: var(--card-bg, #fff); display: flex; justify-content: space-between; align-items: center;">
-            <div style="flex: 1; padding-right: 8px;">
-                <strong style="font-size: 13px; color: var(--text-main, #333); display:block;">${n.title}</strong>
-                <p style="font-size: 12px; color: var(--text-muted, #666); margin: 2px 0;">${n.message}</p>
-                <small style="font-size: 10px; color: #999;">${n.time}</small>
+            <div style="display: flex; align-items: center; flex: 1; padding-right: 8px; min-width: 0;">
+                ${thumbHtml}
+                <div style="min-width: 0;">
+                    <strong style="font-size: 13px; color: var(--text-main, #333); display:block;">${n.title}</strong>
+                    <p style="font-size: 12px; color: var(--text-muted, #666); margin: 2px 0; word-break: break-all;">${n.type === 'slider' ? `বাটন: ${n.message} (${n.keys || '#categoryList'})` : n.message}</p>
+                    <small style="font-size: 10px; color: #999;">${n.time}</small>
+                </div>
             </div>
-            <div style="display: flex; gap: 4px;">
+            <div style="display: flex; gap: 4px; flex-shrink: 0;">
                 <button class="edit-btn" data-id="${n.id}" style="padding: 4px 8px; font-size: 11px; background: #ffc107; border: none; border-radius: 4px; cursor: pointer;">এডিট</button>
                 <button class="delete-btn" data-id="${n.id}" style="padding: 4px 8px; font-size: 11px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer;">ডিলিট</button>
             </div>
@@ -459,6 +563,11 @@ function attachCardActions() {
                     document.getElementById("pushTitle").value = notice.title;
                     document.getElementById("pushMessage").value = notice.message;
                     document.getElementById("pushImageLink").value = notice.img || "";
+                } else if (notice.type === 'slider') {
+                    document.getElementById("sliderImage").value = notice.img || "";
+                    document.getElementById("sliderTitle").value = notice.title || "";
+                    document.getElementById("sliderBtnText").value = notice.message || "";
+                    document.getElementById("sliderBtnLink").value = notice.keys || "";
                 }
 
                 const cancelBtn = document.getElementById("cancelEditBtn");
@@ -470,9 +579,9 @@ function attachCardActions() {
     modal.querySelectorAll(".delete-btn").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const id = e.target.getAttribute("data-id");
-            if (confirm("আপনি কি এই নোটিশটি ডিলিট করতে চান?")) {
+            if (confirm("আপনি কি এটি ডিলিট করতে চান?")) {
                 await remove(ref(db, 'webapp/notices/' + id));
-                alert("নোটিশটি ডিলিট করা হয়েছে!");
+                alert("সফলভাবে ডিলিট করা হয়েছে!");
             }
         });
     });
@@ -511,6 +620,18 @@ function resetForm() {
     
     const pushImg = document.getElementById("pushImageLink");
     if (pushImg) pushImg.value = "";
+
+    const sliderImg = document.getElementById("sliderImage");
+    if (sliderImg) sliderImg.value = "";
+
+    const sliderTitle = document.getElementById("sliderTitle");
+    if (sliderTitle) sliderTitle.value = "";
+
+    const sliderBtnText = document.getElementById("sliderBtnText");
+    if (sliderBtnText) sliderBtnText.value = "";
+
+    const sliderBtnLink = document.getElementById("sliderBtnLink");
+    if (sliderBtnLink) sliderBtnLink.value = "";
     
     const cancelBtn = document.getElementById("cancelEditBtn");
     if (cancelBtn) cancelBtn.style.display = "none";
