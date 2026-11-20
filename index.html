@@ -11,7 +11,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="RMP MT Contacts">
     <meta name="google" content="notranslate">
-    
 
     <title>RMP MT Contacts</title>
 
@@ -300,7 +299,7 @@
             border-radius: 4px;
         }
 
-        /* সাদা বাঁকানো মূল শিট (কর্নার ফিক্সড রেখে ভেতরে স্মুথ স্ক্রল) */
+        /* সাদা বাঁকানো মূল শিট */
         .curved-main-sheet {
             background-color: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
@@ -472,9 +471,7 @@
             flex-shrink: 0 !important;
         }
 
-        /* =====================================================================
-           কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) — সুনির্দিষ্ট নতুন ডিজাইন
-           ===================================================================== */
+        /* কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) */
         body.is-data-details-mode {
             background-color: #020624 !important;
             margin: 0 !important;
@@ -488,7 +485,6 @@
         body.is-data-details-mode .modern-header {
             display: none !important;
         }
-        
         body.is-data-details-mode .curved-main-sheet {
             background-color: #ffffff !important;
             border-top-left-radius: 0 !important;
@@ -525,7 +521,6 @@
             padding: 0 !important;
         }
 
-        /* ১. একদম ওপরের প্রোফাইল অংশ */
         #dataPageContent > div:first-child {
             background: var(--primary-color, #020624) !important;
             color: #ffffff !important;
@@ -584,7 +579,6 @@
             text-align: center !important;
         }
 
-        /* ইনফো কার্ডগুলোর পারফেক্ট মার্জিন ও প্যাডিং */
         #dataPageContent .info-row,
         #dataPageContent .detail-row,
         #dataPageContent .data-field,
@@ -615,7 +609,6 @@
             border-color: #334155 !important;
         }
 
-        /* লেবেল ও মান */
         #dataPageContent .info-row .label,
         #dataPageContent .detail-row .label,
         #dataPageContent .field-label,
@@ -660,7 +653,6 @@
             color: #f1f5f9 !important;
         }
 
-        /* ২. মোবাইল, টেলিফোন ও ইমেইল বাটন */
         #dataPageContent .action-buttons,
         #dataPageContent .detail-actions,
         #dataPageContent .btn-group,
@@ -718,7 +710,6 @@
             background: linear-gradient(135deg, #ea4335, #c5221f) !important;
         }
 
-        /* ৩. শেয়ার কন্টাক্ট */
         #dataPageContent .share-contact-card,
         #dataPageContent a[href*="share"],
         #dataPageContent button[id*="share"],
@@ -793,110 +784,7 @@
             object-fit: cover;
         }
 
-        /* ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো */
-        .image-zoom-modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(2, 6, 36, 0.96);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            z-index: 999999;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            touch-action: none;
-            user-select: none;
-        }
-        .image-zoom-modal.hidden {
-            display: none !important;
-        }
-        .zoom-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 16px;
-            background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
-            color: #ffffff;
-            z-index: 10;
-        }
-        .zoom-modal-title {
-            font-size: 16px;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 75%;
-        }
-        .zoom-close-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            color: #ffffff;
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            font-size: 18px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .zoom-canvas-area {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-        #zoomTargetImage {
-            max-width: 92vw;
-            max-height: 76vh;
-            border-radius: 14px;
-            object-fit: contain;
-            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
-            transform-origin: center center;
-            transition: transform 0.1s ease-out;
-            will-change: transform;
-        }
-        #zoomFallbackIcon {
-            width: 240px;
-            height: 240px;
-            border-radius: 50%;
-            background: #1e293b;
-            border: 4px solid rgba(255, 255, 255, 0.15);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 120px;
-            transform-origin: center center;
-            transition: transform 0.1s ease-out;
-        }
-        .zoom-controls-bar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            padding: 16px;
-            background: linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
-            z-index: 10;
-        }
-        .zoom-ctrl-btn {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            color: #ffffff;
-            padding: 8px 16px;
-            border-radius: 50px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .zoom-ctrl-btn:active {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        /* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড থিম কালারের সাথে পরিবর্তন (ডে ও ডার্ক উভয় মোডে) */
+        /* সাব-ক্যাটাগরি বা হেডার কার্ডের ব্যাকগ্রাউন্ড */
         #detailsContent .subcategory-card,
         #detailsContent .data-card-item:has(img[src*="bell"]),
         #detailsContent > div > div.subcategory-card,
@@ -955,7 +843,6 @@
             min-width: 0;
         }
 
-        /* ডাটা কার্ডে ডার্ক মোড এবং কাস্টম থিম কালার সাপোর্ট (ডে ও ডার্ক উভয় মোডে) */
         body.dark-mode #categoryDetailsView .data-card-item,
         body.dark-mode #detailsContent .data-card-item,
         body.dark-mode #categoryList .data-card-item,
@@ -1001,7 +888,6 @@
             border-color: rgba(255, 255, 255, 0.25) !important;
         }
 
-        /* কন্টাক্ট ডিটেইলস পেজের ওপরের প্রোফাইল অংশ */
         html body #dataDetailsView #dataPageContent > .details-header-section,
         html body.dark-mode #dataDetailsView #dataPageContent > .details-header-section,
         html body.is-data-details-mode #dataDetailsView #dataPageContent > .details-header-section {
@@ -1015,7 +901,6 @@
             color: #e2e8f0 !important;
         }
 
-        /* ব্যাকগ্রাউন্ড ফটো (has-bg-image) সাপোর্ট */
         body.has-bg-image {
             background-image: var(--app-bg-image) !important;
             background-size: cover !important;
@@ -1134,7 +1019,7 @@
 
     <!-- সাদা বাঁকানো মূল শিট -->
     <div class="curved-main-sheet" id="mainScrollSheet">
-        
+
         <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
         <div id="slidingNoticeContainer" style="background: transparent; border-bottom: 1px solid var(--border-color); overflow: hidden; display: none; margin-bottom: 4px; border-radius: 8px;"></div>
 
@@ -1149,13 +1034,13 @@
                         </button>
                     </div>
                 </section>
-                
+
                 <!-- ৩-কলাম ক্যাটাগরি লিস্ট -->
                 <section id="categoryList" class="category-list grid-3-col"></section>
 
                 <!-- অল সার্চ পেজ কন্টেইনার -->
                 <div id="allSearchContainer" class="hidden" style="margin-top: 8px;"></div>
-                
+
                 <section id="emptyState" class="empty-state hidden">
                     <div class="empty-icon">📂</div>
                     <h2>এখনো কোনো Category নেই</h2>
@@ -1192,231 +1077,8 @@
         </main>
     </div>
 
-    <!-- Modals -->
-    <div id="loginModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Admin Login</h2>
-                <button class="close-btn" data-close="loginModal" type="button">✕</button>
-            </div>
-            <div id="loginFormContainer">
-                <div class="form-group">
-                    <label>ইমেইল</label>
-                    <input id="loginEmail" type="email" placeholder="admin@example.com">
-                </div>
-                <div class="form-group">
-                    <label>পাসওয়ার্ড</label>
-                    <input id="loginPassword" type="password" placeholder="******">
-                </div>
-                <div class="modal-actions">
-                    <button class="secondary-btn" data-close="loginModal" type="button">বাতিল</button>
-                    <button id="submitLoginBtn" class="primary-btn" type="button">লগইন</button>
-                </div>
-            </div>
-            <div id="logoutContainer" class="hidden logout-box">
-                <p class="status-ok">✅ আপনি অ্যাডমিন হিসেবে লগইন আছেন</p>
-                <div class="modal-actions">
-                    <button class="secondary-btn" data-close="loginModal" type="button">বন্ধ করুন</button>
-                    <button id="logoutBtn" class="danger-btn" type="button">লগআউট</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="verifyModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>প্রশাসনিক তথ্যের জন্য ভেরিফিকেশন রিকোয়েস্ট</h2>
-                <button class="close-btn" data-close="verifyModal" type="button">✕</button>
-            </div>
-            <div class="form-group">
-                <label>আপনার নাম *</label>
-                <input id="applicantName" type="text" placeholder="যেমন: মো: আব্দুর রহিম">
-            </div>
-            <div class="form-group">
-                <label>পদবী / পরিচয় *</label>
-                <input id="applicantDesignation" type="text" placeholder="যেমন: সাব-ইন্সপেক্টর / পরিচয় সংক্রান্ত তথ্য">
-            </div>
-            <div class="modal-actions">
-                <button class="secondary-btn" data-close="verifyModal" type="button">বাতিল</button>
-                <button id="submitVerifyBtn" class="primary-btn" type="button">রিকোয়েস্ট পাঠান</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="adminVerifyRequestsModal" class="modal hidden">
-        <div class="modal-content" style="max-width: 500px; width: 90%;">
-            <div class="modal-header">
-                <h2>🛡️ ডিভাইস ভেরিফিকেশন রিকোয়েস্ট</h2>
-                <button class="close-btn" data-close="adminVerifyRequestsModal" type="button">✕</button>
-            </div>
-            <div id="verifyRequestsList" style="max-height: 350px; overflow-y: auto;">
-                <p style="text-align: center; color: var(--text-muted);">কোনো রিকোয়েস্ট নেই</p>
-            </div>
-            <div class="modal-actions" style="margin-top: 15px;">
-                <button class="secondary-btn" data-close="adminVerifyRequestsModal" type="button">বন্ধ করুন</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="categoryModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="categoryModalTitle">ক্যাটাগরি</h2>
-                <button class="close-btn" data-close="categoryModal" type="button">✕</button>
-            </div>
-            <div class="form-group">
-                <label>ছবি লিঙ্ক (URL)</label>
-                <input id="categoryImageInput" type="url" placeholder="https://example.com/image.png">
-            </div>
-            <div class="form-group">
-                <label>ক্যাটাগরির নাম</label>
-                <input id="categoryNameInput" type="text" placeholder="নাম লিখুন">
-            </div>
-            <div class="modal-actions">
-                <button class="secondary-btn" data-close="categoryModal" type="button">বাতিল</button>
-                <button id="saveCategoryBtn" class="primary-btn" type="button">সেভ করুন</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="headerModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Header যুক্ত/এডিট করুন</h2>
-                <button class="close-btn" data-close="headerModal" type="button">✕</button>
-            </div>
-            <div class="form-group">
-                <label>হেডার টাইটেল</label>
-                <input id="headerNameInput" type="text" placeholder="যেমন: কর্মকর্তা/কর্মচারী">
-            </div>
-            <div class="modal-actions">
-                <button class="secondary-btn" data-close="headerModal" type="button">বাতিল</button>
-                <button id="saveHeaderBtn" class="primary-btn" type="button">সেভ করুন</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="dataModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="dataModalTitle">Data যুক্ত করুন</h2>
-                <button class="close-btn" data-close="dataModal" type="button">✕</button>
-            </div>
-            <div class="form-group">
-                <label>ছবি লিঙ্ক (URL)</label>
-                <input id="dataPhoto" type="url">
-            </div>
-            <div class="form-group">
-                <label>নাম *</label>
-                <input id="dataName" type="text">
-            </div>
-            <div class="form-group">
-                <label>মোবাইল</label>
-                <input id="dataMobile" type="tel">
-            </div>
-            <div class="form-group">
-                <label>টেলিফোন</label>
-                <input id="dataPhone" type="tel">
-            </div>
-            <div class="form-group">
-                <label>পদবী</label>
-                <input id="dataDesignation" type="text">
-            </div>
-            <div class="form-group">
-                <label>ইমেইল</label>
-                <input id="dataEmail" type="email">
-            </div>
-            <div class="form-group">
-                <label>বর্তমান অফিস/ঠিকানা</label>
-                <input id="dataCurrentOffice" type="text">
-            </div>
-            <div class="form-group">
-                <label>স্থায়ী ঠিকানা</label>
-                <input id="dataPermanentAddress" type="text">
-            </div>
-            <div class="form-group">
-                <label>প্রশাসনিক তথ্য</label>
-                <input id="dataAdminInfo" type="text">
-            </div>
-            <div class="form-group">
-                <label>Header নির্বাচন করুন</label>
-                <select id="dataHeaderSelect"></select>
-            </div>
-            <div class="modal-actions">
-                <button class="secondary-btn" data-close="dataModal" type="button">বাতিল</button>
-                <button id="saveDataBtn" class="primary-btn" type="button">সেভ করুন</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="moveDataModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>ডাটা মুভ করুন</h2>
-                <button class="close-btn" data-close="moveDataModal" type="button">✕</button>
-            </div>
-            <div class="form-group">
-                <label>নতুন Category</label>
-                <select id="moveCategorySelect"></select>
-            </div>
-            <div class="form-group">
-                <label>নতুন Header</label>
-                <select id="moveHeaderSelect"></select>
-            </div>
-            <div class="modal-actions">
-                <button class="secondary-btn" data-close="moveDataModal" type="button">বাতিল</button>
-                <button id="confirmMoveBtn" class="primary-btn" type="button">মুভ নিশ্চিত করুন</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="customConfirmModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="confirmModalTitle">নিশ্চিতকরণ</h2>
-                <button class="close-btn" data-close="customConfirmModal" type="button">✕</button>
-            </div>
-            <p id="confirmModalMessage">আপনি কি নিশ্চিত?</p>
-            <div class="modal-actions">
-                <button id="cancelConfirmBtn" class="secondary-btn" type="button">বাতিল</button>
-                <button id="okConfirmBtn" class="danger-btn" type="button">হ্যাঁ, মুছুন</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="homeNoticePopupModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 99999; padding: 15px;">
-        <div style="background: var(--card-bg, #fff); color: var(--text-main, #333); max-width: 450px; width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.3); position: relative; display: flex; flex-direction: column;">
-            <button type="button" id="closeHomePopupBtn" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: #fff; border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">✕</button>
-            <div id="popupMediaContainer" style="width: 100%; max-height: 250px; background: #000; display: none; overflow: hidden; align-items: center; justify-content: center;"></div>
-            <div style="padding: 20px; text-align: center;">
-                <h3 id="popupTitle" style="margin-top: 0; margin-bottom: 10px; font-size: 18px; color: var(--text-main, #000);"></h3>
-                <p id="popupMessage" style="font-size: 14px; line-height: 1.5; margin: 0 0 15px 0; color: var(--text-muted, #555); text-align: left; max-height: 150px; overflow-y: auto;"></p>
-                <a id="popupWebsiteBtn" href="#" target="_blank" style="display: none; width: 100%; padding: 10px; background: #0d6efd; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; text-align: center; box-sizing: border-box;">Open Website</a>
-            </div>
-        </div>
-    </div>
-
-    <div id="toast" class="toast"></div>
-
-    <!-- ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো -->
-    <div id="imageZoomModal" class="image-zoom-modal hidden">
-        <div class="zoom-modal-header">
-            <span id="zoomModalTitle" class="zoom-modal-title">প্রোফাইল ছবি</span>
-            <button type="button" id="closeImageZoomBtn" class="zoom-close-btn" title="বন্ধ করুন">✕</button>
-        </div>
-
-        <div class="zoom-canvas-area" id="zoomCanvasArea">
-            <img id="zoomTargetImage" src="" alt="Profile Photo" class="hidden">
-            <div id="zoomFallbackIcon" class="hidden">👤</div>
-        </div>
-
-        <div class="zoom-controls-bar">
-            <button type="button" id="zoomOutBtn" class="zoom-ctrl-btn">➖ জুম আউট</button>
-            <button type="button" id="zoomResetBtn" class="zoom-ctrl-btn">🔄 রিসেট</button>
-            <button type="button" id="zoomInBtn" class="zoom-ctrl-btn">➕ জুম ইন</button>
-        </div>
-    </div>
+    <!-- দ্বিতীয় ভাগ (index1.html) এর মডাল ও ভিউয়ারগুলো এখানে লোড হবে -->
+    <div id="secondaryViewsSlot"></div>
 
 </div>
 
@@ -1440,6 +1102,26 @@
         <img src="icons/icon-192.png" alt="Logo">
     </div>
 </div>
+
+<!-- index1.html লোড করার স্ক্রিপ্ট -->
+<script>
+    (async function loadIndex1Part() {
+        const slot = document.getElementById("secondaryViewsSlot");
+        if (!slot) return;
+        try {
+            const res = await fetch("index1.html");
+            if (res.ok) {
+                const htmlText = await res.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlText, "text/html");
+                const partContent = doc.getElementById("index1Content") || doc.body;
+                slot.innerHTML = partContent.innerHTML;
+            }
+        } catch (err) {
+            console.error("Failed to load index1.html:", err);
+        }
+    })();
+</script>
 
 <!-- জাভাস্ক্রিপ্ট ফাইলস এবং স্লাইডার/ঘড়ি স্ক্রিপ্ট -->
 <script type="module" src="js/app.js"></script>
@@ -1470,7 +1152,6 @@
 <script type="module" src="js/custom-settings.js"></script>
 
 <script>
-    // লাইভ ঘড়ি
     function updateLiveClock() {
         const clockEl = document.getElementById('liveDateTime');
         if (!clockEl) return;
@@ -1482,7 +1163,6 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // অটো ইমেজ স্লাইডার (হোম পেজের জন্য)
     (function initHeroSlider() {
         const track = document.getElementById('sliderTrack');
         const dotsContainer = document.getElementById('sliderDots');
@@ -1516,7 +1196,6 @@
         }, 3500);
     })();
 
-    // Category details, Data details, Favorite Numbers এবং Search All পেজ ভিজিবিলিটি সিঙ্ক
     (function initSubPageHeaderSearch() {
         const mainDashboard = document.getElementById('mainDashboardView');
         const categoryDetails = document.getElementById('categoryDetailsView');
@@ -1539,7 +1218,6 @@
             return titleText.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
         }
 
-        // Favorite পেজে থাকা ডাটা কার্ডগুলো লাইভ ফিল্টার করার ফাংশন
         function filterFavoriteCards(query) {
             if (!isFavoriteViewActive()) return;
             const q = (query || '').trim().toLowerCase();
@@ -1564,7 +1242,6 @@
             heroSlider.style.display = hideSlider ? 'none' : '';
             if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
 
-            // Favorite Numbers পেজসহ সব সাব-পেজ এবং অল সার্চ পেজে সার্চ ফিল্ড দেখাবে
             const showSubSearch = (isSubPage || isAllSearchPage || isFavoritePage) && !isDataPage;
             subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
             subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
@@ -1645,9 +1322,7 @@
     })();
 </script>
 
-
 <script>
-    // নেভিগেশন বার/টুলবারের আসল কালার পড়ে --app-main-color সেট করে এবং কাস্টম থিম শনাক্ত করে
     (function syncMainColor() {
         const DEFAULT = '#020624';
         function apply() {
@@ -1672,4 +1347,5 @@
     })();
 </script>
 </body>
+
 </html>
