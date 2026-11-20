@@ -1,3 +1,83 @@
+function showCustomDialog(message, title = "বার্তা") {
+    return new Promise((resolve) => {
+        let dialogEl = document.getElementById("notifCustomDialog");
+        if (!dialogEl) {
+            dialogEl = document.createElement("div");
+            dialogEl.id = "notifCustomDialog";
+            dialogEl.style.cssText = `
+                position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+                display: none; justify-content: center; align-items: center;
+                z-index: 100000; padding: 16px;
+            `;
+            dialogEl.innerHTML = `
+                <div style="background: var(--card-bg, #ffffff); color: var(--text-main, #1e293b); width: 100%; max-width: 380px; border-radius: 16px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 id="notifDialogTitle" style="margin: 0; font-size: 18px; font-weight: 700;"></h3>
+                        <button type="button" id="notifDialogCloseX" style="background: none; border: none; font-size: 20px; color: var(--text-muted, #64748b); cursor: pointer;">✕</button>
+                    </div>
+                    <p id="notifDialogMsg" style="margin: 0 0 20px 0; font-size: 14.5px; line-height: 1.5; color: var(--text-main, #334155);"></p>
+                    <div id="notifDialogActions" style="display: flex; justify-content: flex-end; gap: 10px;"></div>
+                </div>
+            `;
+            document.body.appendChild(dialogEl);
+        }
+
+        const titleEl = document.getElementById("notifDialogTitle");
+        const msgEl = document.getElementById("notifDialogMsg");
+        const actionsEl = document.getElementById("notifDialogActions");
+        const closeX = document.getElementById("notifDialogCloseX");
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        actionsEl.innerHTML = `
+            <button type="button" id="notifDialogOkBtn" style="padding: 8px 20px; background: #0d6efd; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">ঠিক আছে</button>
+        `;
+
+        dialogEl.style.display = "flex";
+
+        const finish = () => {
+            dialogEl.style.display = "none";
+            resolve();
+        };
+
+        document.getElementById("notifDialogOkBtn").onclick = finish;
+        closeX.onclick = finish;
+    });
+}
+
+function showCustomConfirm(message, title = "নিশ্চিতকরণ") {
+    return new Promise((resolve) => {
+        let dialogEl = document.getElementById("notifCustomDialog");
+        if (!dialogEl) {
+            showCustomDialog("", "");
+            dialogEl = document.getElementById("notifCustomDialog");
+        }
+
+        const titleEl = document.getElementById("notifDialogTitle");
+        const msgEl = document.getElementById("notifDialogMsg");
+        const actionsEl = document.getElementById("notifDialogActions");
+        const closeX = document.getElementById("notifDialogCloseX");
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        actionsEl.innerHTML = `
+            <button type="button" id="notifConfirmCancelBtn" style="padding: 8px 16px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer;">বাতিল</button>
+            <button type="button" id="notifConfirmYesBtn" style="padding: 8px 16px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">হ্যাঁ, মুছুন</button>
+        `;
+
+        dialogEl.style.display = "flex";
+
+        const finish = (val) => {
+            dialogEl.style.display = "none";
+            resolve(val);
+        };
+
+        document.getElementById("notifConfirmCancelBtn").onclick = () => finish(false);
+        document.getElementById("notifConfirmYesBtn").onclick = () => finish(true);
+        closeX.onclick = () => finish(false);
+    });
+}
+
 /* =========================================
    Notification & Slider System Module (Complete & Active)
 ========================================= */
