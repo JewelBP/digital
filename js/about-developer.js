@@ -62,14 +62,15 @@ function injectAboutDeveloperStyles() {
             display: none !important;
         }
 
-        /* স্ক্রিনের দুই সাইটের প্রস্থ জুড়ে ফিক্সড হিরো কার্ড */
+        /* স্ক্রিনের দুই কিনারা পর্যন্ত পুরো প্রস্থ জুড়ে ফিক্সড/স্টিকি হিরো অংশ */
         .ad-hero-full-fixed {
             position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
             z-index: 30;
-            width: 100%;
+            width: 100vw;
+            max-width: 100vw;
+            margin-left: calc(50% - 50vw);
+            margin-right: calc(50% - 50vw);
             overflow: hidden;
             background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%);
             border-radius: 0 0 32px 32px;
@@ -95,7 +96,7 @@ function injectAboutDeveloperStyles() {
             display: flex;
             flex-direction: column;
             gap: 14px;
-            padding: 18px 14px 36px;
+            padding: 18px 4px 40px;
             position: relative;
             z-index: 10;
         }
@@ -112,6 +113,8 @@ function injectAboutDeveloperStyles() {
         .ad-hero-content {
             position: relative;
             z-index: 2;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
         .ad-top-controls {
