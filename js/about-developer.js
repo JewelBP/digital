@@ -56,23 +56,40 @@ function injectAboutDeveloperStyles() {
             --ad-main: var(--app-main-color, var(--primary-color, #020624));
             display: flex;
             flex-direction: column;
-            gap: 16px;
-            padding-bottom: 32px;
+            width: 100%;
+            min-height: 100%;
+            position: relative;
         }
         #aboutDeveloperSheetView.hidden {
             display: none !important;
         }
 
-        .ad-hero-card {
-            position: relative;
+        /* পুরো উইজেট জুড়ে ফিক্সড/স্টিকি হিরো অংশ */
+        .ad-hero-fixed-widget {
+            position: sticky;
+            top: 0;
+            z-index: 25;
+            width: 100%;
+            flex-shrink: 0;
             overflow: hidden;
             background: radial-gradient(circle at top right, color-mix(in srgb, var(--ad-main) 78%, #3b82f6) 0%, var(--ad-main) 62%, #020624 100%);
-            border-radius: 24px;
-            padding: 24px 18px 26px;
+            border-radius: 0 0 28px 28px;
+            padding: 18px 18px 22px;
             text-align: center;
             color: #ffffff;
-            box-shadow: 0 12px 28px rgba(2, 6, 36, 0.22);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 10px 24px rgba(2, 6, 36, 0.25);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+        }
+
+        /* নিচের স্ক্রলযোগ্য কন্টেন্ট এরিয়া */
+        .ad-scroll-body {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 16px 14px 36px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1;
         }
 
         #adParticleCanvas {
@@ -93,7 +110,7 @@ function injectAboutDeveloperStyles() {
             display: flex;
             justify-content: flex-end;
             gap: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
 
         .ad-pill-btn {
@@ -122,7 +139,7 @@ function injectAboutDeveloperStyles() {
             border-radius: 20px;
             font-size: 11.5px;
             font-weight: 600;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
 
         .ad-pulse-dot {
@@ -143,9 +160,9 @@ function injectAboutDeveloperStyles() {
         /* স্থির রাউন্ড অ্যাভাটার রিং — কোনো ঘূর্ণন বা স্লাইডিং নেই */
         .ad-avatar-wrapper {
             position: relative;
-            width: 116px;
-            height: 116px;
-            margin: 0 auto 14px;
+            width: 112px;
+            height: 112px;
+            margin: 0 auto 12px;
             cursor: pointer;
         }
 
@@ -194,7 +211,7 @@ function injectAboutDeveloperStyles() {
         }
 
         .ad-dev-name {
-            font-size: 24px;
+            font-size: 23px;
             font-weight: 700;
             margin: 0 0 2px;
             color: #ffffff;
@@ -202,23 +219,23 @@ function injectAboutDeveloperStyles() {
 
         .ad-dev-subname {
             font-family: "Poppins", sans-serif;
-            font-size: 12.5px;
+            font-size: 12px;
             color: #00d2ff;
             font-weight: 600;
             letter-spacing: 1px;
             text-transform: uppercase;
-            margin: 0 0 12px;
+            margin: 0 0 10px;
         }
 
         .ad-typing-role {
             display: inline-block;
             background: rgba(255, 255, 255, 0.12);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 6px 15px;
+            padding: 5px 15px;
             border-radius: 22px;
             font-size: 13px;
             color: #f8fafc;
-            min-height: 32px;
+            min-height: 30px;
         }
 
         .ad-cursor {
@@ -878,7 +895,7 @@ function renderAboutDeveloperView(view) {
     setAboutHeaderMode(aboutCurrentLang === "bn" ? "ডেভেলপার পরিচিতি" : "About Developer");
 
     view.innerHTML = `
-        <section class="ad-hero-card">
+        <section class="ad-hero-fixed-widget">
             <canvas id="adParticleCanvas"></canvas>
             <div class="ad-hero-content">
                 <div class="ad-top-controls">
@@ -915,170 +932,172 @@ function renderAboutDeveloperView(view) {
             </div>
         </section>
 
-        <div class="ad-card">
-            <h2 class="ad-section-title">
-                <i class="fas fa-user-tie"></i>
-                <span data-bn="সংক্ষিপ্ত পরিচিতি" data-en="About Me">সংক্ষিপ্ত পরিচিতি</span>
-            </h2>
-            <p class="ad-bio-text" data-bn="আসসালামু আলাইকুম। আমি মোঃ জুয়েল রানা। পেশাগত দায়িত্ব পালনের পাশাপাশি প্রযুক্তির প্রতি ভালোবাসা থেকে আমি অ্যান্ড্রয়েড অ্যাপ এবং আধুনিক মোবাইল-ফ্রেন্ডলি ওয়েব অ্যাপ্লিকেশন ডেভেলপ করে থাকি। আমার তৈরি প্রতিটি অ্যাপ্লিকেশন ব্যবহারকারীদের দৈনন্দিন কাজ সহজ, দ্রুত এবং ইন্টারনেট ছাড়াও (Offline) নির্ভরযোগ্যভাবে ব্যবহার করার লক্ষ্যে ডিজাইন করা হয়।" data-en="Assalamu Alaikum. I am Md. Jewel Rana. Alongside my professional duties, my passion for technology drives me to build Android apps and modern mobile-friendly web applications. Every application I create is crafted to make daily workflows faster, simpler, and reliable even offline.">
-                আসসালামু আলাইকুম। আমি মোঃ জুয়েল রানা। পেশাগত দায়িত্ব পালনের পাশাপাশি প্রযুক্তির প্রতি ভালোবাসা থেকে আমি অ্যান্ড্রয়েড অ্যাপ এবং আধুনিক মোবাইল-ফ্রেন্ডলি ওয়েব অ্যাপ্লিকেশন ডেভেলপ করে থাকি। আমার তৈরি প্রতিটি অ্যাপ্লিকেশন ব্যবহারকারীদের দৈনন্দিন কাজ সহজ, দ্রুত এবং ইন্টারনেট ছাড়াও (Offline) নির্ভরযোগ্যভাবে ব্যবহার করার লক্ষ্যে ডিজাইন করা হয়।
-            </p>
-            <div class="ad-highlight-banner">
-                <i class="fas fa-mobile-screen-button"></i>
-                <span data-bn="বিশেষ অর্জন: কোনো কম্পিউটার ছাড়াই সম্পূর্ণ কোডিং, ডিজাইন ও অ্যাপ বিল্ডিং মোবাইল ফোনের মাধ্যমে সম্পন্ন।" data-en="Unique Achievement: 100% of coding, UI design, and app building executed directly on a mobile phone.">বিশেষ অর্জন: কোনো কম্পিউটার ছাড়াই সম্পূর্ণ কোডিং, ডিজাইন ও অ্যাপ বিল্ডিং মোবাইল ফোনের মাধ্যমে সম্পন্ন।</span>
-            </div>
-        </div>
-
-        <div class="ad-card">
-            <h2 class="ad-section-title">
-                <i class="fas fa-code"></i>
-                <span data-bn="দক্ষতা ও প্রযুক্তিসমূহ" data-en="Skills & Technologies">দক্ষতা ও প্রযুক্তিসমূহ</span>
-            </h2>
-
-            <div class="ad-skill-bars">
-                <div>
-                    <div class="ad-skill-top"><span>HTML5, CSS3 & Responsive Mobile UI</span><span class="ad-skill-pct">95%</span></div>
-                    <div class="ad-progress-track"><div class="ad-progress-fill" style="width:95%;"></div></div>
-                </div>
-                <div>
-                    <div class="ad-skill-top"><span>JavaScript & Offline LocalStorage</span><span class="ad-skill-pct">90%</span></div>
-                    <div class="ad-progress-track"><div class="ad-progress-fill" style="width:90%;"></div></div>
-                </div>
-                <div>
-                    <div class="ad-skill-top"><span>Firebase Realtime DB, Auth & FCM Push</span><span class="ad-skill-pct">88%</span></div>
-                    <div class="ad-progress-track"><div class="ad-progress-fill" style="width:88%;"></div></div>
-                </div>
-                <div>
-                    <div class="ad-skill-top"><span>Android App Dev (Sketchware Pro & GitHub)</span><span class="ad-skill-pct">92%</span></div>
-                    <div class="ad-progress-track"><div class="ad-progress-fill" style="width:92%;"></div></div>
-                </div>
-            </div>
-
-            <div class="ad-chips">
-                <div class="ad-chip"><i class="fab fa-html5" style="color:#e34f26;"></i> HTML5</div>
-                <div class="ad-chip"><i class="fab fa-css3-alt" style="color:#1572b6;"></i> CSS3</div>
-                <div class="ad-chip"><i class="fab fa-js" style="color:#eab308;"></i> JavaScript</div>
-                <div class="ad-chip"><i class="fas fa-fire" style="color:#f59e0b;"></i> Firebase & FCM</div>
-                <div class="ad-chip"><i class="fab fa-android" style="color:#10b981;"></i> Sketchware Pro</div>
-                <div class="ad-chip"><i class="fab fa-github" style="color:#6366f1;"></i> GitHub Actions</div>
-            </div>
-        </div>
-
-        <div class="ad-card">
-            <h2 class="ad-section-title">
-                <i class="fas fa-layer-group"></i>
-                <span data-bn="উল্লেখযোগ্য প্রজেক্টসমূহ" data-en="Featured Projects">উল্লেখযোগ্য প্রজেক্টসমূহ</span>
-            </h2>
-
-            <div class="ad-filter-tabs">
-                <button type="button" class="ad-filter-tab active" data-filter="all" data-bn="সব প্রজেক্ট (৩)" data-en="All (3)">সব প্রজেক্ট (৩)</button>
-                <button type="button" class="ad-filter-tab" data-filter="web" data-bn="ওয়েব অ্যাপ" data-en="Web Apps">ওয়েব অ্যাপ</button>
-                <button type="button" class="ad-filter-tab" data-filter="android" data-bn="অ্যান্ড্রয়েড" data-en="Android">অ্যান্ড্রয়েড</button>
-            </div>
-
-            <div class="ad-project-item" data-category="web android">
-                <div class="ad-project-head">
-                    <span class="ad-project-title">RMP MT CONTACTS</span>
-                    <span class="ad-project-badge">Web & Android</span>
-                </div>
-                <p class="ad-project-desc" data-bn="অফলাইন ফেভারিট সিস্টেম, অ্যাডমিন ম্যানেজমেন্ট প্যানেল, কাস্টম কালার ফরম্যাটার এবং ফুল-স্ক্রিন প্রোফাইল ভিউয়ার সমৃদ্ধ ডিরেক্টরি অ্যাপ।" data-en="Directory web & mobile app featuring offline favorites, admin management panel, custom color formatter, and full-screen profile viewer.">
-                    অফলাইন ফেভারিট সিস্টেম, অ্যাডমিন ম্যানেজমেন্ট প্যানেল, কাস্টম কালার ফরম্যাটার এবং ফুল-স্ক্রিন প্রোফাইল ভিউয়ার সমৃদ্ধ ডিরেক্টরি অ্যাপ।
+        <div class="ad-scroll-body">
+            <div class="ad-card">
+                <h2 class="ad-section-title">
+                    <i class="fas fa-user-tie"></i>
+                    <span data-bn="সংক্ষিপ্ত পরিচিতি" data-en="About Me">সংক্ষিপ্ত পরিচিতি</span>
+                </h2>
+                <p class="ad-bio-text" data-bn="আসসালামু আলাইকুম। আমি মোঃ জুয়েল রানা। পেশাগত দায়িত্ব পালনের পাশাপাশি প্রযুক্তির প্রতি ভালোবাসা থেকে আমি অ্যান্ড্রয়েড অ্যাপ এবং আধুনিক মোবাইল-ফ্রেন্ডলি ওয়েব অ্যাপ্লিকেশন ডেভেলপ করে থাকি। আমার তৈরি প্রতিটি অ্যাপ্লিকেশন ব্যবহারকারীদের দৈনন্দিন কাজ সহজ, দ্রুত এবং ইন্টারনেট ছাড়াও (Offline) নির্ভরযোগ্যভাবে ব্যবহার করার লক্ষ্যে ডিজাইন করা হয়।" data-en="Assalamu Alaikum. I am Md. Jewel Rana. Alongside my professional duties, my passion for technology drives me to build Android apps and modern mobile-friendly web applications. Every application I create is crafted to make daily workflows faster, simpler, and reliable even offline.">
+                    আসসালামু আলাইকুম। আমি মোঃ জুয়েল রানা। পেশাগত দায়িত্ব পালনের পাশাপাশি প্রযুক্তির প্রতি ভালোবাসা থেকে আমি অ্যান্ড্রয়েড অ্যাপ এবং আধুনিক মোবাইল-ফ্রেন্ডলি ওয়েব অ্যাপ্লিকেশন ডেভেলপ করে থাকি। আমার তৈরি প্রতিটি অ্যাপ্লিকেশন ব্যবহারকারীদের দৈনন্দিন কাজ সহজ, দ্রুত এবং ইন্টারনেট ছাড়াও (Offline) নির্ভরযোগ্যভাবে ব্যবহার করার লক্ষ্যে ডিজাইন করা হয়।
                 </p>
-                <div class="ad-project-tags">
-                    <span class="ad-p-tag">Firebase</span>
-                    <span class="ad-p-tag">Offline Cache</span>
-                    <span class="ad-p-tag">Admin Panel</span>
+                <div class="ad-highlight-banner">
+                    <i class="fas fa-mobile-screen-button"></i>
+                    <span data-bn="বিশেষ অর্জন: কোনো কম্পিউটার ছাড়াই সম্পূর্ণ কোডিং, ডিজাইন ও অ্যাপ বিল্ডিং মোবাইল ফোনের মাধ্যমে সম্পন্ন।" data-en="Unique Achievement: 100% of coding, UI design, and app building executed directly on a mobile phone.">বিশেষ অর্জন: কোনো কম্পিউটার ছাড়াই সম্পূর্ণ কোডিং, ডিজাইন ও অ্যাপ বিল্ডিং মোবাইল ফোনের মাধ্যমে সম্পন্ন।</span>
                 </div>
             </div>
 
-            <div class="ad-project-item" data-category="android">
-                <div class="ad-project-head">
-                    <span class="ad-project-title">Tanore Thana Info App</span>
-                    <span class="ad-project-badge">Android • Java</span>
+            <div class="ad-card">
+                <h2 class="ad-section-title">
+                    <i class="fas fa-code"></i>
+                    <span data-bn="দক্ষতা ও প্রযুক্তিসমূহ" data-en="Skills & Technologies">দক্ষতা ও প্রযুক্তিসমূহ</span>
+                </h2>
+
+                <div class="ad-skill-bars">
+                    <div>
+                        <div class="ad-skill-top"><span>HTML5, CSS3 & Responsive Mobile UI</span><span class="ad-skill-pct">95%</span></div>
+                        <div class="ad-progress-track"><div class="ad-progress-fill" style="width:95%;"></div></div>
+                    </div>
+                    <div>
+                        <div class="ad-skill-top"><span>JavaScript & Offline LocalStorage</span><span class="ad-skill-pct">90%</span></div>
+                        <div class="ad-progress-track"><div class="ad-progress-fill" style="width:90%;"></div></div>
+                    </div>
+                    <div>
+                        <div class="ad-skill-top"><span>Firebase Realtime DB, Auth & FCM Push</span><span class="ad-skill-pct">88%</span></div>
+                        <div class="ad-progress-track"><div class="ad-progress-fill" style="width:88%;"></div></div>
+                    </div>
+                    <div>
+                        <div class="ad-skill-top"><span>Android App Dev (Sketchware Pro & GitHub)</span><span class="ad-skill-pct">92%</span></div>
+                        <div class="ad-progress-track"><div class="ad-progress-fill" style="width:92%;"></div></div>
+                    </div>
                 </div>
-                <p class="ad-project-desc" data-bn="জরুরি যোগাযোগ, নোটিশ বোর্ড এবং Firebase Cloud Messaging পুশ নোটিফিকেশন সুবিধাসহ তথ্যসেবা অ্যান্ড্রয়েড অ্যাপ্লিকেশন।" data-en="Information & emergency contact Android application integrated with Firebase Cloud Messaging push notifications.">
-                    জরুরি যোগাযোগ, নোটিশ বোর্ড এবং Firebase Cloud Messaging পুশ নোটিফিকেশন সুবিধাসহ তথ্যসেবা অ্যান্ড্রয়েড অ্যাপ্লিকেশন।
+
+                <div class="ad-chips">
+                    <div class="ad-chip"><i class="fab fa-html5" style="color:#e34f26;"></i> HTML5</div>
+                    <div class="ad-chip"><i class="fab fa-css3-alt" style="color:#1572b6;"></i> CSS3</div>
+                    <div class="ad-chip"><i class="fab fa-js" style="color:#eab308;"></i> JavaScript</div>
+                    <div class="ad-chip"><i class="fas fa-fire" style="color:#f59e0b;"></i> Firebase & FCM</div>
+                    <div class="ad-chip"><i class="fab fa-android" style="color:#10b981;"></i> Sketchware Pro</div>
+                    <div class="ad-chip"><i class="fab fa-github" style="color:#6366f1;"></i> GitHub Actions</div>
+                </div>
+            </div>
+
+            <div class="ad-card">
+                <h2 class="ad-section-title">
+                    <i class="fas fa-layer-group"></i>
+                    <span data-bn="উল্লেখযোগ্য প্রজেক্টসমূহ" data-en="Featured Projects">উল্লেখযোগ্য প্রজেক্টসমূহ</span>
+                </h2>
+
+                <div class="ad-filter-tabs">
+                    <button type="button" class="ad-filter-tab active" data-filter="all" data-bn="সব প্রজেক্ট (৩)" data-en="All (3)">সব প্রজেক্ট (৩)</button>
+                    <button type="button" class="ad-filter-tab" data-filter="web" data-bn="ওয়েব অ্যাপ" data-en="Web Apps">ওয়েব অ্যাপ</button>
+                    <button type="button" class="ad-filter-tab" data-filter="android" data-bn="অ্যান্ড্রয়েড" data-en="Android">অ্যান্ড্রয়েড</button>
+                </div>
+
+                <div class="ad-project-item" data-category="web android">
+                    <div class="ad-project-head">
+                        <span class="ad-project-title">RMP MT CONTACTS</span>
+                        <span class="ad-project-badge">Web & Android</span>
+                    </div>
+                    <p class="ad-project-desc" data-bn="অফলাইন ফেভারিট সিস্টেম, অ্যাডমিন ম্যানেজমেন্ট প্যানেল, কাস্টম কালার ফরম্যাটার এবং ফুল-স্ক্রিন প্রোফাইল ভিউয়ার সমৃদ্ধ ডিরেক্টরি অ্যাপ।" data-en="Directory web & mobile app featuring offline favorites, admin management panel, custom color formatter, and full-screen profile viewer.">
+                        অফলাইন ফেভারিট সিস্টেম, অ্যাডমিন ম্যানেজমেন্ট প্যানেল, কাস্টম কালার ফরম্যাটার এবং ফুল-স্ক্রিন প্রোফাইল ভিউয়ার সমৃদ্ধ ডিরেক্টরি অ্যাপ।
+                    </p>
+                    <div class="ad-project-tags">
+                        <span class="ad-p-tag">Firebase</span>
+                        <span class="ad-p-tag">Offline Cache</span>
+                        <span class="ad-p-tag">Admin Panel</span>
+                    </div>
+                </div>
+
+                <div class="ad-project-item" data-category="android">
+                    <div class="ad-project-head">
+                        <span class="ad-project-title">Tanore Thana Info App</span>
+                        <span class="ad-project-badge">Android • Java</span>
+                    </div>
+                    <p class="ad-project-desc" data-bn="জরুরি যোগাযোগ, নোটিশ বোর্ড এবং Firebase Cloud Messaging পুশ নোটিফিকেশন সুবিধাসহ তথ্যসেবা অ্যান্ড্রয়েড অ্যাপ্লিকেশন।" data-en="Information & emergency contact Android application integrated with Firebase Cloud Messaging push notifications.">
+                        জরুরি যোগাযোগ, নোটিশ বোর্ড এবং Firebase Cloud Messaging পুশ নোটিফিকেশন সুবিধাসহ তথ্যসেবা অ্যান্ড্রয়েড অ্যাপ্লিকেশন।
+                    </p>
+                    <div class="ad-project-tags">
+                        <span class="ad-p-tag">Sketchware Pro</span>
+                        <span class="ad-p-tag">FCM Push</span>
+                        <span class="ad-p-tag">Topic Alerts</span>
+                    </div>
+                </div>
+
+                <div class="ad-project-item" data-category="web">
+                    <div class="ad-project-head">
+                        <span class="ad-project-title">Smart Phone Log & Notice Portal</span>
+                        <span class="ad-project-badge">Web • Firebase</span>
+                    </div>
+                    <p class="ad-project-desc" data-bn="ক্যাটাগরি ভিত্তিক কন্টাক্ট ম্যানেজমেন্ট এবং রিয়েল-টাইম নোটিশ আপডেট সিস্টেম।" data-en="Category-based contact management and real-time notice board system hosted via GitHub.">
+                        ক্যাটাগরি ভিত্তিক কন্টাক্ট ম্যানেজমেন্ট এবং রিয়েল-টাইম নোটিশ আপডেট সিস্টেম।
+                    </p>
+                    <div class="ad-project-tags">
+                        <span class="ad-p-tag">HTML/CSS/JS</span>
+                        <span class="ad-p-tag">GitHub Pages</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ad-card">
+                <h2 class="ad-section-title">
+                    <i class="fas fa-bolt"></i>
+                    <span data-bn="কাজের বৈশিষ্ট্য ও লক্ষ্য" data-en="Development Philosophy">কাজের বৈশিষ্ট্য ও লক্ষ্য</span>
+                </h2>
+                <div class="ad-timeline">
+                    <div class="ad-timeline-step">
+                        <div class="ad-timeline-title" data-bn="১০০% অফলাইন ফার্স্ট আর্কিটেকচার" data-en="100% Offline-First Architecture">১০০% অফলাইন ফার্স্ট আর্কিটেকচার</div>
+                        <div class="ad-timeline-sub" data-bn="ইন্টারনেট সংযোগ না থাকলেও যেন জরুরি তথ্য ও ফেভারিট লিস্ট দেখা যায়।" data-en="Ensuring critical contacts and favorites remain accessible without internet.">ইন্টারনেট সংযোগ না থাকলেও যেন জরুরি তথ্য ও ফেভারিট লিস্ট দেখা যায়।</div>
+                    </div>
+                    <div class="ad-timeline-step">
+                        <div class="ad-timeline-title" data-bn="সহজ ও দ্রুতগতির ইউজার ইন্টারফেস" data-en="Clean & Fast Mobile UI">সহজ ও দ্রুতগতির ইউজার ইন্টারফেস</div>
+                        <div class="ad-timeline-sub" data-bn="যেকোনো অ্যান্ড্রয়েড ডিভাইসে ল্যাগ-ফ্রি এবং চোখের জন্য আরামদায়ক ডিজাইন।" data-en="Lag-free, eye-friendly design optimized for all Android screen sizes.">যেকোনো অ্যান্ড্রয়েড ডিভাইসে ল্যাগ-ফ্রি এবং চোখের জন্য আরামদায়ক ডিজাইন।</div>
+                    </div>
+                    <div class="ad-timeline-step">
+                        <div class="ad-timeline-title" data-bn="রিয়েল-টাইম ক্লাউড আপডেট" data-en="Real-Time Cloud Sync">রিয়েল-টাইম ক্লাউড আপডেট</div>
+                        <div class="ad-timeline-sub" data-bn="অ্যাপ আপডেট না করেই মুহূর্তের মধ্যে নতুন তথ্য ও নোটিশ যুক্ত করার সুবিধা।" data-en="Instant data and notice updates via Firebase without reinstalling the app.">অ্যাপ আপডেট না করেই মুহূর্তের মধ্যে নতুন তথ্য ও নোটিশ যুক্ত করার সুবিধা।</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ad-card">
+                <h2 class="ad-section-title">
+                    <i class="fas fa-headset"></i>
+                    <span data-bn="যোগাযোগ ও মতামত" data-en="Contact & Feedback">যোগাযোগ ও মতামত</span>
+                </h2>
+                <p class="ad-bio-text" style="margin-bottom:12px;" data-bn="অ্যাপ সংক্রান্ত যেকোনো পরামর্শ, নতুন ফিচারের অনুরোধ অথবা কারিগরি সহায়তার জন্য সরাসরি যোগাযোগ করুন:" data-en="For any app feedback, feature requests, or technical support, feel free to connect directly:">
+                    অ্যাপ সংক্রান্ত যেকোনো পরামর্শ, নতুন ফিচারের অনুরোধ অথবা কারিগরি সহায়তার জন্য সরাসরি যোগাযোগ করুন:
                 </p>
-                <div class="ad-project-tags">
-                    <span class="ad-p-tag">Sketchware Pro</span>
-                    <span class="ad-p-tag">FCM Push</span>
-                    <span class="ad-p-tag">Topic Alerts</span>
-                </div>
-            </div>
 
-            <div class="ad-project-item" data-category="web">
-                <div class="ad-project-head">
-                    <span class="ad-project-title">Smart Phone Log & Notice Portal</span>
-                    <span class="ad-project-badge">Web • Firebase</span>
+                <div class="ad-action-grid">
+                    <a href="tel:+8801700000000" class="ad-action-btn ad-btn-call">
+                        <i class="fas fa-phone-alt"></i>
+                        <span data-bn="সরাসরি কল" data-en="Call Now">সরাসরি কল</span>
+                    </a>
+                    <a href="https://wa.me/8801700000000" target="_blank" rel="noopener noreferrer" class="ad-action-btn ad-btn-wa">
+                        <i class="fab fa-whatsapp"></i>
+                        <span>WhatsApp</span>
+                    </a>
+                    <button type="button" class="ad-action-btn ad-btn-email" id="adCopyEmailBtn">
+                        <i class="fas fa-envelope"></i>
+                        <span data-bn="ইমেইল কপি" data-en="Copy Email">ইমেইল কপি</span>
+                    </button>
+                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="ad-action-btn ad-btn-gh">
+                        <i class="fab fa-github"></i>
+                        <span>GitHub</span>
+                    </a>
                 </div>
-                <p class="ad-project-desc" data-bn="ক্যাটাগরি ভিত্তিক কন্টাক্ট ম্যানেজমেন্ট এবং রিয়েল-টাইম নোটিশ আপডেট সিস্টেম।" data-en="Category-based contact management and real-time notice board system hosted via GitHub.">
-                    ক্যাটাগরি ভিত্তিক কন্টাক্ট ম্যানেজমেন্ট এবং রিয়েল-টাইম নোটিশ আপডেট সিস্টেম।
-                </p>
-                <div class="ad-project-tags">
-                    <span class="ad-p-tag">HTML/CSS/JS</span>
-                    <span class="ad-p-tag">GitHub Pages</span>
-                </div>
-            </div>
-        </div>
 
-        <div class="ad-card">
-            <h2 class="ad-section-title">
-                <i class="fas fa-bolt"></i>
-                <span data-bn="কাজের বৈশিষ্ট্য ও লক্ষ্য" data-en="Development Philosophy">কাজের বৈশিষ্ট্য ও লক্ষ্য</span>
-            </h2>
-            <div class="ad-timeline">
-                <div class="ad-timeline-step">
-                    <div class="ad-timeline-title" data-bn="১০০% অফলাইন ফার্স্ট আর্কিটেকচার" data-en="100% Offline-First Architecture">১০০% অফলাইন ফার্স্ট আর্কিটেকচার</div>
-                    <div class="ad-timeline-sub" data-bn="ইন্টারনেট সংযোগ না থাকলেও যেন জরুরি তথ্য ও ফেভারিট লিস্ট দেখা যায়।" data-en="Ensuring critical contacts and favorites remain accessible without internet.">ইন্টারনেট সংযোগ না থাকলেও যেন জরুরি তথ্য ও ফেভারিট লিস্ট দেখা যায়।</div>
-                </div>
-                <div class="ad-timeline-step">
-                    <div class="ad-timeline-title" data-bn="সহজ ও দ্রুতগতির ইউজার ইন্টারফেস" data-en="Clean & Fast Mobile UI">সহজ ও দ্রুতগতির ইউজার ইন্টারফেস</div>
-                    <div class="ad-timeline-sub" data-bn="যেকোনো অ্যান্ড্রয়েড ডিভাইসে ল্যাগ-ফ্রি এবং চোখের জন্য আরামদায়ক ডিজাইন।" data-en="Lag-free, eye-friendly design optimized for all Android screen sizes.">যেকোনো অ্যান্ড্রয়েড ডিভাইসে ল্যাগ-ফ্রি এবং চোখের জন্য আরামদায়ক ডিজাইন।</div>
-                </div>
-                <div class="ad-timeline-step">
-                    <div class="ad-timeline-title" data-bn="রিয়েল-টাইম ক্লাউড আপডেট" data-en="Real-Time Cloud Sync">রিয়েল-টাইম ক্লাউড আপডেট</div>
-                    <div class="ad-timeline-sub" data-bn="অ্যাপ আপডেট না করেই মুহূর্তের মধ্যে নতুন তথ্য ও নোটিশ যুক্ত করার সুবিধা।" data-en="Instant data and notice updates via Firebase without reinstalling the app.">অ্যাপ আপডেট না করেই মুহূর্তের মধ্যে নতুন তথ্য ও নোটিশ যুক্ত করার সুবিধা।</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="ad-card">
-            <h2 class="ad-section-title">
-                <i class="fas fa-headset"></i>
-                <span data-bn="যোগাযোগ ও মতামত" data-en="Contact & Feedback">যোগাযোগ ও মতামত</span>
-            </h2>
-            <p class="ad-bio-text" style="margin-bottom:12px;" data-bn="অ্যাপ সংক্রান্ত যেকোনো পরামর্শ, নতুন ফিচারের অনুরোধ অথবা কারিগরি সহায়তার জন্য সরাসরি যোগাযোগ করুন:" data-en="For any app feedback, feature requests, or technical support, feel free to connect directly:">
-                অ্যাপ সংক্রান্ত যেকোনো পরামর্শ, নতুন ফিচারের অনুরোধ অথবা কারিগরি সহায়তার জন্য সরাসরি যোগাযোগ করুন:
-            </p>
-
-            <div class="ad-action-grid">
-                <a href="tel:+8801700000000" class="ad-action-btn ad-btn-call">
-                    <i class="fas fa-phone-alt"></i>
-                    <span data-bn="সরাসরি কল" data-en="Call Now">সরাসরি কল</span>
-                </a>
-                <a href="https://wa.me/8801700000000" target="_blank" rel="noopener noreferrer" class="ad-action-btn ad-btn-wa">
-                    <i class="fab fa-whatsapp"></i>
-                    <span>WhatsApp</span>
-                </a>
-                <button type="button" class="ad-action-btn ad-btn-email" id="adCopyEmailBtn">
-                    <i class="fas fa-envelope"></i>
-                    <span data-bn="ইমেইল কপি" data-en="Copy Email">ইমেইল কপি</span>
+                <button type="button" class="ad-full-btn ad-feedback-btn" id="adOpenFeedbackBtn">
+                    <i class="fas fa-comment-dots"></i>
+                    <span data-bn="সরাসরি বার্তা / মতামত পাঠান" data-en="Send Direct Feedback">সরাসরি বার্তা / মতামত পাঠান</span>
                 </button>
-                <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="ad-action-btn ad-btn-gh">
-                    <i class="fab fa-github"></i>
-                    <span>GitHub</span>
-                </a>
+
+                <button type="button" class="ad-full-btn ad-share-btn" id="adShareBtn">
+                    <i class="fas fa-share-nodes"></i>
+                    <span data-bn="ডেভেলপার প্রোফাইল শেয়ার করুন" data-en="Share Developer Profile">ডেভেলপার প্রোফাইল শেয়ার করুন</span>
+                </button>
             </div>
-
-            <button type="button" class="ad-full-btn ad-feedback-btn" id="adOpenFeedbackBtn">
-                <i class="fas fa-comment-dots"></i>
-                <span data-bn="সরাসরি বার্তা / মতামত পাঠান" data-en="Send Direct Feedback">সরাসরি বার্তা / মতামত পাঠান</span>
-            </button>
-
-            <button type="button" class="ad-full-btn ad-share-btn" id="adShareBtn">
-                <i class="fas fa-share-nodes"></i>
-                <span data-bn="ডেভেলপার প্রোফাইল শেয়ার করুন" data-en="Share Developer Profile">ডেভেলপার প্রোফাইল শেয়ার করুন</span>
-            </button>
         </div>
 
         <div class="ad-modal-overlay" id="adProfileModal">
