@@ -120,7 +120,10 @@ function injectAboutDeveloperStyles() {
             border-radius: 0 0 32px 32px;
             overflow: hidden;
         }
-        .ad-header-spacer { width: 100%; }
+        .ad-header-spacer { width: 100%; transition: height 0.3s ease; }
+
+        /* উচ্চতা মাপার সময় ট্রানজিশন সাময়িক বন্ধ রাখা হয়, নাহলে ভুল উচ্চতা মাপা হয় */
+        .ad-header.no-anim, .ad-header.no-anim * { transition: none !important; }
         .ad-topbar {
             position: relative;
             z-index: 3;
@@ -151,6 +154,10 @@ function injectAboutDeveloperStyles() {
             padding-top: 0 !important;
             border-radius: 0 !important;
             transform: none !important;
+            /* অ্যাবাউট পেজে স্ক্রল নিশ্চিত করতে */
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
         }
         body.ad-about-active #mainScrollSheet main.container {
             padding-top: 0 !important;
@@ -775,8 +782,14 @@ function ensureAboutSheetContainer() {
 }
 
 function pushAboutState(level) {
-    try { history.pushState({ adLevel: level }, "", location.href); } catch (e) { /* ignore */ }
-    adDepth = level;
+    let pushed = false;
+    try {
+        history.pushState({ adLevel: level }, "", location.href);
+        pushed = true;
+    } catch (e) { pushed = false; }
+    // pushState ব্যর্থ হলে history স্ট্যাকে নতুন এন্ট্রি নেই — তখন adDepth বাড়ানো যাবে না,
+    // নাহলে close-এর সময় history.go(-1) অ্যাপের বাইরের এন্ট্রিতে চলে যাবে (সাদা স্ক্রিনের কারণ)
+    adDepth = pushed ? level : 0;
 }
 
 window.addEventListener("popstate", (e) => {
@@ -785,7 +798,11 @@ window.addEventListener("popstate", (e) => {
         e.stopImmediatePropagation();
         return;
     }
-    if (!isAboutActive) return;
+    if (!isAboutActive) {
+        // ব্যাক প্রেসের পরেও স্ন্যাপশট থেকে গেলে মানে close ঠিকমতো হয়নি — মেইন ভিউ রিস্টোর করো
+        if (adViewSnapshot) hideMainViewsForAbout(false);
+        return;
+    }
 
     e.stopImmediatePropagation();
     const lvl = e.state && typeof e.state.adLevel === "number" ? e.state.adLevel : 0;
@@ -796,6 +813,13 @@ window.addEventListener("popstate", (e) => {
     adDepth = 0;
     closeAboutDeveloper(true);
 }, true);
+
+// bfcache/ব্যাক-নেভিগেশনে ফিরে এলে JS স্টেট ও DOM মিলিয়ে যেতে পারে — এখানে রিকভার
+window.addEventListener("pageshow", (e) => {
+    if (!e || !e.persisted) return;
+    if (isAboutActive) { enforceAboutUI(); return; }
+    if (adViewSnapshot) hideMainViewsForAbout(false);
+});
 
 function setAboutHeaderMode() {
     const appTitleText = document.querySelector(".app-title-text");
@@ -883,6 +907,21 @@ function hideMainViewsForAbout(hide) {
         });
     }
     adViewSnapshot = null;
+}
+
+// ব্যাক প্রেসের পর যদি কোনো মেইন ভিউই দৃশ্যমান না থাকে (সাদা স্ক্রিন), মেইন ড্যাশবোর্ড ফিরিয়ে আনো
+function restoreMainVisibilityFallback() {
+    const viewIds = ["mainDashboardView", "categoryDetailsView", "dataDetailsView"];
+    const anyVisible = viewIds.some(id => {
+        const el = document.getElementById(id);
+        return el && !el.classList.contains("hidden") && el.style.display !== "none";
+    });
+    if (anyVisible) return;
+    const dash = document.getElementById("mainDashboardView");
+    if (dash) {
+        dash.classList.remove("hidden");
+        dash.style.display = "";
+    }
 }
 
 function enforceAboutUI() {
@@ -1061,15 +1100,32 @@ function setupAboutHeaderBehavior(view) {
     if (!header || !spacer) return;
 
     let compact = false;
+    let expandedH = 0;
+    let compactH = 0;
+    let ticking = false;
+    let pendingSt = 0;
 
-    // খোলা (বড়) অবস্থার উচ্চতা স্পেসারে বসানো হয়, তাই কন্টেন্ট লাফায় না
+    // বড় ও ছোট — দুই অবস্থারই হেডার উচ্চতা আগেই মেপে রাখা হয়। স্পেসারও হেডারের
+    // সাথে সিঙ্কে কম-বেশি হয় (একই ০.৩s ট্রানজিশনে), ফলে স্ক্রলে কনটেন্ট লাফায় না
+    // এবং হেডার উঁচু-নিচু (jitter) করে না।
     aboutMeasureHeader = () => {
-        if (compact) return;
-        spacer.style.height = header.offsetHeight + "px";
+        const wasCompact = compact;
+        header.classList.add("no-anim");
+        header.classList.add("ad-compact");
+        compactH = header.offsetHeight;
+        header.classList.remove("ad-compact");
+        expandedH = header.offsetHeight;
+        if (wasCompact) header.classList.add("ad-compact");
+        header.classList.remove("no-anim");
+        spacer.style.transition = "none";
+        spacer.style.height = (wasCompact ? compactH : expandedH) + "px";
+        requestAnimationFrame(() => { spacer.style.transition = ""; });
     };
     aboutMeasureHeader();
     requestAnimationFrame(aboutMeasureHeader);
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(aboutMeasureHeader);
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(() => aboutMeasureHeader && aboutMeasureHeader());
+    }
 
     const sheet = document.getElementById("mainScrollSheet");
     if (sheet) sheet.scrollTop = 0;
@@ -1079,17 +1135,25 @@ function setupAboutHeaderBehavior(view) {
         ? (window.scrollY || document.documentElement.scrollTop || 0)
         : t.scrollTop;
 
+    // rAF-থ্রটল + হিস্টেরেসিস (৬০px-এর বেশি হলে ছোট, ৮px-এর নিচে হলে বড়) —
+    // এক ফ্রেমে একাধিক টগল হয় না, তাই হেডার কাঁপে না
+    const applyCompactState = () => {
+        ticking = false;
+        const next = pendingSt > 60 ? true : (pendingSt < 8 ? false : compact);
+        if (next === compact) return;
+        compact = next;
+        header.classList.toggle("ad-compact", compact);
+        spacer.style.height = (compact ? compactH : expandedH) + "px";
+    };
+
     aboutScrollHandler = (e) => {
         const t = e.target;
-        if (t !== document && !(t.contains && t.contains(view))) return;
-        const st = getTop(t);
-        if (!compact && st > 60) {
-            compact = true;
-            header.classList.add("ad-compact");
-        } else if (compact && st < 8) {
-            compact = false;
-            header.classList.remove("ad-compact");
-        }
+        if (t !== document && t !== document.documentElement &&
+            !(t.contains && t.contains(view))) return;
+        pendingSt = getTop(t);
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(applyCompactState);
     };
     window.addEventListener("scroll", aboutScrollHandler, { capture: true, passive: true });
 
@@ -1443,6 +1507,9 @@ export function closeAboutDeveloper(fromPop = false) {
     if (fromPop !== true && adDepth > 0) {
         adSwallowPop++;
         try { history.go(-adDepth); } catch (e) { adSwallowPop = 0; }
+        // popstate কোনো কারণে ফায় না হলে কাউন্টার বেঁকে থাকে এবং মেইন অ্যাপের
+        // পরের popstate খেয়ে ফেলে সাদা স্ক্রিন দেখায় — তাই টাইমআউটে রিসেট
+        setTimeout(() => { adSwallowPop = 0; }, 800);
     }
     adDepth = 0;
 
@@ -1461,6 +1528,7 @@ export function closeAboutDeveloper(fromPop = false) {
 
     restoreAboutHeaderMode();
     hideMainViewsForAbout(false);
+    restoreMainVisibilityFallback();
 }
 
 window.openAboutDeveloper = openAboutDeveloper;
