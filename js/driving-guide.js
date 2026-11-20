@@ -431,6 +431,26 @@ function buildThemeCss() {
             border: 1px solid rgba(255,255,255,0.35);
         }
         ${T(".dg-rich mark, .dg-rich .dg-hl")} { background: #fde68a; color: #111827; }
+
+        /* ---- রঙিন অধ্যায় ব্যাজ ও বাম দাগ (প্রতি অধ্যায়ে আলাদা রং) ---- */
+        ${V} .dg-chap-num,
+        ${T(".dg-chap-num")} {
+            background: linear-gradient(135deg, var(--a1, #0ea5e9), var(--a2, #2563eb)) !important;
+            border: 2px solid rgba(255,255,255,0.55) !important;
+            color: #fff !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+            box-shadow: 0 6px 14px color-mix(in srgb, var(--a1, #0ea5e9) 55%, transparent);
+        }
+        ${V} .dg-notebook-chapter::before,
+        ${T(".dg-notebook-chapter::before")} {
+            background: linear-gradient(to bottom, var(--a1, #0ea5e9), var(--a2, #2563eb)) !important;
+            width: 6px;
+        }
+        ${V} .dg-notebook-chapter .dg-chapter-chip {
+            color: var(--a2, #2563eb);
+            background: color-mix(in srgb, var(--a1, #0ea5e9) 16%, transparent);
+        }
+        ${T(".dg-notebook-chapter .dg-chapter-chip")} { color: #fff !important; background: rgba(255,255,255,0.18) !important; }
     `;
 }
 
@@ -723,6 +743,13 @@ function hideMainViewsForGuide(hide) {
 
 let searchHandler = null;
 
+// গোপন কোড "admin@jr" লিখলে হেডারের Admin লগইন বাটন দেখায় (অ্যাপের অন্য সার্চ ফিল্ডের মতো)
+function checkAdminCode() {
+    if (guideSearchQuery !== "admin@jr") return;
+    const btn = document.getElementById("adminLoginBtn");
+    if (btn) btn.classList.remove("hidden");
+}
+
 function mountHeaderSearch(placeholder) {
     let wrap = document.getElementById("dgHeaderSearch");
 
@@ -756,6 +783,7 @@ function mountHeaderSearch(placeholder) {
         input.addEventListener("input", () => {
             guideSearchQuery = input.value.trim().toLowerCase();
             field.classList.toggle("has-value", input.value.length > 0);
+            checkAdminCode();
             if (searchHandler) searchHandler();
         });
         clearBtn.addEventListener("click", () => {
@@ -866,6 +894,16 @@ function renderChapterListView(container, admin) {
     });
 }
 
+const CHAPTER_PALETTE = [
+    ["#0ea5e9", "#2563eb"], ["#10b981", "#047857"], ["#f59e0b", "#ea580c"], ["#8b5cf6", "#6d28d9"],
+    ["#ec4899", "#be185d"], ["#14b8a6", "#0e7490"], ["#84cc16", "#4d7c0f"], ["#6366f1", "#4338ca"]
+];
+
+function chapterAccentStyle(idx) {
+    const [a1, a2] = CHAPTER_PALETTE[idx % CHAPTER_PALETTE.length];
+    return `--a1:${a1};--a2:${a2};`;
+}
+
 function fillChapterList(admin) {
     const area = document.getElementById("dgListArea");
     if (!area) return;
@@ -896,7 +934,7 @@ function fillChapterList(admin) {
     area.innerHTML = `<div class="dg-chapter-stack">${filtered.map(({ chap, idx }) => {
         const count = Array.isArray(chap.docs) ? chap.docs.length : 0;
         return `
-            <div class="dg-notebook-chapter" data-chap-id="${escapeHTML(chap.id)}">
+            <div class="dg-notebook-chapter" data-chap-id="${escapeHTML(chap.id)}" style="${chapterAccentStyle(idx)}">
                 <div class="dg-chap-num">${idx + 1}</div>
                 <div style="min-width:0;flex:1;">
                     <span class="dg-chapter-chip">${count}টি নোট</span>
