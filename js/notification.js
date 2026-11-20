@@ -1,3 +1,6 @@
+/* =========================================
+   Notification Custom Dialog System
+========================================= */
 function showCustomDialog(message, title = "বার্তা") {
     return new Promise((resolve) => {
         let dialogEl = document.getElementById("notifCustomDialog");
