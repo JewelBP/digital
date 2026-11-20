@@ -187,6 +187,35 @@ function injectModernNotebookStyles() {
         .dg-result-count { font-size:12px; color:#64748b; margin:6px 4px 0; }
         body.dark-mode .dg-result-count { color:#94a3b8; }
 
+        /* ===== হেডার সার্চ (পিল) ===== */
+        .dg-header-search {
+            flex: 0 0 100%; width: 100%; box-sizing: border-box;
+            display: flex; justify-content: center; padding: 16px 16px 6px;
+        }
+        .dg-header-search.standalone { background: #020624; padding: 10px 16px 14px; }
+        .dg-header-search.hidden { display: none !important; }
+        .dg-hs-pill {
+            width: 62%; min-width: 250px; max-width: 560px; height: 54px; box-sizing: border-box;
+            display: flex; align-items: center; gap: 14px; padding: 0 20px;
+            border-radius: 999px; background: #1c1c3b;
+            border: 1px solid rgba(255,255,255,0.16);
+            color: #e5e7eb; transition: border-color .2s, box-shadow .2s;
+        }
+        .dg-hs-pill:focus-within { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.22); }
+        .dg-hs-icon { flex-shrink: 0; opacity: .95; }
+        .dg-hs-pill input {
+            flex: 1; min-width: 0; border: none; outline: none; background: transparent;
+            color: #ffffff; font-size: 17px; font-family: inherit; letter-spacing: .3px;
+        }
+        .dg-hs-pill input::placeholder { color: rgba(226,232,240,0.85); }
+        .dg-hs-pill input::-webkit-search-cancel-button { display: none; }
+        .dg-hs-clear {
+            border: none; background: rgba(255,255,255,0.18); color: #fff; width: 24px; height: 24px;
+            border-radius: 50%; font-size: 12px; cursor: pointer; flex-shrink: 0;
+        }
+        .dg-action-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .dg-action-row .dg-result-count { margin: 0 4px; flex: 1; }
+
         /* ===== অধ্যায় কার্ড ===== */
         .dg-chapter-stack { display:flex; flex-direction:column; gap:12px; }
         .dg-notebook-chapter {
@@ -542,42 +571,91 @@ function hideMainViewsForGuide(hide) {
     if (slider) slider.style.display = hide ? "none" : "";
 }
 
-/* ============================== Search Bar (sticky) ============================== */
+/* ============================== Header Search (ছবির মতো পিল ডিজাইন) ============================== */
 
+let searchHandler = null;
+let headerElRef = null;
+let headerPrevFlexWrap = "";
+
+function mountHeaderSearch(placeholder) {
+    let wrap = document.getElementById("dgHeaderSearch");
+
+    if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = "dgHeaderSearch";
+        wrap.className = "dg-header-search";
+        wrap.innerHTML = `
+            <div class="dg-hs-pill">
+                <svg class="dg-hs-icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="14" cy="10" r="6.5"></circle>
+                    <line x1="9.4" y1="14.6" x2="3.5" y2="20.5"></line>
+                </svg>
+                <input id="dgToolbarSearchInput" type="search" autocomplete="off">
+                <button id="dgClearSearchBtn" type="button" class="dg-hs-clear hidden" title="মুছুন">✕</button>
+            </div>`;
+
+        const title = document.querySelector(".app-title-text");
+        const header = title ? (title.closest("header") || title.closest(".app-header") || title.parentElement?.parentElement) : null;
+
+        if (header) {
+            headerElRef = header;
+            headerPrevFlexWrap = header.style.flexWrap;
+            header.style.flexWrap = "wrap";
+            header.appendChild(wrap);
+        } else {
+            wrap.classList.add("standalone");
+            const sheet = document.getElementById("mainScrollSheet");
+            if (sheet && sheet.parentElement) sheet.parentElement.insertBefore(wrap, sheet);
+            else document.body.prepend(wrap);
+        }
+
+        const input = wrap.querySelector("#dgToolbarSearchInput");
+        const clearBtn = wrap.querySelector("#dgClearSearchBtn");
+
+        input.addEventListener("input", () => {
+            guideSearchQuery = input.value.trim().toLowerCase();
+            clearBtn.classList.toggle("hidden", !guideSearchQuery);
+            if (searchHandler) searchHandler();
+        });
+        clearBtn.addEventListener("click", () => {
+            guideSearchQuery = "";
+            input.value = "";
+            input.focus();
+            clearBtn.classList.add("hidden");
+            if (searchHandler) searchHandler();
+        });
+    }
+
+    const input = wrap.querySelector("#dgToolbarSearchInput");
+    input.placeholder = placeholder;
+    if (input.value.trim().toLowerCase() !== guideSearchQuery) input.value = guideSearchQuery;
+    wrap.querySelector("#dgClearSearchBtn").classList.toggle("hidden", !guideSearchQuery);
+    wrap.classList.remove("hidden");
+}
+
+function unmountHeaderSearch() {
+    document.getElementById("dgHeaderSearch")?.remove();
+    if (headerElRef) {
+        headerElRef.style.flexWrap = headerPrevFlexWrap;
+        headerElRef = null;
+    }
+    searchHandler = null;
+}
+
+// ভিউয়ের ভেতরে শুধু ফলাফল সংখ্যা ও অ্যাড বাটন থাকে
 function buildSearchBarHTML(placeholder, admin, addBtnId, addBtnLabel) {
+    mountHeaderSearch(placeholder);
     return `
-        <div class="dg-search-sticky">
-            <div class="dg-search-row">
-                <div class="dg-search-box">
-                    <span class="dg-s-icon">🔍</span>
-                    <input id="dgToolbarSearchInput" type="search" value="${escapeHTML(guideSearchQuery)}"
-                        placeholder="${escapeHTML(placeholder)}" autocomplete="off">
-                    <button id="dgClearSearchBtn" type="button" class="dg-clear-btn ${guideSearchQuery ? "" : "hidden"}" title="মুছুন">✕</button>
-                </div>
-                ${admin ? `<button id="${escapeHTML(addBtnId)}" type="button" class="dg-add-btn">${escapeHTML(addBtnLabel)}</button>` : ""}
-            </div>
+        <div class="dg-action-row">
             <div id="dgResultCount" class="dg-result-count"></div>
+            ${admin ? `<button id="${escapeHTML(addBtnId)}" type="button" class="dg-add-btn">${escapeHTML(addBtnLabel)}</button>` : ""}
         </div>
     `;
 }
 
 // শুধু তালিকা অংশ রি-রেন্ডার হয়, ফলে টাইপ করার সময় ফোকাস/এডিটর নষ্ট হয় না
 function bindSearch(onChange) {
-    const input = document.getElementById("dgToolbarSearchInput");
-    const clearBtn = document.getElementById("dgClearSearchBtn");
-
-    input?.addEventListener("input", () => {
-        guideSearchQuery = input.value.trim().toLowerCase();
-        clearBtn?.classList.toggle("hidden", !guideSearchQuery);
-        onChange();
-    });
-
-    clearBtn?.addEventListener("click", () => {
-        guideSearchQuery = "";
-        if (input) { input.value = ""; input.focus(); }
-        clearBtn.classList.add("hidden");
-        onChange();
-    });
+    searchHandler = onChange;
 }
 
 function setResultCount(n, label) {
@@ -1000,6 +1078,7 @@ export function closeDrivingGuide() {
         view.innerHTML = "";
     }
 
+    unmountHeaderSearch();
     restoreHeaderMode();
     hideMainViewsForGuide(false);
 
