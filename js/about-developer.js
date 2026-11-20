@@ -12,7 +12,7 @@ let adViewSnapshot = null;
 let prevTitleText = "";
 let prevBackHidden = true;
 let prevMenuHidden = false;
-let aboutTitleNow = "ডেভেলপার পরিচিতি";
+let aboutTitleNow = "";
 let aboutObserver = null;
 let aboutEnforceTimer = null;
 let aboutCurrentLang = localStorage.getItem("dev_page_lang") || "bn";
@@ -54,8 +54,7 @@ function injectAboutDeveloperStyles() {
     style.textContent = `
         #aboutDeveloperSheetView {
             --ad-main: var(--app-main-color, var(--primary-color, #020624));
-            display: flex;
-            flex-direction: column;
+            display: block;
             width: 100%;
             position: relative;
         }
@@ -63,24 +62,24 @@ function injectAboutDeveloperStyles() {
             display: none !important;
         }
 
-        /* স্ক্রিনশটের মতো পুরো প্রস্থ জুড়ে ফিক্সড/স্টিকি হিরো কার্ড */
-        .ad-hero-fixed-widget {
+        /* স্ক্রিনের দুই সাইটের প্রস্থ জুড়ে ফিক্সড হিরো কার্ড */
+        .ad-hero-full-fixed {
             position: sticky;
             top: 0;
+            left: 0;
+            right: 0;
             z-index: 30;
             width: 100%;
-            flex-shrink: 0;
             overflow: hidden;
             background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%);
             border-radius: 0 0 32px 32px;
-            padding: 16px 18px 24px;
+            padding: 18px 16px 24px;
             text-align: center;
             color: #ffffff;
             box-shadow: 0 14px 28px rgba(2, 6, 36, 0.28);
         }
 
-        /* ফিক্সড হিরো কার্ডের ঠিক নিচে স্ক্রলের সময় সফট শ্যাডো/লেয়ার ইফেক্ট */
-        .ad-hero-fixed-widget::after {
+        .ad-hero-full-fixed::after {
             content: "";
             position: absolute;
             left: 0;
@@ -676,14 +675,14 @@ window.addEventListener("popstate", (e) => {
     closeAboutDeveloper(true);
 }, true);
 
-function setAboutHeaderMode(titleText) {
+function setAboutHeaderMode() {
     const appTitleText = document.querySelector(".app-title-text");
     const menuIcon = document.getElementById("menuIcon");
     const backIcon = document.getElementById("backIcon");
     const navBtn = document.getElementById("navToggleBtn");
 
-    aboutTitleNow = titleText;
-    if (appTitleText) appTitleText.textContent = titleText;
+    aboutTitleNow = "";
+    if (appTitleText) appTitleText.textContent = "";
     if (menuIcon && backIcon) {
         menuIcon.classList.add("hidden");
         backIcon.classList.remove("hidden");
@@ -761,7 +760,7 @@ function enforceAboutUI() {
     const appTitleText = document.querySelector(".app-title-text");
     const menuIcon = document.getElementById("menuIcon");
     const backIcon = document.getElementById("backIcon");
-    if (appTitleText && aboutTitleNow && appTitleText.textContent !== aboutTitleNow) {
+    if (appTitleText && appTitleText.textContent !== aboutTitleNow) {
         appTitleText.textContent = aboutTitleNow;
     }
     if (menuIcon && !menuIcon.classList.contains("hidden")) menuIcon.classList.add("hidden");
@@ -890,8 +889,7 @@ function applyAboutLanguage(view, lang) {
     const langText = view.querySelector("#adLangText");
     if (langText) langText.textContent = lang === "bn" ? "EN" : "বাংলা";
 
-    const nextTitle = lang === "bn" ? "ডেভেলপার পরিচিতি" : "About Developer";
-    setAboutHeaderMode(nextTitle);
+    setAboutHeaderMode();
 
     view.querySelectorAll("[data-bn]").forEach(el => {
         el.textContent = el.getAttribute(`data-${lang}`);
@@ -901,10 +899,10 @@ function applyAboutLanguage(view, lang) {
 }
 
 function renderAboutDeveloperView(view) {
-    setAboutHeaderMode(aboutCurrentLang === "bn" ? "ডেভেলপার পরিচিতি" : "About Developer");
+    setAboutHeaderMode();
 
     view.innerHTML = `
-        <section class="ad-hero-fixed-widget">
+        <section class="ad-hero-full-fixed">
             <canvas id="adParticleCanvas"></canvas>
             <div class="ad-hero-content">
                 <div class="ad-top-controls">
