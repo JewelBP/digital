@@ -396,7 +396,7 @@ async function saveOrUpdateToFirebase(type) {
         } else {
             const noticesRef = ref(db, 'webapp/notices');
             const newNoticeRef = push(noticesRef);
-            const noticePayload = {
+            await set(newNoticeRef, {
                 id: newNoticeRef.key,
                 type,
                 title,
@@ -405,17 +405,7 @@ async function saveOrUpdateToFirebase(type) {
                 Video: video,
                 keys,
                 time: new Date().toLocaleString('bn-BD')
-            };
-            await set(newNoticeRef, noticePayload);
-
-            if (type === 'push') {
-                await set(ref(db, 'webapp/pushQueue/' + newNoticeRef.key), {
-                    ...noticePayload,
-                    status: 'pending',
-                    createdAt: Date.now()
-                });
-            }
-
+            });
             await showCustomDialog("ফায়ারবেজে সফলভাবে সংরক্ষণ করা হয়েছে!", "সফল");
         }
 
