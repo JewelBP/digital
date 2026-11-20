@@ -9,7 +9,7 @@ import {
 
 import { db } from "./firebase.js";
 
-const STORAGE_KEY = "rmp_driving_guide_v2";
+const STORAGE_KEY = "rmp_driving_guide_v3";
 const DB_PATH = "webapp/driving_guide";
 const DEFAULT_GUIDE_IMG = "https://cdn-icons-png.flaticon.com/512/3097/3097144.png";
 
@@ -18,6 +18,9 @@ let guideState = {
 };
 
 let activeChapterId = null;
+let editingChapterId = null;
+let editingDocId = null;
+let guideSearchQuery = "";
 let isGuideActive = false;
 let isListening = false;
 let prevTitleText = "";
@@ -125,19 +128,47 @@ function injectNativeStyles() {
         #drivingGuideSheetView {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
         #drivingGuideSheetView.hidden {
             display: none !important;
+        }
+        .dg-search-box {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 16px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+        }
+        body.dark-mode .dg-search-box {
+            background: #0f172a;
+            border-color: #334155;
+        }
+        .dg-search-box input {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: #0f172a;
+            font-size: 15px;
+            padding: 6px 2px;
+            font-family: inherit;
+        }
+        body.dark-mode .dg-search-box input {
+            color: #f8fafc;
         }
         .dg-native-toolbar {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            padding: 10px 12px;
+            padding: 12px 14px;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
             align-items: center;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
         }
@@ -149,38 +180,45 @@ function injectNativeStyles() {
             background: var(--app-main-color, #020624);
             color: #ffffff;
             border: none;
-            border-radius: 10px;
-            padding: 8px 13px;
-            font-size: 13px;
+            border-radius: 11px;
+            padding: 10px 15px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
         }
         .dg-native-btn.secondary {
             background: #0ea5e9;
         }
+        .dg-native-btn.edit {
+            background: #f59e0b;
+            color: #ffffff;
+            padding: 7px 11px;
+            font-size: 13px;
+        }
         .dg-native-btn.danger {
             background: #ef4444;
-            padding: 5px 9px;
-            font-size: 12px;
+            padding: 7px 11px;
+            font-size: 13px;
         }
         .dg-chapter-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
         .dg-chapter-row {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 13px 14px;
+            border-radius: 18px;
+            padding: 16px;
+            min-height: 76px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             cursor: pointer;
         }
         body.dark-mode .dg-chapter-row {
@@ -189,7 +227,7 @@ function injectNativeStyles() {
         }
         .dg-chapter-row-title {
             margin: 0;
-            font-size: 15.5px;
+            font-size: 16.5px;
             font-weight: 700;
             color: var(--app-main-color, #020624);
         }
@@ -197,8 +235,8 @@ function injectNativeStyles() {
             color: #f8fafc;
         }
         .dg-chapter-row-sub {
-            margin: 3px 0 0 0;
-            font-size: 12.5px;
+            margin: 4px 0 0 0;
+            font-size: 13.5px;
             color: #64748b;
         }
         body.dark-mode .dg-chapter-row-sub {
@@ -208,11 +246,12 @@ function injectNativeStyles() {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 18px;
-            padding: 15px;
+            padding: 18px;
+            min-height: 110px;
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 14px;
         }
         body.dark-mode .dg-doc-card {
             background: #0f172a;
@@ -220,7 +259,7 @@ function injectNativeStyles() {
         }
         .dg-doc-heading {
             margin: 0;
-            font-size: 16.5px;
+            font-size: 17px;
             font-weight: 700;
             color: var(--app-main-color, #020624);
             display: flex;
@@ -233,8 +272,8 @@ function injectNativeStyles() {
         }
         .dg-doc-text {
             margin: 0;
-            font-size: 15px;
-            line-height: 1.75;
+            font-size: 15.5px;
+            line-height: 1.8;
             white-space: pre-line;
             color: #1e293b;
         }
@@ -242,14 +281,14 @@ function injectNativeStyles() {
             color: #e2e8f0;
         }
         .dg-inline-img-box {
-            margin: 12px 0;
-            padding: 10px;
-            border-radius: 14px;
+            margin: 14px 0;
+            padding: 12px;
+            border-radius: 16px;
             background: #f8fafc;
             border: 1px solid #e2e8f0;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
         body.dark-mode .dg-inline-img-box {
             background: #1e293b;
@@ -257,14 +296,14 @@ function injectNativeStyles() {
         }
         .dg-inline-img-box img {
             width: 100%;
-            max-height: 250px;
+            max-height: 290px;
             object-fit: cover;
-            border-radius: 10px;
+            border-radius: 12px;
         }
         .dg-inline-img-caption {
             margin: 0;
-            font-size: 13.5px;
-            line-height: 1.55;
+            font-size: 14px;
+            line-height: 1.6;
             color: #475569;
             font-weight: 500;
         }
@@ -276,12 +315,12 @@ function injectNativeStyles() {
             align-items: center;
             gap: 6px;
             margin: 6px 6px 6px 0;
-            padding: 8px 12px;
-            border-radius: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
             background: rgba(14, 165, 233, 0.12);
             border: 1px solid rgba(14, 165, 233, 0.35);
             color: #0284c7;
-            font-size: 13.5px;
+            font-size: 14px;
             font-weight: 600;
             text-decoration: none;
         }
@@ -291,11 +330,12 @@ function injectNativeStyles() {
         .dg-editor-box {
             background: #ffffff;
             border: 1px solid #cbd5e1;
-            border-radius: 16px;
-            padding: 14px;
+            border-radius: 18px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
         }
         body.dark-mode .dg-editor-box {
             background: #0f172a;
@@ -305,13 +345,17 @@ function injectNativeStyles() {
         .dg-editor-box textarea {
             width: 100%;
             box-sizing: border-box;
-            padding: 10px 12px;
-            border-radius: 10px;
+            padding: 13px 14px;
+            border-radius: 12px;
             border: 1px solid #cbd5e1;
             background: #f8fafc;
             color: #0f172a;
-            font-size: 14px;
+            font-size: 15px;
+            line-height: 1.5;
             font-family: inherit;
+        }
+        .dg-editor-box textarea {
+            min-height: 190px;
         }
         body.dark-mode .dg-editor-box input,
         body.dark-mode .dg-editor-box textarea {
@@ -320,12 +364,12 @@ function injectNativeStyles() {
             border-color: #334155;
         }
         .dg-tag-helper {
-            font-size: 12px;
-            line-height: 1.5;
+            font-size: 12.5px;
+            line-height: 1.55;
             background: rgba(14, 165, 233, 0.08);
             border-left: 3px solid #0ea5e9;
-            padding: 8px 10px;
-            border-radius: 8px;
+            padding: 10px 12px;
+            border-radius: 10px;
             color: #334155;
         }
         body.dark-mode .dg-tag-helper {
@@ -335,7 +379,6 @@ function injectNativeStyles() {
     document.head.appendChild(style);
 }
 
-/* একটিমাত্র লেখার ভেতরে একাধিক [img: url | caption] ও [link: text | url] রেন্ডার করে */
 function renderRichTextWithMedia(rawText) {
     const normalized = String(rawText || "").replace(/\r\n/g, "\n");
     const tokenRegex = /(\[img:[^\]]+\]|\[link:[^\]]+\])/gi;
@@ -414,6 +457,8 @@ function setHeaderBackMode(titleText) {
             e.stopImmediatePropagation();
             if (activeChapterId) {
                 activeChapterId = null;
+                editingDocId = null;
+                guideSearchQuery = "";
                 renderDrivingGuideInSheet();
             } else {
                 closeDrivingGuide();
@@ -454,18 +499,48 @@ function hideMainViewsForGuide(hide) {
     if (slider) slider.style.display = hide ? "none" : "";
 }
 
+function renderSearchBox(placeholderText) {
+    return `
+        <div class="dg-search-box">
+            <span>🔍</span>
+            <input id="dgSearchInput" type="search" value="${escapeHTML(guideSearchQuery)}" placeholder="${escapeHTML(placeholderText)}" autocomplete="off">
+        </div>
+    `;
+}
+
+function bindSearchInput() {
+    const input = document.getElementById("dgSearchInput");
+    if (!input) return;
+    input.addEventListener("input", () => {
+        guideSearchQuery = input.value.trim().toLowerCase();
+        renderDrivingGuideInSheet();
+        const updatedInput = document.getElementById("dgSearchInput");
+        if (updatedInput) {
+            updatedInput.focus();
+            const len = updatedInput.value.length;
+            updatedInput.setSelectionRange(len, len);
+        }
+    });
+}
+
 function renderChapterListView(container, admin) {
     setHeaderBackMode("ড্রাইভিং গাইড");
 
-    let html = "";
+    let html = renderSearchBox("অধ্যায় বা বিষয় খুঁজুন...");
+
     if (admin) {
+        const editingChap = editingChapterId
+            ? guideState.chapters.find(c => c.id === editingChapterId)
+            : null;
+        const formVisible = editingChap ? "" : "hidden";
+
         html += `
             <div class="dg-native-toolbar">
                 <button id="dgNewChapterBtn" type="button" class="dg-native-btn">＋ নতুন অধ্যায়</button>
             </div>
-            <div id="dgChapterFormBox" class="dg-editor-box hidden">
-                <input id="dgChapTitleIn" type="text" placeholder="অধ্যায়ের নাম (যেমন: ট্রাফিক আইন ও সিগন্যাল)">
-                <input id="dgChapDescIn" type="text" placeholder="অধ্যায়ের সংক্ষিপ্ত বিবরণ (ঐচ্ছিক)">
+            <div id="dgChapterFormBox" class="dg-editor-box ${formVisible}">
+                <input id="dgChapTitleIn" type="text" value="${escapeHTML(editingChap?.title || "")}" placeholder="অধ্যায়ের নাম (যেমন: ট্রাফিক আইন ও সিগন্যাল)">
+                <input id="dgChapDescIn" type="text" value="${escapeHTML(editingChap?.description || "")}" placeholder="অধ্যায়ের সংক্ষিপ্ত বিবরণ (ঐচ্ছিক)">
                 <div style="display:flex;gap:8px;justify-content:flex-end;">
                     <button id="dgChapCancelBtn" type="button" class="dg-native-btn danger">বাতিল</button>
                     <button id="dgChapSaveBtn" type="button" class="dg-native-btn secondary">সেভ করুন</button>
@@ -474,15 +549,26 @@ function renderChapterListView(container, admin) {
         `;
     }
 
-    if (!guideState.chapters.length) {
+    const filteredChapters = guideState.chapters.filter(chap => {
+        if (!guideSearchQuery) return true;
+        const titleMatch = (chap.title || "").toLowerCase().includes(guideSearchQuery);
+        const descMatch = (chap.description || "").toLowerCase().includes(guideSearchQuery);
+        const docMatch = (chap.docs || []).some(d =>
+            (d.title || "").toLowerCase().includes(guideSearchQuery) ||
+            (d.body || "").toLowerCase().includes(guideSearchQuery)
+        );
+        return titleMatch || descMatch || docMatch;
+    });
+
+    if (!filteredChapters.length) {
         html += `
             <div class="dg-doc-card" style="text-align:center;">
-                <p class="dg-doc-text" style="opacity:0.75;">এখনো কোনো অধ্যায় যুক্ত করা হয়নি।</p>
+                <p class="dg-doc-text" style="opacity:0.75;">কোনো অধ্যায় বা তথ্য পাওয়া যায়নি।</p>
             </div>
         `;
     } else {
         html += `<div class="dg-chapter-list">`;
-        guideState.chapters.forEach((chap, idx) => {
+        filteredChapters.forEach((chap, idx) => {
             const docCount = Array.isArray(chap.docs) ? chap.docs.length : 0;
             html += `
                 <div class="dg-chapter-row" data-chap-id="${escapeHTML(chap.id)}">
@@ -491,6 +577,7 @@ function renderChapterListView(container, admin) {
                         <p class="dg-chapter-row-sub">${escapeHTML(chap.description || `${docCount}টি ডকুমেন্ট`)}</p>
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;">
+                        ${admin ? `<button type="button" class="dg-native-btn edit dg-edit-chap" data-id="${escapeHTML(chap.id)}">✏️</button>` : ""}
                         ${admin ? `<button type="button" class="dg-native-btn danger dg-del-chap" data-id="${escapeHTML(chap.id)}">🗑️</button>` : ""}
                         <span style="font-size:18px;opacity:0.6;">›</span>
                     </div>
@@ -501,33 +588,62 @@ function renderChapterListView(container, admin) {
     }
 
     container.innerHTML = html;
+    bindSearchInput();
 
     document.getElementById("dgNewChapterBtn")?.addEventListener("click", () => {
-        document.getElementById("dgChapterFormBox")?.classList.remove("hidden");
+        editingChapterId = null;
+        const box = document.getElementById("dgChapterFormBox");
+        if (box) {
+            box.classList.remove("hidden");
+            document.getElementById("dgChapTitleIn").value = "";
+            document.getElementById("dgChapDescIn").value = "";
+        }
     });
+
     document.getElementById("dgChapCancelBtn")?.addEventListener("click", () => {
+        editingChapterId = null;
         document.getElementById("dgChapterFormBox")?.classList.add("hidden");
     });
+
     document.getElementById("dgChapSaveBtn")?.addEventListener("click", async () => {
         const title = document.getElementById("dgChapTitleIn")?.value.trim();
         const description = document.getElementById("dgChapDescIn")?.value.trim() || "";
         if (!title) return showGuideToast("অধ্যায়ের নাম লিখুন");
 
-        const chap = {
-            id: generateGuideId("chap"),
-            title,
-            description,
-            docs: [],
-            createdAt: Date.now()
-        };
-        guideState.chapters.push(chap);
-        activeChapterId = chap.id;
+        if (editingChapterId) {
+            const target = guideState.chapters.find(c => c.id === editingChapterId);
+            if (target) {
+                target.title = title;
+                target.description = description;
+            }
+            editingChapterId = null;
+        } else {
+            const chap = {
+                id: generateGuideId("chap"),
+                title,
+                description,
+                docs: [],
+                createdAt: Date.now()
+            };
+            guideState.chapters.push(chap);
+            activeChapterId = chap.id;
+        }
         await persistGuide();
     });
 
     container.querySelectorAll(".dg-chapter-row").forEach(row => {
         row.addEventListener("click", () => {
             activeChapterId = row.getAttribute("data-chap-id");
+            editingDocId = null;
+            guideSearchQuery = "";
+            renderDrivingGuideInSheet();
+        });
+    });
+
+    container.querySelectorAll(".dg-edit-chap").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            editingChapterId = btn.getAttribute("data-id");
             renderDrivingGuideInSheet();
         });
     });
@@ -538,6 +654,7 @@ function renderChapterListView(container, admin) {
             const id = btn.getAttribute("data-id");
             guideState.chapters = guideState.chapters.filter(c => c.id !== id);
             if (activeChapterId === id) activeChapterId = null;
+            if (editingChapterId === id) editingChapterId = null;
             await persistGuide();
         });
     });
@@ -546,24 +663,29 @@ function renderChapterListView(container, admin) {
 function renderChapterDocsView(container, chapter, admin) {
     setHeaderBackMode(chapter.title);
 
-    let html = "";
+    let html = renderSearchBox("এই অধ্যায়ের লেখা, ছবি ক্যাপশন বা লিংক খুঁজুন...");
+
+    const docs = Array.isArray(chapter.docs) ? chapter.docs : [];
+    const editingDoc = editingDocId ? docs.find(d => d.id === editingDocId) : null;
+
     if (admin) {
+        const editorVisible = editingDoc ? "" : "hidden";
         html += `
             <div class="dg-native-toolbar">
                 <button id="dgToggleDocEditorBtn" type="button" class="dg-native-btn">＋ নতুন ডকুমেন্ট / লেখা</button>
             </div>
-            <div id="dgDocEditorBox" class="dg-editor-box hidden">
-                <input id="dgDocTitleIn" type="text" placeholder="ডকুমেন্টের শিরোনাম (ঐচ্ছিক)">
+            <div id="dgDocEditorBox" class="dg-editor-box ${editorVisible}">
+                <input id="dgDocTitleIn" type="text" value="${escapeHTML(editingDoc?.title || "")}" placeholder="ডকুমেন্টের শিরোনাম (ঐচ্ছিক)">
                 <div class="dg-tag-helper">
                     একটিমাত্র লেখার ভেতরে একাধিক ছবি ও লিংক দিতে নিচের ফরম্যাট ব্যবহার করুন:<br>
                     <strong>[img: ছবির_লিংক | ছবির_ক্যাপশন_বা_ব্যাখ্যা]</strong><br>
                     <strong>[link: লিংকের_নাম | https://example.com]</strong>
                 </div>
-                <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                <div style="display:flex;flex-wrap:wrap;gap:8px;">
                     <button id="dgInsertImgTagBtn" type="button" class="dg-native-btn secondary">+ ছবি ট্যাগ</button>
                     <button id="dgInsertLinkTagBtn" type="button" class="dg-native-btn secondary">+ লিংক ট্যাগ</button>
                 </div>
-                <textarea id="dgDocBodyIn" rows="7" placeholder="এখানে মূল লেখা লিখুন এবং লেখার মাঝে মাঝে [img: ...] ট্যাগ দিয়ে যত খুশি ছবি যুক্ত করুন..."></textarea>
+                <textarea id="dgDocBodyIn" rows="8" placeholder="এখানে মূল লেখা লিখুন এবং লেখার মাঝে মাঝে [img: ...] ট্যাগ দিয়ে যত খুশি ছবি যুক্ত করুন...">${escapeHTML(editingDoc?.body || "")}</textarea>
                 <div style="display:flex;gap:8px;justify-content:flex-end;">
                     <button id="dgDocCancelBtn" type="button" class="dg-native-btn danger">বাতিল</button>
                     <button id="dgDocSaveBtn" type="button" class="dg-native-btn secondary">ডকুমেন্ট সেভ করুন</button>
@@ -572,21 +694,31 @@ function renderChapterDocsView(container, chapter, admin) {
         `;
     }
 
-    const docs = Array.isArray(chapter.docs) ? chapter.docs : [];
-    if (!docs.length) {
+    const filteredDocs = docs.filter(doc => {
+        if (!guideSearchQuery) return true;
+        return (
+            (doc.title || "").toLowerCase().includes(guideSearchQuery) ||
+            (doc.body || "").toLowerCase().includes(guideSearchQuery)
+        );
+    });
+
+    if (!filteredDocs.length) {
         html += `
             <div class="dg-doc-card" style="text-align:center;">
-                <p class="dg-doc-text" style="opacity:0.75;">এই অধ্যায়ে এখনো কোনো ডকুমেন্ট নেই।</p>
+                <p class="dg-doc-text" style="opacity:0.75;">কোনো ডকুমেন্ট পাওয়া যায়নি।</p>
             </div>
         `;
     } else {
-        docs.forEach(doc => {
+        filteredDocs.forEach(doc => {
             html += `
                 <article class="dg-doc-card">
                     ${(doc.title || admin) ? `
                         <h3 class="dg-doc-heading">
                             <span>${escapeHTML(doc.title || "নোট")}</span>
-                            ${admin ? `<button type="button" class="dg-native-btn danger dg-del-doc" data-doc-id="${escapeHTML(doc.id)}">🗑️</button>` : ""}
+                            <span style="display:inline-flex;gap:6px;">
+                                ${admin ? `<button type="button" class="dg-native-btn edit dg-edit-doc" data-doc-id="${escapeHTML(doc.id)}">✏️</button>` : ""}
+                                ${admin ? `<button type="button" class="dg-native-btn danger dg-del-doc" data-doc-id="${escapeHTML(doc.id)}">🗑️</button>` : ""}
+                            </span>
                         </h3>
                     ` : ""}
                     <div>${renderRichTextWithMedia(doc.body || "")}</div>
@@ -596,12 +728,22 @@ function renderChapterDocsView(container, chapter, admin) {
     }
 
     container.innerHTML = html;
+    bindSearchInput();
 
     const bodyArea = document.getElementById("dgDocBodyIn");
+
     document.getElementById("dgToggleDocEditorBtn")?.addEventListener("click", () => {
-        document.getElementById("dgDocEditorBox")?.classList.remove("hidden");
+        editingDocId = null;
+        const box = document.getElementById("dgDocEditorBox");
+        if (box) {
+            box.classList.remove("hidden");
+            document.getElementById("dgDocTitleIn").value = "";
+            document.getElementById("dgDocBodyIn").value = "";
+        }
     });
+
     document.getElementById("dgDocCancelBtn")?.addEventListener("click", () => {
+        editingDocId = null;
         document.getElementById("dgDocEditorBox")?.classList.add("hidden");
     });
 
@@ -625,20 +767,38 @@ function renderChapterDocsView(container, chapter, admin) {
         if (!body) return showGuideToast("ডকুমেন্টের লেখা লিখুন");
 
         if (!Array.isArray(chapter.docs)) chapter.docs = [];
-        chapter.docs.push({
-            id: generateGuideId("doc"),
-            title,
-            body,
-            createdAt: Date.now()
-        });
+
+        if (editingDocId) {
+            const targetDoc = chapter.docs.find(d => d.id === editingDocId);
+            if (targetDoc) {
+                targetDoc.title = title;
+                targetDoc.body = body;
+            }
+            editingDocId = null;
+        } else {
+            chapter.docs.push({
+                id: generateGuideId("doc"),
+                title,
+                body,
+                createdAt: Date.now()
+            });
+        }
 
         await persistGuide();
+    });
+
+    container.querySelectorAll(".dg-edit-doc").forEach(btn => {
+        btn.addEventListener("click", () => {
+            editingDocId = btn.getAttribute("data-doc-id");
+            renderDrivingGuideInSheet();
+        });
     });
 
     container.querySelectorAll(".dg-del-doc").forEach(btn => {
         btn.addEventListener("click", async () => {
             const docId = btn.getAttribute("data-doc-id");
             chapter.docs = (chapter.docs || []).filter(d => d.id !== docId);
+            if (editingDocId === docId) editingDocId = null;
             await persistGuide();
         });
     });
@@ -678,6 +838,9 @@ export async function openDrivingGuide() {
     }
 
     isGuideActive = true;
+    guideSearchQuery = "";
+    editingChapterId = null;
+    editingDocId = null;
     hideMainViewsForGuide(true);
 
     const view = ensureSheetContainer();
@@ -690,6 +853,9 @@ export async function openDrivingGuide() {
 export function closeDrivingGuide() {
     isGuideActive = false;
     activeChapterId = null;
+    editingChapterId = null;
+    editingDocId = null;
+    guideSearchQuery = "";
 
     const view = document.getElementById("drivingGuideSheetView");
     if (view) {
