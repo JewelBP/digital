@@ -989,30 +989,9 @@
             </div>
         </div>
 
-        <!-- ইমেজ স্লাইডার (শুধুমাত্র প্রথম পেজে থাকবে) -->
+        <!-- ইমেজ স্লাইডার (শুধুমাত্র প্রথম পেজে থাকবে - ফায়ারবেজ/অ্যাডমিন থেকে লোড হবে) -->
         <div class="hero-slider-container" id="heroSlider">
-            <div class="slider-track" id="sliderTrack">
-                <div class="slide-item">
-                    <img src="https://images.unsplash.com/photo-1546272989-40c92939c6c2?auto=format&fit=crop&w=800&q=80" alt="Banner 1">
-                    <div class="slide-overlay">
-                        <div class="slide-info">
-                            <span class="slide-badge">📢</span>
-                            <h4>Welcome to Digital Phonebook</h4>
-                        </div>
-                        <a href="#categoryList" class="slide-btn">Explore</a>
-                    </div>
-                </div>
-                <div class="slide-item">
-                    <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80" alt="Banner 2">
-                    <div class="slide-overlay">
-                        <div class="slide-info">
-                            <span class="slide-badge">🛡️</span>
-                            <h4>Bangladesh Police Directory</h4>
-                        </div>
-                        <a href="#categoryList" class="slide-btn">Search</a>
-                    </div>
-                </div>
-            </div>
+            <div class="slider-track" id="sliderTrack"></div>
             <div class="slider-dots" id="sliderDots"></div>
         </div>
     </div>
@@ -1162,39 +1141,6 @@
     }
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
-
-    (function initHeroSlider() {
-        const track = document.getElementById('sliderTrack');
-        const dotsContainer = document.getElementById('sliderDots');
-        if (!track || !dotsContainer) return;
-
-        const slides = track.children;
-        const totalSlides = slides.length;
-        let currentIndex = 0;
-
-        for (let i = 0; i < totalSlides; i++) {
-            const dot = document.createElement('div');
-            dot.classList.add('slider-dot');
-            if (i === 0) dot.classList.add('active');
-            dot.addEventListener('click', () => goToSlide(i));
-            dotsContainer.appendChild(dot);
-        }
-
-        const dots = dotsContainer.children;
-
-        function goToSlide(index) {
-            currentIndex = index;
-            track.style.transform = `translateX(-${currentIndex * 100}%)`;
-            Array.from(dots).forEach((d, idx) => {
-                d.classList.toggle('active', idx === currentIndex);
-            });
-        }
-
-        setInterval(() => {
-            currentIndex = (currentIndex + 1) % totalSlides;
-            goToSlide(currentIndex);
-        }, 3500);
-    })();
 
     (function initSubPageHeaderSearch() {
         const mainDashboard = document.getElementById('mainDashboardView');
