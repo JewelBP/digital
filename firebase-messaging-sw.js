@@ -2,13 +2,13 @@ importScripts("https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js"
 importScripts("https://www.gstatic.com/firebasejs/12.1.0/firebase-messaging-compat.js");
 
 firebase.initializeApp({
-    apiKey: "YOUR_API_KEY",
+    apiKey: "AIzaSyBCnqpIJqMWTI_qXv96hyVs6_UV_60s3Mc",
     authDomain: "YOUR_AUTH_DOMAIN",
-    databaseURL: "YOUR_DATABASE_URL",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
+    databaseURL: "qrt-team-default-rtdb.firebaseio.com",
+    projectId: "qrt-team",
+    storageBucket: "qrt-team.firebasestorage.app",
     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    appId: "1:855875068920:android:601ffc0cbed4fa36b8ec0d"
 });
 
 const messaging = firebase.messaging();
