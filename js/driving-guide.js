@@ -9,7 +9,7 @@ import {
 
 import { db } from "./firebase.js";
 
-const STORAGE_KEY = "rmp_driving_guide_v3";
+const STORAGE_KEY = "rmp_driving_guide_v4";
 const DB_PATH = "webapp/driving_guide";
 const DEFAULT_GUIDE_IMG = "https://cdn-icons-png.flaticon.com/512/3097/3097144.png";
 
@@ -133,42 +133,14 @@ function injectNativeStyles() {
         #drivingGuideSheetView.hidden {
             display: none !important;
         }
-        .dg-search-box {
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            border-radius: 16px;
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
-        }
-        body.dark-mode .dg-search-box {
-            background: #0f172a;
-            border-color: #334155;
-        }
-        .dg-search-box input {
-            flex: 1;
-            min-width: 0;
-            border: none;
-            outline: none;
-            background: transparent;
-            color: #0f172a;
-            font-size: 15px;
-            padding: 6px 2px;
-            font-family: inherit;
-        }
-        body.dark-mode .dg-search-box input {
-            color: #f8fafc;
-        }
         .dg-native-toolbar {
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 16px;
-            padding: 12px 14px;
+            padding: 10px 12px;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
         }
@@ -176,18 +148,47 @@ function injectNativeStyles() {
             background: #0f172a;
             border-color: #334155;
         }
+        .dg-toolbar-search {
+            flex: 1;
+            min-width: 170px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 11px;
+            padding: 7px 11px;
+        }
+        body.dark-mode .dg-toolbar-search {
+            background: #1e293b;
+            border-color: #334155;
+        }
+        .dg-toolbar-search input {
+            width: 100%;
+            min-width: 0;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: #0f172a;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        body.dark-mode .dg-toolbar-search input {
+            color: #f8fafc;
+        }
         .dg-native-btn {
             background: var(--app-main-color, #020624);
             color: #ffffff;
             border: none;
             border-radius: 11px;
-            padding: 10px 15px;
-            font-size: 14px;
+            padding: 10px 14px;
+            font-size: 13.5px;
             font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            white-space: nowrap;
         }
         .dg-native-btn.secondary {
             background: #0ea5e9;
@@ -472,12 +473,12 @@ function restoreHeaderMode() {
     const menuIcon = document.getElementById("menuIcon");
     const backIcon = document.getElementById("backIcon");
 
-    if (appTitleText && prevTitleText) {
-        appTitleText.textContent = prevTitleText;
+    if (appTitleText) {
+        appTitleText.textContent = prevTitleText || "RMP MT Contacts";
     }
     if (menuIcon && backIcon) {
-        menuIcon.classList.toggle("hidden", prevMenuHidden);
-        backIcon.classList.toggle("hidden", prevBackHidden);
+        menuIcon.classList.remove("hidden");
+        backIcon.classList.add("hidden");
     }
 }
 
@@ -499,11 +500,14 @@ function hideMainViewsForGuide(hide) {
     if (slider) slider.style.display = hide ? "none" : "";
 }
 
-function renderSearchBox(placeholderText) {
+function renderToolbarWithSearch(placeholderText, admin, addBtnId, addBtnLabel) {
     return `
-        <div class="dg-search-box">
-            <span>🔍</span>
-            <input id="dgSearchInput" type="search" value="${escapeHTML(guideSearchQuery)}" placeholder="${escapeHTML(placeholderText)}" autocomplete="off">
+        <div class="dg-native-toolbar">
+            ${admin ? `<button id="${escapeHTML(addBtnId)}" type="button" class="dg-native-btn">${escapeHTML(addBtnLabel)}</button>` : ""}
+            <div class="dg-toolbar-search">
+                <span>🔍</span>
+                <input id="dgSearchInput" type="search" value="${escapeHTML(guideSearchQuery)}" placeholder="${escapeHTML(placeholderText)}" autocomplete="off">
+            </div>
         </div>
     `;
 }
@@ -526,7 +530,7 @@ function bindSearchInput() {
 function renderChapterListView(container, admin) {
     setHeaderBackMode("ড্রাইভিং গাইড");
 
-    let html = renderSearchBox("অধ্যায় বা বিষয় খুঁজুন...");
+    let html = renderToolbarWithSearch("অধ্যায় খুঁজুন...", admin, "dgNewChapterBtn", "＋ নতুন অধ্যায়");
 
     if (admin) {
         const editingChap = editingChapterId
@@ -535,9 +539,6 @@ function renderChapterListView(container, admin) {
         const formVisible = editingChap ? "" : "hidden";
 
         html += `
-            <div class="dg-native-toolbar">
-                <button id="dgNewChapterBtn" type="button" class="dg-native-btn">＋ নতুন অধ্যায়</button>
-            </div>
             <div id="dgChapterFormBox" class="dg-editor-box ${formVisible}">
                 <input id="dgChapTitleIn" type="text" value="${escapeHTML(editingChap?.title || "")}" placeholder="অধ্যায়ের নাম (যেমন: ট্রাফিক আইন ও সিগন্যাল)">
                 <input id="dgChapDescIn" type="text" value="${escapeHTML(editingChap?.description || "")}" placeholder="অধ্যায়ের সংক্ষিপ্ত বিবরণ (ঐচ্ছিক)">
@@ -663,7 +664,7 @@ function renderChapterListView(container, admin) {
 function renderChapterDocsView(container, chapter, admin) {
     setHeaderBackMode(chapter.title);
 
-    let html = renderSearchBox("এই অধ্যায়ের লেখা, ছবি ক্যাপশন বা লিংক খুঁজুন...");
+    let html = renderToolbarWithSearch("বিষয় খুঁজুন...", admin, "dgToggleDocEditorBtn", "＋ নতুন ডকুমেন্ট");
 
     const docs = Array.isArray(chapter.docs) ? chapter.docs : [];
     const editingDoc = editingDocId ? docs.find(d => d.id === editingDocId) : null;
@@ -671,9 +672,6 @@ function renderChapterDocsView(container, chapter, admin) {
     if (admin) {
         const editorVisible = editingDoc ? "" : "hidden";
         html += `
-            <div class="dg-native-toolbar">
-                <button id="dgToggleDocEditorBtn" type="button" class="dg-native-btn">＋ নতুন ডকুমেন্ট / লেখা</button>
-            </div>
             <div id="dgDocEditorBox" class="dg-editor-box ${editorVisible}">
                 <input id="dgDocTitleIn" type="text" value="${escapeHTML(editingDoc?.title || "")}" placeholder="ডকুমেন্টের শিরোনাম (ঐচ্ছিক)">
                 <div class="dg-tag-helper">
@@ -866,7 +864,9 @@ export function closeDrivingGuide() {
     restoreHeaderMode();
     hideMainViewsForGuide(false);
 
-    if (typeof window.refreshCurrentView === "function") {
+    if (typeof window.showMainDashboardView === "function") {
+        window.showMainDashboardView(false);
+    } else if (typeof window.refreshCurrentView === "function") {
         window.refreshCurrentView();
     }
 }
