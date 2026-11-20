@@ -1,1060 +1,1708 @@
 <!DOCTYPE html>
 <html lang="bn">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RMP MT Contacts</title>
 
-<link rel="stylesheet" href="css/style.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="js/color-formatter.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#020624">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="RMP MT Contacts">
+    <meta name="google" content="notranslate">
+
+    <title>RMP MT Contacts</title>
+
+    <!-- অ্যাপ আনলক করা না থাকলে সরাসরি splash.html এ পাঠিয়ে দেবে -->
+    <script>
+        if (localStorage.getItem("police_phonebook_is_unlocked") !== "true") {
+            window.location.replace("splash.html");
+        }
+    </script>
+
+    <link rel="manifest" href="manifest.json?v=1.1">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="css/style.css?v=6">
+
+    <style>
+        /* Google Translate Banner & Top Shift Fix */
+        .goog-te-banner-frame.skiptranslate {
+            display: none !important;
+        }
+        .goog-tooltip,
+        .goog-tooltip:hover {
+            display: none !important;
+        }
+        .goog-text-highlight {
+            background-color: transparent !important;
+            box-shadow: none !important;
+        }
+
+        /* মূল লেআউট স্টাইল */
+        html {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100%;
+        }
+        body {
+            background-color: #020624 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            top: 0 !important;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+        }
+        #appContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
+        .modern-top-wrapper {
+            background: var(--primary-color, #020624);
+            color: #ffffff;
+            padding-bottom: 24px;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+        }
+        .modern-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px 8px 16px;
+        }
+        .header-left-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modern-menu-btn,
+        .modern-icon-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 15px;
+        }
+        .modern-title-area .app-title {
+            font-size: 19px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .verified-badge {
+            background-color: #0d6efd;
+            color: #ffffff;
+            font-size: 11px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .live-clock {
+            font-size: 11.5px;
+            color: #cbd5e1;
+            margin-top: 2px;
+            letter-spacing: 0.4px;
+            font-family: monospace;
+        }
+        .header-right-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .header-logo-img {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: none;
+            object-fit: cover;
+            margin-left: 4px;
+        }
+
+        /* ডেট এবং টাইমের ঠিক নিচে হেডারের ভেতরে সার্চ ফিল্ড */
+        .header-search-inline {
+            display: none;
+            padding: 2px 16px 6px;
+            width: 70%;
+            box-sizing: border-box;
+            margin: 0 auto;
+        }
+        .header-search-inline.is-visible {
+            display: block !important;
+        }
+        .subpage-search-field {
+            width: 100%;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            box-sizing: border-box;
+            padding: 0 13px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 40px;
+            background: rgba(255, 255, 255, 0.11);
+            margin: 0 auto;
+        }
+        .subpage-search-icon {
+            flex: 0 0 auto;
+            color: #cbd5e1;
+            font-size: 23px;
+            line-height: 1;
+        }
+        .header-search-inline input[type="search"] {
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 100% !important;
+            padding: 0 !important;
+            border: 0 !important;
+            outline: 0 !important;
+            background: transparent !important;
+            color: #ffffff !important;
+            font-size: 14px;
+            box-shadow: none !important;
+            text-align: left;
+        }
+        .header-search-inline input[type="search"]::placeholder {
+            color: #cbd5e1 !important;
+            opacity: 1;
+        }
+        .subpage-search-clear {
+            display: none;
+            flex: 0 0 25px;
+            width: 25px;
+            height: 25px;
+            padding: 0;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+            font-size: 20px;
+            line-height: 22px;
+            cursor: pointer;
+        }
+        .subpage-search-field.has-value .subpage-search-clear {
+            display: block;
+        }
+
+        /* ইমেজ স্লাইডার (শুধুমাত্র প্রথম পেজে থাকবে) */
+        .hero-slider-container {
+            position: relative;
+            margin: 4px 16px 0;
+            border-radius: 16px;
+            overflow: hidden;
+            height: 145px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .slider-track {
+            display: flex;
+            height: 100%;
+            transition: transform 0.5s ease-in-out;
+        }
+        .slide-item {
+            min-width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        .slide-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .slide-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 10%, rgba(0, 0, 0, 0.1) 80%);
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding: 12px 14px;
+        }
+        .slide-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .slide-badge {
+            background: #ffffff;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .slide-info h4 {
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .slide-btn {
+            background: #0ea5e9;
+            color: #ffffff !important;
+            border: none;
+            padding: 5px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .slider-dots {
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+        }
+        .slider-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.4);
+        }
+        .slider-dot.active {
+            background: #ffffff;
+            width: 14px;
+            border-radius: 4px;
+        }
+
+        /* সাদা বাঁকানো মূল শিট */
+        .curved-main-sheet {
+            background-color: var(--bg-color, #f8fafc);
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            flex: 1;
+            margin-top: -16px;
+            position: relative;
+            z-index: 20;
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding: 16px 14px 80px 14px;
+        }
+
+        /* ৩-কলাম গ্রিড ক্যাটাগরি লিস্ট */
+        #categoryList.category-list {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 12px !important;
+        }
+        #categoryList .category-card,
+        body.dark-mode #categoryList .category-card {
+            background: var(--app-main-color, var(--primary-color, #463758)) !important;
+            background-color: var(--app-main-color, var(--primary-color, #463758)) !important;
+            border: none !important;
+            border-radius: 14px !important;
+            height: 105px !important;
+            padding: 10px 6px !important;
+            margin-bottom: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            position: relative;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+        }
+        #categoryList .cat-click {
+            flex-direction: column !important;
+            justify-content: center !important;
+            align-items: center !important;
+            width: 100%;
+            height: 100%;
+        }
+        #categoryList .cat-card-img {
+            width: 38px !important;
+            height: 38px !important;
+            margin: 0 0 8px 0 !important;
+            border: none !important;
+            border-radius: 8px !important;
+            object-fit: contain !important;
+        }
+        #categoryList .category-card h3 {
+            color: #ffffff !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            line-height: 1.25 !important;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        #categoryList .category-card > div:last-child {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            display: flex;
+            gap: 2px;
+            transform: scale(0.75);
+        }
+
+        /* দ্বিতীয় পেজ বা ক্যাটাগরি ডিটেইলস স্টাইল */
+        #categoryDetailsView {
+            background-color: transparent !important;
+            padding: 0;
+            min-height: auto;
+        }
+        #categoryDetailsView .dashboard-header {
+            display: none !important;
+        }
+        #categoryDetailsView .data-card-item {
+            background-color: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 20px !important;
+            padding: 12px !important;
+            margin-bottom: 12px !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
+        }
+        #categoryDetailsView .data-card-avatar {
+            width: 58px !important;
+            height: 58px !important;
+            min-width: 58px !important;
+            max-width: 58px !important;
+            max-height: 58px !important;
+            border-radius: 50% !important;
+            background: #e2e8f0;
+            margin-right: 4px !important;
+            object-fit: cover !important;
+            border: 2px solid #cbd5e1;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0 !important;
+        }
+        #categoryDetailsView .data-card-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #categoryDetailsView .data-card-info {
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+        }
+        #categoryDetailsView .data-card-name {
+            font-size: 15.5px !important;
+            font-weight: 700 !important;
+            color: #463758 !important;
+            margin-bottom: 2px;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+        #categoryDetailsView .data-card-detail {
+            font-size: 12px !important;
+            color: #64748b !important;
+            line-height: 1.4;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        /* অ্যাডমিন কার্ড অ্যাকশন বাটন */
+        .data-card-item > div:last-child:not(.data-card-info):not(.data-card-avatar),
+        .data-card-actions,
+        .card-admin-actions {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+            gap: 3px !important;
+            flex-shrink: 0 !important;
+            max-width: fit-content !important;
+            margin-left: auto !important;
+            padding: 0 !important;
+        }
+        .data-card-item > div:last-child:not(.data-card-info):not(.data-card-avatar) button,
+        .data-card-actions button,
+        .card-admin-actions button {
+            padding: 4px 5px !important;
+            min-width: 26px !important;
+            width: 26px !important;
+            height: 26px !important;
+            font-size: 13px !important;
+            margin: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-radius: 6px !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* কন্টাক্ট ডিটেইলস পেজ (#dataDetailsView) */
+        body.is-data-details-mode {
+            background-color: #020624 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        body.is-data-details-mode .modern-top-wrapper,
+        body.is-data-details-mode #heroSlider,
+        body.is-data-details-mode #searchBox,
+        body.is-data-details-mode #subPageHeaderSearchWrapper,
+        body.is-data-details-mode #slidingNoticeContainer,
+        body.is-data-details-mode .modern-header {
+            display: none !important;
+        }
+        body.is-data-details-mode .curved-main-sheet {
+            background-color: #ffffff !important;
+            border-top-left-radius: 0 !important;
+            border-top-right-radius: 0 !important;
+            padding: 0 0 80px 0 !important;
+            margin-top: 0 !important;
+            box-shadow: none !important;
+            flex: 1 !important;
+            overflow-y: auto !important;
+        }
+        body.dark-mode.is-data-details-mode .curved-main-sheet {
+            background-color: #242424 !important;
+        }
+        body.is-data-details-mode .container {
+            padding: 0 !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+        }
+
+        #dataDetailsView .details-container-card {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border-radius: 0 !important;
+        }
+        #dataPageContent {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        #dataPageContent > div:first-child {
+            background: var(--primary-color, #020624) !important;
+            color: #ffffff !important;
+            padding: 24px 16px 26px 16px !important;
+            border-radius: 0 0 24px 24px !important;
+            text-align: center !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4) !important;
+            margin: 0 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 50 !important;
+        }
+        #dataPageContent .avatar-wrapper {
+            cursor: zoom-in;
+            transition: transform 0.2s ease;
+        }
+        #dataPageContent .avatar-wrapper:active {
+            transform: scale(0.96);
+        }
+        #dataPageContent img {
+            width: 110px !important;
+            height: 110px !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+            background: #111b2b !important;
+            border: 3px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
+            margin: 0 auto 10px auto !important;
+            display: block !important;
+        }
+        #dataPageContent h1,
+        #dataPageContent h2,
+        #dataPageContent h3,
+        #dataPageContent .detail-name,
+        #dataPageContent .profile-name {
+            color: #ffffff !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            margin: 0 auto 6px auto !important;
+            text-align: center !important;
+            background: rgba(0, 0, 0, 0.2) !important;
+            padding: 7px 12px !important;
+            border-radius: 10px !important;
+            max-width: 90% !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        #dataPageContent .detail-designation,
+        #dataPageContent .designation,
+        #dataPageContent .subtitle {
+            color: #cbd5e1 !important;
+            font-size: 13.5px !important;
+            font-weight: 500 !important;
+            margin: 0 !important;
+            text-align: center !important;
+        }
+
+        #dataPageContent .info-row,
+        #dataPageContent .detail-row,
+        #dataPageContent .data-field,
+        #dataPageContent .detail-box,
+        #dataPageContent .info-card,
+        #dataPageContent .contact-detail-item,
+        #dataPageContent .details-info-box {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 14px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+            padding: 12px 16px !important;
+            margin: 0 16px 8px 16px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            text-align: left !important;
+            position: relative !important;
+        }
+        body.dark-mode #dataPageContent .info-row,
+        body.dark-mode #dataPageContent .detail-row,
+        body.dark-mode #dataPageContent .data-field,
+        body.dark-mode #dataPageContent .detail-box,
+        body.dark-mode #dataPageContent .info-card,
+        body.dark-mode #dataPageContent .contact-detail-item,
+        body.dark-mode #dataPageContent .details-info-box {
+            background: #0f172a !important;
+            border-color: #334155 !important;
+        }
+
+        #dataPageContent .info-row .label,
+        #dataPageContent .detail-row .label,
+        #dataPageContent .field-label,
+        #dataPageContent .detail-label,
+        #dataPageContent .info-card > span:first-child,
+        #dataPageContent .detail-box > span:first-child,
+        #dataPageContent .info-label {
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            color: #64748b !important;
+            margin-bottom: 2px !important;
+            display: block !important;
+        }
+        body.dark-mode #dataPageContent .info-row .label,
+        body.dark-mode #dataPageContent .detail-row .label,
+        body.dark-mode #dataPageContent .field-label,
+        body.dark-mode #dataPageContent .detail-label,
+        body.dark-mode #dataPageContent .info-label {
+            color: #94a3b8 !important;
+        }
+
+        #dataPageContent .info-row .value,
+        #dataPageContent .detail-row .value,
+        #dataPageContent .field-value,
+        #dataPageContent .detail-value,
+        #dataPageContent .info-card > div,
+        #dataPageContent .info-card > p,
+        #dataPageContent .detail-box > div,
+        #dataPageContent .detail-box > p,
+        #dataPageContent .info-value {
+            font-size: 15.5px !important;
+            font-weight: 700 !important;
+            color: #0f172a !important;
+            margin: 0 !important;
+            word-break: break-word !important;
+        }
+        body.dark-mode #dataPageContent .info-row .value,
+        body.dark-mode #dataPageContent .detail-row .value,
+        body.dark-mode #dataPageContent .field-value,
+        body.dark-mode #dataPageContent .detail-value,
+        body.dark-mode #dataPageContent .info-value {
+            color: #f1f5f9 !important;
+        }
+
+        #dataPageContent .action-buttons,
+        #dataPageContent .detail-actions,
+        #dataPageContent .btn-group,
+        #dataPageContent .quick-actions,
+        #dataPageContent .quick-action-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 8px !important;
+            margin: 10px 16px !important;
+            padding: 0 !important;
+            width: auto !important;
+        }
+        #dataPageContent .action-buttons a,
+        #dataPageContent .detail-actions a,
+        #dataPageContent .btn-group a,
+        #dataPageContent .quick-actions a,
+        #dataPageContent .quick-action-grid a,
+        #dataPageContent .action-buttons button,
+        #dataPageContent .detail-actions button,
+        #dataPageContent .btn-group button,
+        #dataPageContent .quick-actions button,
+        #dataPageContent .quick-action-grid button {
+            position: static !important;
+            transform: none !important;
+            width: 100% !important;
+            height: 44px !important;
+            padding: 0 4px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 5px !important;
+            font-size: 12.5px !important;
+            font-weight: 700 !important;
+            border-radius: 12px !important;
+            border: none !important;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12) !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            cursor: pointer !important;
+            box-sizing: border-box !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+        #dataPageContent .quick-action-grid > :nth-child(1),
+        #dataPageContent .quick-actions > :nth-child(1) {
+            background: linear-gradient(135deg, #463758, #463758) !important;
+        }
+        #dataPageContent .quick-action-grid > :nth-child(2),
+        #dataPageContent .quick-actions > :nth-child(2) {
+            background: linear-gradient(135deg, #4b5563, #374151) !important;
+        }
+        #dataPageContent .quick-action-grid > :nth-child(3),
+        #dataPageContent .quick-actions > :nth-child(3) {
+            background: linear-gradient(135deg, #ea4335, #c5221f) !important;
+        }
+
+        #dataPageContent .share-contact-card,
+        #dataPageContent a[href*="share"],
+        #dataPageContent button[id*="share"],
+        #dataPageContent .share-btn-wrapper,
+        #dataPageContent #btnShareContact,
+        #dataPageContent .btn-share-round {
+            grid-column: 1 / -1 !important;
+            background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
+            color: #ffffff !important;
+            border-radius: 14px !important;
+            height: 48px !important;
+            padding: 0 16px !important;
+            margin: 4px 16px 10px 16px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            font-size: 14.5px !important;
+            font-weight: 700 !important;
+            box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3) !important;
+            border: none !important;
+            text-decoration: none !important;
+            position: static !important;
+            transform: none !important;
+            width: calc(100% - 32px) !important;
+            box-sizing: border-box !important;
+            cursor: pointer !important;
+        }
+
+        /* নিচের নেভিগেশন বার */
+        .custom-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .bottom-nav-svg {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 48px;
+            display: block;
+            filter: drop-shadow(0 -3px 8px rgba(0, 0, 0, 0.25));
+        }
+        .bottom-nav-svg path {
+            fill: var(--primary-color, #020624) !important;
+        }
+        .bottom-nav-logo-circle {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #ffffff;
+            padding: 3px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        .bottom-nav-logo-circle img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        /* ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো */
+        .image-zoom-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 36, 0.96);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            touch-action: none;
+            user-select: none;
+        }
+        .image-zoom-modal.hidden {
+            display: none !important;
+        }
+        .zoom-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+            color: #ffffff;
+            z-index: 10;
+        }
+        .zoom-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 75%;
+        }
+        .zoom-close-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .zoom-canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #zoomTargetImage {
+            max-width: 92vw;
+            max-height: 76vh;
+            border-radius: 14px;
+            object-fit: contain;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
+        }
+        #zoomFallbackIcon {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 4px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 120px;
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+        }
+        .zoom-controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 16px;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+            z-index: 10;
+        }
+        .zoom-ctrl-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .zoom-ctrl-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* সাব-ক্যাটাগরি কার্ডের ব্যাকগ্রাউন্ড থিম কালার */
+        #detailsContent .subcategory-card,
+        #detailsContent .data-card-item:has(img[src*="bell"]),
+        #detailsContent > div > div.subcategory-card,
+        #categoryDetailsView .subcategory-card,
+        .subcategory-card,
+        body.dark-mode #detailsContent .subcategory-card,
+        body.dark-mode #detailsContent .data-card-item:has(img[src*="bell"]),
+        body.dark-mode #detailsContent > div > div.subcategory-card,
+        body.dark-mode #categoryDetailsView .subcategory-card,
+        body.dark-mode .subcategory-card {
+            background-color: var(--app-main-color, var(--primary-color, #020624)) !important;
+            background: var(--app-main-color, var(--primary-color, #020624)) !important;
+            color: #ffffff !important;
+        }
+        #detailsContent .subcategory-card *,
+        .subcategory-card *,
+        body.dark-mode #detailsContent .subcategory-card *,
+        body.dark-mode .subcategory-card * {
+            color: #ffffff !important;
+        }
+
+        /* Favorite Numbers ও All Search কার্ড উল্লম্বভাবে সাজানো */
+        #categoryList:has(> .data-card-item),
+        #categoryDetailsView :has(> .data-card-item),
+        #detailsContent :has(> .data-card-item),
+        #allSearchContainer:has(> .data-card-item) {
+            display: flex !important;
+            flex-direction: column !important;
+            flex-wrap: nowrap !important;
+            grid-template-columns: none !important;
+            overflow-x: visible !important;
+            overflow-y: visible !important;
+            scroll-snap-type: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            gap: 0 !important;
+            transform: none !important;
+            animation: none !important;
+        }
+        #categoryList .data-card-item,
+        #categoryDetailsView .data-card-item,
+        #detailsContent .data-card-item,
+        #allSearchContainer .data-card-item {
+            margin-bottom: 12px !important;
+            flex: 0 0 auto !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+            scroll-snap-align: none !important;
+            overflow: hidden !important;
+        }
+        #categoryDetailsView .data-card-item > *,
+        #detailsContent .data-card-item > *,
+        #allSearchContainer .data-card-item > * {
+            min-width: 0;
+        }
+
+        /* ডাটা কার্ডে ডার্ক মোড এবং কাস্টম থিম কালার সাপোর্ট */
+        body.dark-mode #categoryDetailsView .data-card-item,
+        body.dark-mode #detailsContent .data-card-item,
+        body.dark-mode #categoryList .data-card-item,
+        body.dark-mode #allSearchContainer .data-card-item,
+        body.has-custom-theme #categoryDetailsView .data-card-item,
+        body.has-custom-theme #detailsContent .data-card-item,
+        body.has-custom-theme #categoryList .data-card-item,
+        body.has-custom-theme #allSearchContainer .data-card-item {
+            background-color: var(--app-main-color, #020624) !important;
+            background: var(--app-main-color, #020624) !important;
+            border: none !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+        }
+        body.dark-mode #categoryDetailsView .data-card-name,
+        body.dark-mode #detailsContent .data-card-name,
+        body.dark-mode #categoryList .data-card-name,
+        body.dark-mode #allSearchContainer .data-card-name,
+        body.has-custom-theme #categoryDetailsView .data-card-name,
+        body.has-custom-theme #detailsContent .data-card-name,
+        body.has-custom-theme #categoryList .data-card-name,
+        body.has-custom-theme #allSearchContainer .data-card-name {
+            color: #ffffff !important;
+        }
+        body.dark-mode #categoryDetailsView .data-card-detail,
+        body.dark-mode #detailsContent .data-card-detail,
+        body.dark-mode #categoryList .data-card-detail,
+        body.dark-mode #allSearchContainer .data-card-detail,
+        body.has-custom-theme #categoryDetailsView .data-card-detail,
+        body.has-custom-theme #detailsContent .data-card-detail,
+        body.has-custom-theme #categoryList .data-card-detail,
+        body.has-custom-theme #allSearchContainer .data-card-detail {
+            color: rgba(255, 255, 255, 0.75) !important;
+        }
+        body.dark-mode #categoryDetailsView .data-card-avatar,
+        body.dark-mode #detailsContent .data-card-avatar,
+        body.dark-mode #categoryList .data-card-avatar,
+        body.dark-mode #allSearchContainer .data-card-avatar,
+        body.has-custom-theme #categoryDetailsView .data-card-avatar,
+        body.has-custom-theme #detailsContent .data-card-avatar,
+        body.has-custom-theme #categoryList .data-card-avatar,
+        body.has-custom-theme #allSearchContainer .data-card-avatar {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: rgba(255, 255, 255, 0.25) !important;
+        }
+
+        /* কন্টাক্ট ডিটেইলস পেজের ওপরের প্রোফাইল অংশ */
+        html body #dataDetailsView #dataPageContent > .details-header-section,
+        html body.dark-mode #dataDetailsView #dataPageContent > .details-header-section,
+        html body.is-data-details-mode #dataDetailsView #dataPageContent > .details-header-section {
+            background: var(--app-main-color, #020624) !important;
+            background-color: var(--app-main-color, #020624) !important;
+            background-image: none !important;
+            filter: none !important;
+            color: #ffffff !important;
+        }
+        html body #dataDetailsView #dataPageContent > .details-header-section p {
+            color: #e2e8f0 !important;
+        }
+
+        /* ব্যাকগ্রাউন্ড ফটো (has-bg-image) সাপোর্ট */
+        body.has-bg-image {
+            background-image: var(--app-bg-image) !important;
+            background-size: cover !important;
+            background-position: center center !important;
+            background-repeat: no-repeat !important;
+            background-attachment: fixed !important;
+        }
+        body.has-bg-image .curved-main-sheet {
+            background-color: rgba(248, 250, 252, 0.72) !important;
+            backdrop-filter: blur(2px);
+        }
+        body.dark-mode.has-bg-image .curved-main-sheet {
+            background-color: rgba(15, 23, 42, 0.75) !important;
+            backdrop-filter: blur(2px);
+        }
+    </style>
 </head>
+
 <body>
 
-<style>
-  :root {
-    --app-main-color: #020624;
-    --app-main-dark: #010418;
-    --app-main-light: rgba(2, 6, 36, 0.08);
-    --app-main-border: rgba(2, 6, 36, 0.22);
-    --app-main-shadow: 0 4px 12px rgba(2, 6, 36, 0.25);
+<!-- Google Translate Hidden Element & Script -->
+<div id="google_translate_element" style="display:none;"></div>
+<script type="text/javascript">
+  function googleTranslateElementInit() {
+    new google.translate.TranslateElement({
+      pageLanguage: 'bn',
+      includedLanguages: 'en,bn',
+      autoDisplay: false,
+      layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+    }, 'google_translate_element');
   }
+</script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-  /* =========================================================
-     DYNAMIC THEME COLOR SYSTEM (FROM SETTINGS)
-     ========================================================= */
-  .topbar,
-  #mainHeader,
-  .header,
-  .app-header,
-  .top-header,
-  .navbar,
-  .nav-header {
-    background-color: var(--app-main-color, #020624) !important;
-    background: var(--app-main-color, #020624) !important;
-    color: #ffffff !important;
-    border-bottom-color: rgba(255, 255, 255, 0.12) !important;
-  }
-
-  .topbar *,
-  #mainHeader *,
-  .header *,
-  .app-header *,
-  .top-header * {
-    color: #ffffff;
-  }
-
-  .topbar .icon-btn,
-  .topbar button.icon-btn,
-  #mainHeader .icon-btn {
-    background-color: rgba(255, 255, 255, 0.14) !important;
-    color: #ffffff !important;
-    border-color: rgba(255, 255, 255, 0.22) !important;
-  }
-
-  .topbar .icon-btn:hover,
-  #mainHeader .icon-btn:hover {
-    background-color: rgba(255, 255, 255, 0.24) !important;
-  }
-
-  /* Bottom Navigation SVG & Center Circle */
-  .bottom-nav-svg path,
-  .bottom-nav-bg,
-  .nav-curve-bg {
-    fill: var(--app-main-color, #020624) !important;
-  }
-
-  .bottom-nav-logo-circle,
-  .center-logo-btn,
-  .nav-center-logo {
-    border-color: var(--app-main-color, #020624) !important;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28) !important;
-  }
-
-  /* Primary / Action Buttons */
-  .primary-btn,
-  .btn-primary,
-  .save-btn,
-  .add-btn,
-  .submit-btn,
-  .btn-add,
-  .btn-save,
-  .action-primary {
-    background-color: var(--app-main-color, #020624) !important;
-    border-color: var(--app-main-color, #020624) !important;
-    color: #ffffff !important;
-  }
-
-  .primary-btn:hover,
-  .btn-primary:hover,
-  .save-btn:hover,
-  .add-btn:hover,
-  .submit-btn:hover {
-    filter: brightness(1.1);
-  }
-
-  /* Drawer Active & Accent Items */
-  .drawer-menu-list li.active,
-  .drawer-item.active,
-  .menu-item.active {
-    background-color: var(--app-main-light, rgba(2, 6, 36, 0.08)) !important;
-    color: var(--app-main-color, #020624) !important;
-    border-left: 3px solid var(--app-main-color, #020624) !important;
-  }
-
-  /* Badges / Highlights / Links using main theme */
-  .badge-primary,
-  .tag-primary,
-  .active-badge {
-    background-color: var(--app-main-color, #020624) !important;
-    color: #ffffff !important;
-  }
-
-  /* =========================================================
-     1. HIDE TOPBAR SEARCH ICON BY DEFAULT & SHOW ON SUB-PAGES
-     ========================================================= */
-  #searchBtn {
-    display: none !important;
-  }
-
-  body.is-subpage-active #searchBtn,
-  body.is-data-details-active #searchBtn,
-  body.is-all-search-active #searchBtn,
-  body.is-favorite-active #searchBtn {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  /* Hide any duplicate old search bars */
-  .search-container:not(#subPageHeaderSearchWrapper),
-  .search-wrapper:not(#subPageHeaderSearchWrapper),
-  .search-box-wrapper:not(#subPageHeaderSearchWrapper),
-  #searchSection {
-    display: none !important;
-  }
-
-  /* =========================================================
-     2. SUB-PAGE HEADER SEARCH BAR (NO OUTER CARD BOX)
-     ========================================================= */
-  #subPageHeaderSearchWrapper {
-    display: none;
-    width: 100%;
-    max-width: 100%;
-    margin: 0 0 12px 0;
-    padding: 0;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    box-sizing: border-box;
-    position: relative;
-    z-index: 25;
-  }
-
-  #subPageHeaderSearchWrapper.is-visible {
-    display: block !important;
-  }
-
-  .subpage-search-field {
-    position: relative;
-    display: flex;
-    align-items: center;
-    width: 100%;
-    height: 44px;
-    background: #ffffff;
-    border: 1.5px solid #cbd5e1;
-    border-radius: 12px;
-    padding: 0 12px 0 38px;
-    box-sizing: border-box;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  body.dark-mode .subpage-search-field {
-    background: #1e293b;
-    border-color: #334155;
-  }
-
-  .subpage-search-field:focus-within {
-    border-color: var(--app-main-color, #020624);
-    box-shadow: 0 0 0 3px var(--app-main-light, rgba(2, 6, 36, 0.12));
-  }
-
-  .subpage-search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 15px;
-    line-height: 1;
-    pointer-events: none;
-    opacity: 0.7;
-  }
-
-  #subPageSearchInput {
-    width: 100%;
-    height: 100%;
-    border: none !important;
-    outline: none !important;
-    background: transparent !important;
-    color: #0f172a;
-    font-size: 14.5px;
-    font-weight: 500;
-    padding: 0 28px 0 0;
-    box-sizing: border-box;
-  }
-
-  body.dark-mode #subPageSearchInput {
-    color: #f8fafc;
-  }
-
-  #subPageSearchInput::placeholder {
-    color: #94a3b8;
-    font-weight: 400;
-  }
-
-  #subPageSearchClearBtn {
-    display: none;
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 50%;
-    background: rgba(100, 116, 139, 0.16);
-    color: #475569;
-    font-size: 13px;
-    line-height: 1;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-  }
-
-  body.dark-mode #subPageSearchClearBtn {
-    background: rgba(148, 163, 184, 0.2);
-    color: #e2e8f0;
-  }
-
-  .subpage-search-field.has-value #subPageSearchClearBtn {
-    display: inline-flex;
-  }
-
-  /* =========================================================
-     3. FULL-BLEED EDGE-TO-EDGE SLIDER BANNER
-     ========================================================= */
-  #homeImageSliderWrapper {
-    display: block;
-    width: 100vw;
-    max-width: 100vw;
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    margin-top: -12px;
-    margin-bottom: 14px;
-    padding: 0;
-    box-sizing: border-box;
-    overflow: hidden;
-    position: relative;
-    z-index: 5;
-  }
-
-  #homeImageSliderWrapper.slider-hidden {
-    display: none !important;
-  }
-
-  .slider-container {
-    position: relative;
-    width: 100%;
-    height: 155px;
-    overflow: hidden;
-    border-radius: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #0f172a;
-  }
-
-  @media (min-width: 600px) {
-    .slider-container {
-      height: 190px;
+<script type="text/javascript">
+  (function() {
+    const savedLang = localStorage.getItem('app_language');
+    if (savedLang) {
+      const value = `/bn/${savedLang}`;
+      document.cookie = `googtrans=${value};path=/;max-age=31536000`;
+      document.cookie = `googtrans=${value};domain=${document.domain};path=/;max-age=31536000`;
     }
-  }
-
-  .slider-container .slide {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    transition: opacity 0.45s ease-in-out;
-    pointer-events: none;
-  }
-
-  .slider-container .slide.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .slider-container .slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    border-radius: 0 !important;
-  }
-
-  .slider-dots {
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 6px;
-    z-index: 10;
-    padding: 4px 8px;
-    border-radius: 999px;
-    background: rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(4px);
-  }
-
-  .slider-dots .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.55);
-    cursor: pointer;
-    transition: all 0.25s ease;
-  }
-
-  .slider-dots .dot.active {
-    width: 18px;
-    border-radius: 999px;
-    background: #ffffff;
-  }
-
-  /* =========================================================
-     4. FIXED BOTTOM NAVIGATION & CURVED NOTCH LOGO
-     ========================================================= */
-  .custom-bottom-nav {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 62px;
-    z-index: 999;
-    pointer-events: none;
-  }
-
-  .bottom-nav-svg {
-    width: 100%;
-    height: 62px;
-    display: block;
-    filter: drop-shadow(0 -3px 10px rgba(0, 0, 0, 0.14));
-  }
-
-  .bottom-nav-logo-circle {
-    position: fixed;
-    left: 50%;
-    bottom: 18px;
-    transform: translateX(-50%);
-    width: 58px;
-    height: 58px;
-    border-radius: 50%;
-    background: #ffffff;
-    border: 3px solid var(--app-main-color, #020624);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    pointer-events: auto;
-    z-index: 1001;
-    overflow: hidden;
-    transition: transform 0.2s ease;
-  }
-
-  .bottom-nav-logo-circle:active {
-    transform: translateX(-50%) scale(0.95);
-  }
-
-  .bottom-nav-logo-circle img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 50%;
-  }
-
-  /* =========================================================
-     5. SAFE BOTTOM SPACE SO LAST ITEM IS NEVER COVERED
-     ========================================================= */
-  #mainScrollSheet,
-  .main-container,
-  .container,
-  #categoryList,
-  #detailsContent,
-  #dataPageContent,
-  #allSearchContainer,
-  #drivingNoteView {
-    padding-bottom: 92px !important;
-    box-sizing: border-box;
-  }
-
-  body.is-data-details-active #dataPageContent,
-  body.is-data-details-active .data-details-container,
-  body.is-data-details-active .details-container {
-    padding-bottom: 110px !important;
-  }
-
-  /* =========================================================
-     6. FULL-SCREEN IMAGE ZOOM MODAL
-     ========================================================= */
-  #imageZoomModal {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.94);
-    z-index: 100000;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px;
-    box-sizing: border-box;
-  }
-
-  #imageZoomModal.hidden {
-    display: none !important;
-  }
-
-  .zoom-top-bar {
-    width: 100%;
-    max-width: 720px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    color: #ffffff;
-    z-index: 2;
-  }
-
-  .zoom-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 75%;
-  }
-
-  .zoom-close-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.16);
-    color: #ffffff;
-    font-size: 20px;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .zoom-canvas-area {
-    flex: 1;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: relative;
-    touch-action: none;
-  }
-
-  #zoomTargetImage {
-    max-width: 92%;
-    max-height: 75vh;
-    object-fit: contain;
-    border-radius: 12px;
-    user-select: none;
-    -webkit-user-drag: none;
-    transform-origin: center center;
-    transition: transform 0.15s ease-out;
-  }
-
-  #zoomFallbackIcon {
-    font-size: 110px;
-    line-height: 1;
-    color: #e2e8f0;
-    user-select: none;
-    transform-origin: center center;
-    transition: transform 0.15s ease-out;
-  }
-
-  .zoom-bottom-controls {
-    display: flex;
-    gap: 12px;
-    padding-bottom: 12px;
-    z-index: 2;
-  }
-
-  .zoom-control-btn {
-    padding: 8px 16px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-</style>
-
-<!-- টপবার ও নেভিগেশন -->
-<header class="topbar" id="mainHeader">
-  <button id="navToggleBtn" class="icon-btn" title="মেনু / ফিরে যান">
-    <span id="menuIcon">☰</span>
-    <span id="backIcon" class="hidden">←</span>
-  </button>
-
-  <div class="app-title" id="appTitle">
-    <span class="app-title-text">RMP MT Contacts</span>
-    <span id="verifiedBadge" class="verified-badge hidden" title="ভেরিফাইড">✓</span>
-  </div>
-
-  <!-- হেডার সার্চ বক্স -->
-  <div id="searchBox" class="search-box hidden">
-    <input type="text" id="searchInput" placeholder="নাম, পদবী, ইউনিট বা নাম্বার খুঁজুন...">
-  </div>
-
-  <div class="top-actions">
-    <button id="searchBtn" class="icon-btn" title="সার্চ">🔍</button>
-    <button id="themeBtn" class="icon-btn" title="থিম পরিবর্তন">🌓</button>
-    <button id="adminLoginBtn" class="primary-btn btn-admin-small hidden">🔑Admin</button>
-  </div>
-</header>
-
-<!-- ড্রয়ার ওভারলে -->
-<div id="drawerOverlay" class="drawer-overlay"></div>
-
-<!-- সাইড নেভিগেশন ড্রয়ার -->
-<aside id="appDrawer" class="app-drawer" aria-label="Main Navigation Drawer">
-  <div class="drawer-header">
-    <div class="drawer-header-bg-glow"></div>
-    <div class="drawer-profile-area">
-      <div class="drawer-avatar">🛡️</div>
-      <div class="drawer-title-texts">
-        <h3>RMP MT Contacts</h3>
-        <p>Rajshahi Metropolitan Police</p>
-      </div>
-    </div>
-    <button id="closeDrawerBtn" class="close-drawer-btn" title="বন্ধ করুন">✕</button>
-  </div>
-
-  <div class="drawer-body">
-    <div class="drawer-section-title">নেভিগেশন</div>
-    <ul class="drawer-menu-list">
-      <li data-action="home" class="active">
-        <span class="menu-ico">🏠</span>
-        <span>হোম (সব ক্যাটাগরি)</span>
-      </li>
-      <li data-action="all_search">
-        <span class="menu-ico">🔍</span>
-        <span>সব নাম্বার সার্চ করুন</span>
-      </li>
-      <li data-action="favorite">
-        <span class="menu-ico">❤️</span>
-        <span>ফেভারিট নাম্বার</span>
-      </li>
-      <li data-action="driving">
-        <span class="menu-ico">🚗</span>
-        <span>Driving Note</span>
-      </li>
-    </ul>
-
-    <div class="drawer-divider"></div>
-    <div class="drawer-section-title">অ্যাপ ও তথ্য</div>
-    <ul class="drawer-menu-list">
-      <li data-action="settings">
-        <span class="menu-ico">⚙️</span>
-        <span>সেটিংস (Settings)</span>
-      </li>
-      <li data-action="share">
-        <span class="menu-ico">📤</span>
-        <span>অ্যাপ শেয়ার করুন</span>
-      </li>
-      <li data-action="about">
-        <span class="menu-ico">ℹ️</span>
-        <span>অ্যাপ সম্পর্কে (About)</span>
-      </li>
-    </ul>
-  </div>
-
-  <div class="drawer-footer">
-    © 2026 RMP MT Contacts • Developed by Jewel Rana
-  </div>
-</aside>
-
-<!-- মূল কন্টেইনার -->
-<main class="container" id="mainScrollSheet">
-  <!-- ড্যাশবোর্ড / ক্যাটাগরি ভিউ -->
-  <section id="mainDashboardView">
-    <!-- ফুল-ব্লিড স্লাইডার ব্যানার -->
-    <div id="homeImageSliderWrapper">
-      <div class="slider-container" id="homeSlider">
-        <div class="slide active">
-          <img src="https://i.ibb.co/Vc36B5qK/1766564501134.jpg" alt="Banner 1">
-        </div>
-        <div class="slide">
-          <img src="https://i.ibb.co/gbdY1k8Y/1766564488014.jpg" alt="Banner 2">
-        </div>
-        <div class="slide">
-          <img src="https://i.ibb.co/fV5wC433/1766564454962.jpg" alt="Banner 3">
-        </div>
-        <div class="slider-dots">
-          <span class="dot active"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- সাব-পেজ সার্চ বার -->
-    <div id="subPageHeaderSearchWrapper">
-      <div class="subpage-search-field">
-        <span class="subpage-search-icon">🔍</span>
-        <input type="text" id="subPageSearchInput" placeholder="নাম, পদবী, ইউনিট বা নাম্বার খুঁজুন...">
-        <button type="button" id="subPageSearchClearBtn" title="মুছুন">✕</button>
-      </div>
-    </div>
-
-    <!-- অ্যাডমিন ক্যাটাগরি অ্যাড বাটন -->
-    <div id="adminActionContainer" class="section-toolbar hidden">
-      <button id="addCategoryBtn" class="primary-btn admin-only hidden">+ নতুন Category</button>
-    </div>
-
-    <!-- ক্যাটাগরি লিস্ট -->
-    <div id="categoryList" class="category-list"></div>
-
-    <!-- অল সার্চ রেজাল্ট কন্টেইনার -->
-    <div id="allSearchContainer" class="hidden"></div>
-
-    <!-- এম্পটি স্টেট -->
-    <div id="emptyState" class="empty-state hidden">
-      <div class="empty-icon">📂</div>
-      <h2>কোনো তথ্য পাওয়া যায়নি</h2>
-      <p>নতুন ক্যাটাগরি বা ডাটা যুক্ত করুন।</p>
-      <button id="emptyAddBtn" class="primary-btn admin-only hidden">+ নতুন Category</button>
-    </div>
-  </section>
-
-  <!-- ক্যাটাগরি ডিটেইলস / সাব-ক্যাটাগরি ও কন্টাক্ট লিস্ট ভিউ -->
-  <section id="categoryDetailsView" class="hidden">
-    <h2 id="detailsTitle" style="display:none;"></h2>
-
-    <div id="categoryAdminToolbar" class="section-toolbar admin-only hidden">
-      <button id="addSubCategoryBtn" class="primary-btn">+ Sub-Category</button>
-      <button id="addHeaderBtn" class="secondary-btn">+ Header</button>
-      <button id="addDataBtn" class="primary-btn">+ Data যোগ করুন</button>
-    </div>
-
-    <div id="detailsContent"></div>
-  </section>
-
-  <!-- কন্টাক্ট ডিটেইলস / প্রোফাইল ভিউ -->
-  <section id="dataDetailsView" class="hidden">
-    <div class="details-container-card" id="dataPageContent"></div>
-  </section>
-
-  <!-- অধ্যায় ভিত্তিক ড্রাইভিং নোট গাইড পেজ -->
-  <div id="drivingNoteView" class="hidden" style="padding-bottom: 24px;">
-    <div id="drivingAdminPanel" class="admin-only hidden" style="background: var(--card-bg, #ffffff); border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 3px 10px rgba(0,0,0,0.06);">
-      <h3 id="drivingFormTitle" style="margin: 0 0 12px; font-size: 16px; color: var(--app-main-color, #020624);">📘 নতুন অধ্যায় যোগ করুন</h3>
-
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">অধ্যায়ের শিরোনাম *</label>
-        <input id="drivingChapterTitle" type="text" placeholder="যেমন: ১. গাড়ি চালানোর পূর্বপ্রস্তুতি" style="width:100%; padding:9px; border-radius:8px; border:1px solid #cbd5e1;">
-      </div>
-
-      <div class="form-group" style="margin-bottom: 10px;">
-        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">বিস্তারিত নোট / বিষয়বস্তু</label>
-        <textarea id="drivingChapterBody" rows="4" placeholder="অধ্যায়ের বিস্তারিত লেখা এখানে লিখুন..." style="width:100%; padding:9px; border-radius:8px; border:1px solid #cbd5e1;"></textarea>
-      </div>
-
-      <div style="background: rgba(13, 110, 253, 0.05); border: 1px dashed #94a3b8; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
-        <div style="font-size:13px; font-weight:700; margin-bottom:6px;">🖼️ ছবি যুক্ত করুন (ঐচ্ছিক)</div>
-        <div class="form-group" style="margin-bottom: 8px;">
-          <label style="display:block; font-size:12px; font-weight:600; margin-bottom:3px;">ছবির লিংক (Image URL)</label>
-          <input id="drivingChapterImageUrl" type="url" placeholder="https://example.com/image.jpg" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-          <label style="display:block; font-size:12px; font-weight:600; margin-bottom:3px;">ছবির ক্যাপশন</label>
-          <input id="drivingChapterImageCaption" type="text" placeholder="ছবির সংক্ষিপ্ত বিবরণ" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
-        </div>
-      </div>
-
-      <div style="background: rgba(16, 185, 129, 0.06); border: 1px dashed #94a3b8; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
-        <div style="font-size:13px; font-weight:700; margin-bottom:6px;">🔗 লিংক যুক্ত করুন (ঐচ্ছিক)</div>
-        <div class="form-group" style="margin-bottom: 8px;">
-          <label style="display:block; font-size:12px; font-weight:600; margin-bottom:3px;">লিংক URL</label>
-          <input id="drivingChapterLinkUrl" type="url" placeholder="https://brta.gov.bd" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-          <label style="display:block; font-size:12px; font-weight:600; margin-bottom:3px;">লিংক বাটনের লেখা</label>
-          <input id="drivingChapterLinkText" type="text" placeholder="যেমন: নির্দেশিকা ওয়েবসাইট দেখুন" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
-        </div>
-      </div>
-
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button id="saveDrivingChapterBtn" class="primary-btn" type="button">অধ্যায় সেভ করুন</button>
-        <button id="cancelDrivingEditBtn" class="secondary-btn hidden" type="button">বাতিল</button>
-      </div>
-    </div>
-
-    <div id="drivingNoteContent" style="display:flex; flex-direction:column; gap:12px;"></div>
-  </div>
-</main>
-
-<!-- নিচের ফিক্সড বটম নেভিগেশন ও মাঝখানের লোগো -->
-<nav class="custom-bottom-nav" aria-label="Bottom Navigation">
-  <svg class="bottom-nav-svg" viewBox="0 0 1000 100" preserveAspectRatio="none">
-    <path class="bottom-nav-bg" d="M0,0 L415,0 C445,0 455,52 500,52 C545,52 555,0 585,0 L1000,0 L1000,100 L0,100 Z"></path>
-  </svg>
-  <div class="bottom-nav-logo-circle" id="bottomNavLogoBtn" title="RMP MT Contacts">
-    <img src="https://i.ibb.co/67g3kV5S/1766564552643.jpg" alt="RMP MT Logo">
-  </div>
-</nav>
-
-<!-- অ্যাডমিন লগইন মডাল -->
-<div id="loginModal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>🔑 অ্যাডমিন লগইন</h3>
-      <button class="close-btn" data-close="loginModal">✕</button>
-    </div>
-
-    <div id="loginFormContainer">
-      <div class="form-group">
-        <label>ইমেইল</label>
-        <input type="email" id="loginEmail" placeholder="admin@example.com">
-      </div>
-      <div class="form-group">
-        <label>পাসওয়ার্ড</label>
-        <input type="password" id="loginPassword" placeholder="********">
-      </div>
-      <div class="modal-actions">
-        <button class="secondary-btn" data-close="loginModal">বাতিল</button>
-        <button id="submitLoginBtn" class="primary-btn">লগইন</button>
-      </div>
-    </div>
-
-    <div id="logoutContainer" class="hidden" style="text-align:center;">
-      <p style="margin-bottom:14px;">আপনি বর্তমানে অ্যাডমিন হিসেবে লগইন আছেন।</p>
-      <button id="logoutBtn" class="danger-btn">লগআউট</button>
-    </div>
-  </div>
-</div>
-
-<!-- Category / Sub-Category মডাল -->
-<div id="categoryModal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="categoryModalTitle">নতুন Category</h3>
-      <button class="close-btn" data-close="categoryModal">✕</button>
-    </div>
-    <div class="form-group">
-      <label>Category নাম</label>
-      <input type="text" id="categoryNameInput" placeholder="ক্যাটাগরির নাম লিখুন">
-    </div>
-    <div class="form-group">
-      <label>ছবির লিংক (ঐচ্ছিক)</label>
-      <input type="url" id="categoryImageInput" placeholder="https://...">
-    </div>
-    <div class="modal-actions">
-      <button class="secondary-btn" data-close="categoryModal">বাতিল</button>
-      <button id="saveCategoryBtn" class="primary-btn">সেভ</button>
-    </div>
-  </div>
-</div>
-
-<!-- Header মডাল -->
-<div id="headerModal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>নতুন Header</h3>
-      <button class="close-btn" data-close="headerModal">✕</button>
-    </div>
-    <div class="form-group">
-      <label>Header নাম</label>
-      <input type="text" id="headerNameInput" placeholder="হেডারের নাম লিখুন">
-    </div>
-    <div class="modal-actions">
-      <button class="secondary-btn" data-close="headerModal">বাতিল</button>
-      <button id="saveHeaderBtn" class="primary-btn">সেভ</button>
-    </div>
-  </div>
-</div>
-
-<!-- Data Add/Edit মডাল -->
-<div id="dataModal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="dataModalTitle">Data যোগ করুন</h3>
-      <button class="close-btn" data-close="dataModal">✕</button>
-    </div>
-
-    <div class="form-group">
-      <label>Header সিলেক্ট করুন</label>
-      <select id="dataHeaderSelect"></select>
-    </div>
-    <div class="form-group">
-      <label>ছবির লিংক (ঐচ্ছিক)</label>
-      <input type="url" id="dataPhoto" placeholder="https://...">
-    </div>
-    <div class="form-group">
-      <label>নাম *</label>
-      <input type="text" id="dataName" placeholder="পূর্ণ নাম">
-    </div>
-    <div class="form-group">
-      <label>মোবাইল (১১ ডিজিট) *</label>
-      <input type="text" id="dataMobile" placeholder="01XXXXXXXXX">
-    </div>
-    <div class="form-group">
-      <label>টেলিফোন</label>
-      <input type="text" id="dataPhone" placeholder="টেলিফোন নাম্বার">
-    </div>
-    <div class="form-group">
-      <label>পদবী</label>
-      <input type="text" id="dataDesignation" placeholder="পদবী">
-    </div>
-    <div class="form-group">
-      <label>ইমেইল</label>
-      <input type="email" id="dataEmail" placeholder="name@example.com">
-    </div>
-    <div class="form-group">
-      <label>বর্তমান ঠিকানা / অফিস</label>
-      <input type="text" id="dataCurrentOffice" placeholder="বর্তমান কর্মস্থল">
-    </div>
-    <div class="form-group">
-      <label>স্থায়ী ঠিকানা</label>
-      <input type="text" id="dataPermanentAddress" placeholder="স্থায়ী ঠিকানা">
-    </div>
-    <div class="form-group">
-      <label>প্রশাসনিক তথ্য</label>
-      <textarea id="dataAdminInfo" rows="2" placeholder="অ্যাডমিন নোট"></textarea>
-    </div>
-
-    <div class="modal-actions">
-      <button class="secondary-btn" data-close="dataModal">বাতিল</button>
-      <button id="saveDataBtn" class="primary-btn">সেভ</button>
-    </div>
-  </div>
-</div>
-
-<!-- Move Data মডাল -->
-<div id="moveDataModal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>Data মুভ করুন</h3>
-      <button class="close-btn" data-close="moveDataModal">✕</button>
-    </div>
-    <div class="form-group">
-      <label>নতুন Category</label>
-      <select id="moveCategorySelect"></select>
-    </div>
-    <div class="form-group">
-      <label>নতুন Header</label>
-      <select id="moveHeaderSelect"></select>
-    </div>
-    <div class="modal-actions">
-      <button class="secondary-btn" data-close="moveDataModal">বাতিল</button>
-      <button id="confirmMoveBtn" class="primary-btn">মুভ করুন</button>
-    </div>
-  </div>
-</div>
-
-<!-- VIP Verification Request মডাল -->
-<div id="verifyModal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>VIP ভেরিফিকেশন রিকোয়েস্ট</h3>
-      <button class="close-btn" data-close="verifyModal">✕</button>
-    </div>
-    <div class="form-group">
-      <label>আপনার নাম *</label>
-      <input type="text" id="applicantName" placeholder="নাম লিখুন">
-    </div>
-    <div class="form-group">
-      <label>আপনার পদবী / ইউনিট *</label>
-      <input type="text" id="applicantDesignation" placeholder="পদবী বা ইউনিট লিখুন">
-    </div>
-    <div class="modal-actions">
-      <button class="secondary-btn" data-close="verifyModal">বাতিল</button>
-      <button id="submitVerifyBtn" class="primary-btn">রিকোয়েস্ট পাঠান</button>
-    </div>
-  </div>
-</div>
-
-<!-- Admin Verification Requests মডাল -->
-<div id="adminVerifyRequestsModal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3>ভেরিফিকেশন রিকোয়েস্টসমূহ</h3>
-      <button class="close-btn" data-close="adminVerifyRequestsModal">✕</button>
-    </div>
-    <div id="verifyRequestsList"></div>
-  </div>
-</div>
-
-<!-- Custom Confirm মডাল -->
-<div id="customConfirmModal" class="modal hidden">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h3 id="confirmModalTitle">নিশ্চিতকরণ</h3>
-      <button class="close-btn" data-close="customConfirmModal">✕</button>
-    </div>
-    <p id="confirmModalMessage"></p>
-    <div class="modal-actions">
-      <button id="cancelConfirmBtn" class="secondary-btn">বাতিল</button>
-      <button id="okConfirmBtn" class="danger-btn">হ্যাঁ, মুছুন</button>
-    </div>
-  </div>
-</div>
-
-<!-- ফুল-স্ক্রিন ইমেজ জুম মডাল -->
-<div id="imageZoomModal" class="hidden">
-  <div class="zoom-top-bar">
-    <div id="zoomModalTitle" class="zoom-title">প্রোফাইল ছবি</div>
-    <button id="closeImageZoomBtn" class="zoom-close-btn" title="বন্ধ করুন">✕</button>
-  </div>
-  <div id="zoomCanvasArea" class="zoom-canvas-area">
-    <img id="zoomTargetImage" class="hidden" alt="Zoomed Image">
-    <div id="zoomFallbackIcon" class="hidden">👤</div>
-  </div>
-  <div class="zoom-bottom-controls">
-    <button id="zoomOutBtn" class="zoom-control-btn" type="button">− জুম আউট</button>
-    <button id="zoomResetBtn" class="zoom-control-btn" type="button">রিসেট</button>
-    <button id="zoomInBtn" class="zoom-control-btn" type="button">+ জুম ইন</button>
-  </div>
-</div>
-
-<!-- টোস্ট মেসেজ -->
-<div id="toast" class="toast"></div>
-
-<script>
-  (function initSubPageHeaderSearch() {
-    const subSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
-    const subSearchInput = document.getElementById('subPageSearchInput');
-    const subSearchClearBtn = document.getElementById('subPageSearchClearBtn');
-    const mainSearchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
-    const sliderWrapper = document.getElementById('homeImageSliderWrapper');
-
-    if (!subSearchWrapper || !subSearchInput) return;
-
-    const searchField = subSearchWrapper.querySelector('.subpage-search-field');
-
-    function syncClearBtn() {
-      if (!searchField) return;
-      if (subSearchInput.value.trim().length > 0) {
-        searchField.classList.add('has-value');
-      } else {
-        searchField.classList.remove('has-value');
-      }
-    }
-
-    function syncSearchVisibility() {
-      const catDetails = document.getElementById('categoryDetailsView');
-      const allSearch = document.getElementById('allSearchContainer');
-      const dataDetails = document.getElementById('dataDetailsView');
-      const drivingNoteView = document.getElementById('drivingNoteView');
-      const favView = document.getElementById('favoriteView') || document.getElementById('favoritesView');
-      const homeView = document.getElementById('mainDashboardView') || document.getElementById('homeView');
-
-      const isSubPage = catDetails && !catDetails.classList.contains('hidden');
-      const isAllSearchPage = allSearch && !allSearch.classList.contains('hidden');
-      const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
-      const isDrivingNotePage = drivingNoteView && !drivingNoteView.classList.contains('hidden');
-      const isFavoritePage = favView && !favView.classList.contains('hidden');
-      const isHomeHidden = homeView && homeView.classList.contains('hidden');
-
-      document.body.classList.toggle('is-subpage-active', !!isSubPage);
-      document.body.classList.toggle('is-all-search-active', !!isAllSearchPage);
-      document.body.classList.toggle('is-data-details-active', !!isDataPage);
-      document.body.classList.toggle('is-favorite-active', !!isFavoritePage);
-
-      if (sliderWrapper) {
-        const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage || isAllSearchPage || isDrivingNotePage;
-        sliderWrapper.classList.toggle('slider-hidden', !!hideSlider);
-      }
-
-      const showSubSearch = (isSubPage || isAllSearchPage || isFavoritePage) && !isDataPage && !isDrivingNotePage;
-
-      if (showSubSearch) {
-        subSearchWrapper.classList.add('is-visible');
-      } else {
-        subSearchWrapper.classList.remove('is-visible');
-        if (subSearchInput.value !== '') {
-          subSearchInput.value = '';
-          syncClearBtn();
-        }
-      }
-    }
-
-    subSearchInput.addEventListener('input', () => {
-      syncClearBtn();
-      if (mainSearchInput) {
-        mainSearchInput.value = subSearchInput.value;
-        mainSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-    });
-
-    subSearchClearBtn?.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      subSearchInput.value = '';
-      syncClearBtn();
-      if (mainSearchInput) {
-        mainSearchInput.value = '';
-        mainSearchInput.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      subSearchInput.focus();
-    });
-
-    searchBtn?.addEventListener('click', () => {
-      setTimeout(() => {
-        syncSearchVisibility();
-        if (subSearchWrapper.classList.contains('is-visible')) {
-          subSearchInput.focus();
-        }
-      }, 60);
-    });
-
-    const observer = new MutationObserver(() => {
-      syncSearchVisibility();
-    });
-
-    observer.observe(document.body, {
-      attributes: true,
-      childList: true,
-      subtree: true,
-      attributeFilter: ['class', 'style']
-    });
-
-    window.addEventListener('popstate', () => setTimeout(syncSearchVisibility, 80));
-    window.addEventListener('hashchange', () => setTimeout(syncSearchVisibility, 80));
-
-    syncSearchVisibility();
-    syncClearBtn();
   })();
 </script>
 
-<script type="module" src="js/firebase.js"></script>
-<script type="module" src="js/auth.js"></script>
-<script type="module" src="js/drawer.js"></script>
+<div id="appContainer">
+
+    <!-- ডার্ক হেডার এবং স্লাইডার -->
+    <div class="modern-top-wrapper">
+        <header class="modern-header">
+            <div class="header-left-group">
+                <button id="navToggleBtn" class="modern-menu-btn" type="button" title="মেনু">
+                    <span id="menuIcon">☰</span>
+                    <span id="backIcon" class="hidden">←</span>
+                </button>
+                <div class="modern-title-area">
+                    <div class="app-title" id="appTitle">
+                        <span class="app-title-text">RMP MT Contacts</span>
+                        <span id="verifiedBadge" class="verified-badge hidden" title="Verified Device">✔</span>
+                    </div>
+                    <div id="liveDateTime" class="live-clock">লোড হচ্ছে...</div>
+                </div>
+            </div>
+
+            <div class="header-right-group">
+                <button id="adminLoginBtn" class="primary-btn active-btn btn-admin-small hidden" type="button">🔑</button>
+                <img src="icons/icon-192.png" alt="Logo" class="header-logo-img">
+            </div>
+        </header>
+
+        <!-- হোম পেজের সার্চ বক্স -->
+        <div id="searchBox" class="header-search-box hidden" style="margin: 4px 16px 8px;">
+            <input type="search" id="searchInput" placeholder="Category, Header অথবা Data খুঁজুন..." autocomplete="off">
+        </div>
+
+        <!-- ক্যাটাগরি, সাব-পেজ, ফেভারিট বা অল সার্চ পেজের সার্চ বক্স -->
+        <div id="subPageHeaderSearchWrapper" class="header-search-inline hidden">
+            <div class="subpage-search-field">
+                <span class="subpage-search-icon" aria-hidden="true">⌕</span>
+                <input type="search" id="subPageSearchInput"
+                       placeholder="Search contacts..." autocomplete="off"
+                       aria-label="Search contacts">
+                <button type="button" id="clearSubPageSearch"
+                        class="subpage-search-clear" aria-label="Clear search"
+                        title="Clear search">×</button>
+            </div>
+        </div>
+
+        <!-- ইমেজ স্লাইডার (শুধুমাত্র প্রথম পেজে থাকবে) -->
+        <div class="hero-slider-container" id="heroSlider">
+            <div class="slider-track" id="sliderTrack">
+                <div class="slide-item">
+                    <img src="https://images.unsplash.com/photo-1546272989-40c92939c6c2?auto=format&fit=crop&w=800&q=80" alt="Banner 1">
+                    <div class="slide-overlay">
+                        <div class="slide-info">
+                            <span class="slide-badge">📢</span>
+                            <h4>Welcome to Digital Phonebook</h4>
+                        </div>
+                        <a href="#categoryList" class="slide-btn">Explore</a>
+                    </div>
+                </div>
+                <div class="slide-item">
+                    <img src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80" alt="Banner 2">
+                    <div class="slide-overlay">
+                        <div class="slide-info">
+                            <span class="slide-badge">🛡️</span>
+                            <h4>Bangladesh Police Directory</h4>
+                        </div>
+                        <a href="#categoryList" class="slide-btn">Search</a>
+                    </div>
+                </div>
+            </div>
+            <div class="slider-dots" id="sliderDots"></div>
+        </div>
+    </div>
+
+    <!-- সাদা বাঁকানো মূল শিট -->
+    <div class="curved-main-sheet" id="mainScrollSheet">
+
+        <!-- টেক্সট স্ক্রোলিং বা নোটিশ বোর্ড -->
+        <div id="slidingNoticeContainer" style="background: transparent; border-bottom: 1px solid var(--border-color); overflow: hidden; display: none; margin-bottom: 4px; border-radius: 8px;"></div>
+
+        <main class="container">
+            <div id="mainDashboardView">
+                <section class="dashboard-header">
+                    <div id="adminActionContainer" class="admin-only hidden" style="display: flex; gap: 8px; width: 100%; margin-bottom: 10px;">
+                        <button id="addCategoryBtn" class="primary-btn" type="button" style="flex: 1;">＋ Category</button>
+                        <button id="notificationBtn" class="secondary-btn" type="button" style="flex: 1; position: relative;">
+                            🔔 নোটিফিকেশন
+                            <span id="notifBadge" class="badge-dot hidden" style="position: absolute; top: 6px; right: 10px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%;"></span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ৩-কলাম ক্যাটাগরি লিস্ট -->
+                <section id="categoryList" class="category-list grid-3-col"></section>
+
+                <!-- অল সার্চ পেজ কন্টেইনার -->
+                <div id="allSearchContainer" class="hidden" style="margin-top: 8px;"></div>
+
+                <section id="emptyState" class="empty-state hidden">
+                    <div class="empty-icon">📂</div>
+                    <h2>এখনো কোনো Category নেই</h2>
+                    <p>ডাটা দেখতে অপেক্ষা করুন, প্রয়োজনে রিফ্রেস করুন।</p>
+                    <button id="emptyAddBtn" class="primary-btn admin-only hidden" type="button">＋ প্রথম Category তৈরি করুন</button>
+                </section>
+            </div>
+
+            <!-- ক্যাটাগরি ডিটেইলস পেজ -->
+            <div id="categoryDetailsView" class="hidden">
+                <section class="dashboard-header">
+                    <div class="header-left">
+                        <div>
+                            <h1 id="detailsTitle">Category</h1>
+                            <p id="detailsSubtitle"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="section-toolbar admin-only hidden" style="margin-bottom: 10px;">
+                    <button id="addSubCategoryBtn" class="primary-btn" type="button">＋ Sub-Category</button>
+                    <button id="addHeaderBtn" class="primary-btn" type="button">＋ Header</button>
+                    <button id="addDataBtn" class="secondary-btn" type="button">＋ Data</button>
+                </div>
+                <div id="detailsContent"></div>
+            </div>
+
+            <!-- কন্টাক্ট ডিটেইলস পেজ -->
+            <div id="dataDetailsView" class="hidden">
+                <div class="details-container-card">
+                    <div id="dataPageContent"></div>
+                </div>
+            </div>
+
+            <!-- অধ্যায় ভিত্তিক ড্রাইভিং নোট গাইড পেজ -->
+            <div id="drivingNoteView" class="hidden" style="padding-bottom: 24px;">
+                <div id="drivingAdminPanel" class="admin-only hidden" style="background: var(--card-bg, #ffffff); border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px; margin-bottom: 16px; box-shadow: 0 3px 10px rgba(0,0,0,0.06);">
+                    <h3 id="drivingFormTitle" style="margin: 0 0 12px; font-size: 16px; color: var(--app-main-color, #020624);">📘 নতুন অধ্যায় যোগ করুন</h3>
+
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">অধ্যায়ের শিরোনাম *</label>
+                        <input id="drivingChapterTitle" type="text" placeholder="যেমন: ১. গাড়ি চালানোর পূর্বপ্রস্তুতি" style="width:100%; padding:9px; border-radius:8px; border:1px solid #cbd5e1;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label style="display:block; font-size:13px; font-weight:600; margin-bottom:4px;">বিস্তারিত নোট / বিষয়বস্তু</label>
+                        <textarea id="drivingChapterBody" rows="4" placeholder="অধ্যায়ের বিস্তারিত লেখা এখানে লিখুন..." style="width:100%; padding:9px; border-radius:8px; border:1px solid #cbd5e1;"></textarea>
+                    </div>
+
+                    <div style="background: rgba(13, 110, 253, 0.05); border: 1px dashed #94a3b8; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+                        <div style="font-size:13px; font-weight:700; margin-bottom:6px;">🖼️ ছবি যুক্ত করুন (ঐচ্ছিক)</div>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:3px;">ছবির লিংক (Image URL)</label>
+                            <input id="drivingChapterImageUrl" type="url" placeholder="https://example.com/image.jpg" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:3px;">ছবির ক্যাপশন</label>
+                            <input id="drivingChapterImageCaption" type="text" placeholder="ছবির সংক্ষিপ্ত বিবরণ" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(16, 185, 129, 0.06); border: 1px dashed #94a3b8; border-radius: 10px; padding: 10px; margin-bottom: 12px;">
+                        <div style="font-size:13px; font-weight:700; margin-bottom:6px;">🔗 লিংক যুক্ত করুন (ঐচ্ছিক)</div>
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:3px;">লিংক URL</label>
+                            <input id="drivingChapterLinkUrl" type="url" placeholder="https://brta.gov.bd" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="display:block; font-size:12px; font-weight:600; margin-bottom:3px;">লিংক বাটনের লেখা</label>
+                            <input id="drivingChapterLinkText" type="text" placeholder="যেমন: নির্দেশিকা ওয়েবসাইট দেখুন" style="width:100%; padding:8px; border-radius:8px; border:1px solid #cbd5e1;">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button id="saveDrivingChapterBtn" class="primary-btn" type="button">অধ্যায় সেভ করুন</button>
+                        <button id="cancelDrivingEditBtn" class="secondary-btn hidden" type="button">বাতিল</button>
+                    </div>
+                </div>
+
+                <div id="drivingNoteContent" style="display:flex; flex-direction:column; gap:12px;"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="loginModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Admin Login</h2>
+                <button class="close-btn" data-close="loginModal" type="button">✕</button>
+            </div>
+            <div id="loginFormContainer">
+                <div class="form-group">
+                    <label>ইমেইল</label>
+                    <input id="loginEmail" type="email" placeholder="admin@example.com">
+                </div>
+                <div class="form-group">
+                    <label>পাসওয়ার্ড</label>
+                    <input id="loginPassword" type="password" placeholder="******">
+                </div>
+                <div class="modal-actions">
+                    <button class="secondary-btn" data-close="loginModal" type="button">বাতিল</button>
+                    <button id="submitLoginBtn" class="primary-btn" type="button">লগইন</button>
+                </div>
+            </div>
+            <div id="logoutContainer" class="hidden logout-box">
+                <p class="status-ok">✅ আপনি অ্যাডমিন হিসেবে লগইন আছেন</p>
+                <div class="modal-actions">
+                    <button class="secondary-btn" data-close="loginModal" type="button">বন্ধ করুন</button>
+                    <button id="logoutBtn" class="danger-btn" type="button">লগআউট</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="verifyModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>প্রশাসনিক তথ্যের জন্য ভেরিফিকেশন রিকোয়েস্ট</h2>
+                <button class="close-btn" data-close="verifyModal" type="button">✕</button>
+            </div>
+            <div class="form-group">
+                <label>আপনার নাম *</label>
+                <input id="applicantName" type="text" placeholder="যেমন: মো: আব্দুর রহিম">
+            </div>
+            <div class="form-group">
+                <label>পদবী / পরিচয় *</label>
+                <input id="applicantDesignation" type="text" placeholder="যেমন: সাব-ইন্সপেক্টর / পরিচয় সংক্রান্ত তথ্য">
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" data-close="verifyModal" type="button">বাতিল</button>
+                <button id="submitVerifyBtn" class="primary-btn" type="button">রিকোয়েস্ট পাঠান</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminVerifyRequestsModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 500px; width: 90%;">
+            <div class="modal-header">
+                <h2>🛡️ ডিভাইস ভেরিফিকেশন রিকোয়েস্ট</h2>
+                <button class="close-btn" data-close="adminVerifyRequestsModal" type="button">✕</button>
+            </div>
+            <div id="verifyRequestsList" style="max-height: 350px; overflow-y: auto;">
+                <p style="text-align: center; color: var(--text-muted);">কোনো রিকোয়েস্ট নেই</p>
+            </div>
+            <div class="modal-actions" style="margin-top: 15px;">
+                <button class="secondary-btn" data-close="adminVerifyRequestsModal" type="button">বন্ধ করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="categoryModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="categoryModalTitle">ক্যাটাগরি</h2>
+                <button class="close-btn" data-close="categoryModal" type="button">✕</button>
+            </div>
+            <div class="form-group">
+                <label>ছবি লিঙ্ক (URL)</label>
+                <input id="categoryImageInput" type="url" placeholder="https://example.com/image.png">
+            </div>
+            <div class="form-group">
+                <label>ক্যাটাগরির নাম</label>
+                <input id="categoryNameInput" type="text" placeholder="নাম লিখুন">
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" data-close="categoryModal" type="button">বাতিল</button>
+                <button id="saveCategoryBtn" class="primary-btn" type="button">সেভ করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="headerModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Header যুক্ত/এডিট করুন</h2>
+                <button class="close-btn" data-close="headerModal" type="button">✕</button>
+            </div>
+            <div class="form-group">
+                <label>হেডার টাইটেল</label>
+                <input id="headerNameInput" type="text" placeholder="যেমন: কর্মকর্তা/কর্মচারী">
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" data-close="headerModal" type="button">বাতিল</button>
+                <button id="saveHeaderBtn" class="primary-btn" type="button">সেভ করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dataModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="dataModalTitle">Data যুক্ত করুন</h2>
+                <button class="close-btn" data-close="dataModal" type="button">✕</button>
+            </div>
+            <div class="form-group">
+                <label>ছবি লিঙ্ক (URL)</label>
+                <input id="dataPhoto" type="url">
+            </div>
+            <div class="form-group">
+                <label>নাম *</label>
+                <input id="dataName" type="text">
+            </div>
+            <div class="form-group">
+                <label>মোবাইল</label>
+                <input id="dataMobile" type="tel">
+            </div>
+            <div class="form-group">
+                <label>টেলিফোন</label>
+                <input id="dataPhone" type="tel">
+            </div>
+            <div class="form-group">
+                <label>পদবী</label>
+                <input id="dataDesignation" type="text">
+            </div>
+            <div class="form-group">
+                <label>ইমেইল</label>
+                <input id="dataEmail" type="email">
+            </div>
+            <div class="form-group">
+                <label>বর্তমান অফিস/ঠিকানা</label>
+                <input id="dataCurrentOffice" type="text">
+            </div>
+            <div class="form-group">
+                <label>স্থায়ী ঠিকানা</label>
+                <input id="dataPermanentAddress" type="text">
+            </div>
+            <div class="form-group">
+                <label>প্রশাসনিক তথ্য</label>
+                <input id="dataAdminInfo" type="text">
+            </div>
+            <div class="form-group">
+                <label>Header নির্বাচন করুন</label>
+                <select id="dataHeaderSelect"></select>
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" data-close="dataModal" type="button">বাতিল</button>
+                <button id="saveDataBtn" class="primary-btn" type="button">সেভ করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="moveDataModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ডাটা মুভ করুন</h2>
+                <button class="close-btn" data-close="moveDataModal" type="button">✕</button>
+            </div>
+            <div class="form-group">
+                <label>নতুন Category</label>
+                <select id="moveCategorySelect"></select>
+            </div>
+            <div class="form-group">
+                <label>নতুন Header</label>
+                <select id="moveHeaderSelect"></select>
+            </div>
+            <div class="modal-actions">
+                <button class="secondary-btn" data-close="moveDataModal" type="button">বাতিল</button>
+                <button id="confirmMoveBtn" class="primary-btn" type="button">মুভ নিশ্চিত করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="customConfirmModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="confirmModalTitle">নিশ্চিতকরণ</h2>
+                <button class="close-btn" data-close="customConfirmModal" type="button">✕</button>
+            </div>
+            <p id="confirmModalMessage">আপনি কি নিশ্চিত?</p>
+            <div class="modal-actions">
+                <button id="cancelConfirmBtn" class="secondary-btn" type="button">বাতিল</button>
+                <button id="okConfirmBtn" class="danger-btn" type="button">হ্যাঁ, মুছুন</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="homeNoticePopupModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 99999; padding: 15px;">
+        <div style="background: var(--card-bg, #fff); color: var(--text-main, #333); max-width: 450px; width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.3); position: relative; display: flex; flex-direction: column;">
+            <button type="button" id="closeHomePopupBtn" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: #fff; border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">✕</button>
+            <div id="popupMediaContainer" style="width: 100%; max-height: 250px; background: #000; display: none; overflow: hidden; align-items: center; justify-content: center;"></div>
+            <div style="padding: 20px; text-align: center;">
+                <h3 id="popupTitle" style="margin-top: 0; margin-bottom: 10px; font-size: 18px; color: var(--text-main, #000);"></h3>
+                <p id="popupMessage" style="font-size: 14px; line-height: 1.5; margin: 0 0 15px 0; color: var(--text-muted, #555); text-align: left; max-height: 150px; overflow-y: auto;"></p>
+                <a id="popupWebsiteBtn" href="#" target="_blank" style="display: none; width: 100%; padding: 10px; background: #0d6efd; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; text-align: center; box-sizing: border-box;">Open Website</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো -->
+    <div id="imageZoomModal" class="image-zoom-modal hidden">
+        <div class="zoom-modal-header">
+            <span id="zoomModalTitle" class="zoom-modal-title">প্রোফাইল ছবি</span>
+            <button type="button" id="closeImageZoomBtn" class="zoom-close-btn" title="বন্ধ করুন">✕</button>
+        </div>
+
+        <div class="zoom-canvas-area" id="zoomCanvasArea">
+            <img id="zoomTargetImage" src="" alt="Profile Photo" class="hidden">
+            <div id="zoomFallbackIcon" class="hidden">👤</div>
+        </div>
+
+        <div class="zoom-controls-bar">
+            <button type="button" id="zoomOutBtn" class="zoom-ctrl-btn">➖ জুম আউট</button>
+            <button type="button" id="zoomResetBtn" class="zoom-ctrl-btn">🔄 রিসেট</button>
+            <button type="button" id="zoomInBtn" class="zoom-ctrl-btn">➕ জুম ইন</button>
+        </div>
+    </div>
+
+</div>
+
+<div class="custom-bottom-nav">
+    <svg class="bottom-nav-svg"
+         viewBox="0 0 360 62"
+         preserveAspectRatio="none"
+         xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M0,0
+               L115,0
+               C150,0 148,56 180,56
+               C212,56 210,0 240,0
+               L360,0
+               L360,62
+               L0,62 Z"
+            fill="#020624">
+        </path>
+    </svg>
+    <div class="bottom-nav-logo-circle">
+        <img src="icons/icon-192.png" alt="Logo">
+    </div>
+</div>
+
+<!-- জাভাস্ক্রিপ্ট ফাইলস এবং স্লাইডার/ঘড়ি স্ক্রিপ্ট -->
 <script type="module" src="js/app.js"></script>
+
+<script type="module">
+    import { initNotificationSystem } from './js/notification.js';
+    document.addEventListener("DOMContentLoaded", () => {
+        initNotificationSystem();
+    });
+</script>
+
+<script>
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const savedTheme = localStorage.getItem('theme') || (prefersDark ? 'dark' : 'light');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+</script>
+
+<script type="module">
+    import { initDrawer } from './js/drawer.js';
+    document.addEventListener("DOMContentLoaded", () => {
+        initDrawer();
+    });
+</script>
+
+<script src="js/color-formatter.js"></script>
+<script type="module" src="js/custom-settings.js"></script>
+
+<script>
+    // লাইভ ঘড়ি
+    function updateLiveClock() {
+        const clockEl = document.getElementById('liveDateTime');
+        if (!clockEl) return;
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB');
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        clockEl.textContent = `${dateStr} ${timeStr}`;
+    }
+    setInterval(updateLiveClock, 1000);
+    updateLiveClock();
+
+    // অটো ইমেজ স্লাইডার (হোম পেজের জন্য)
+    (function initHeroSlider() {
+        const track = document.getElementById('sliderTrack');
+        const dotsContainer = document.getElementById('sliderDots');
+        if (!track || !dotsContainer) return;
+
+        const slides = track.children;
+        const totalSlides = slides.length;
+        let currentIndex = 0;
+
+        for (let i = 0; i < totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.classList.add('slider-dot');
+            if (i === 0) dot.classList.add('active');
+            dot.addEventListener('click', () => goToSlide(i));
+            dotsContainer.appendChild(dot);
+        }
+
+        const dots = dotsContainer.children;
+
+        function goToSlide(index) {
+            currentIndex = index;
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            Array.from(dots).forEach((d, idx) => {
+                d.classList.toggle('active', idx === currentIndex);
+            });
+        }
+
+        setInterval(() => {
+            currentIndex = (currentIndex + 1) % totalSlides;
+            goToSlide(currentIndex);
+        }, 3500);
+    })();
+
+    // Category details, Data details, Driving Note, Favorite Numbers এবং Search All পেজ ভিজিবিলিটি সিঙ্ক
+    (function initSubPageHeaderSearch() {
+        const mainDashboard = document.getElementById('mainDashboardView');
+        const categoryDetails = document.getElementById('categoryDetailsView');
+        const dataDetails = document.getElementById('dataDetailsView');
+        const drivingNoteView = document.getElementById('drivingNoteView');
+        const allSearchContainer = document.getElementById('allSearchContainer');
+        const heroSlider = document.getElementById('heroSlider');
+        const subPageSearchWrapper = document.getElementById('subPageHeaderSearchWrapper');
+        const homeSearchBox = document.getElementById('searchBox');
+        const subInput = document.getElementById('subPageSearchInput');
+        const mainInput = document.getElementById('searchInput');
+        const clearButton = document.getElementById('clearSubPageSearch');
+        const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
+        const mainScrollSheet = document.getElementById('mainScrollSheet');
+        const appTitleText = document.querySelector('.app-title-text');
+
+        if (!heroSlider || !subPageSearchWrapper) return;
+
+        function isFavoriteViewActive() {
+            const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
+            return titleText.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
+        }
+
+        function filterFavoriteCards(query) {
+            if (!isFavoriteViewActive()) return;
+            const q = (query || '').trim().toLowerCase();
+            const cards = document.querySelectorAll('#categoryList .data-card-item, #favoriteNumbersView .data-card-item, #favoritesView .data-card-item');
+            cards.forEach(card => {
+                const text = (card.textContent || '').toLowerCase();
+                card.style.display = (!q || text.includes(q)) ? '' : 'none';
+            });
+        }
+
+        function syncSearchVisibility() {
+            const isHomeHidden = mainDashboard && mainDashboard.classList.contains('hidden');
+            const isSubPage = categoryDetails && !categoryDetails.classList.contains('hidden');
+            const isDataPage = dataDetails && !dataDetails.classList.contains('hidden');
+            const isDrivingPage = drivingNoteView && !drivingNoteView.classList.contains('hidden');
+            const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
+            const isFavoritePage = isFavoriteViewActive();
+            const isAllSearchPage = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleText.includes('search all');
+
+            document.body.classList.toggle('is-data-details-mode', isDataPage);
+
+            const hideSlider = isHomeHidden || isSubPage || isDataPage || isDrivingPage || isFavoritePage || isAllSearchPage;
+            heroSlider.style.display = hideSlider ? 'none' : '';
+            if (homeSearchBox) homeSearchBox.style.display = hideSlider ? 'none' : '';
+
+            const showSubSearch = (isSubPage || isAllSearchPage || isFavoritePage) && !isDataPage && !isDrivingPage;
+            subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
+            subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
+
+            if (mainScrollSheet && !document.activeElement?.matches('#subPageSearchInput, #searchInput')) {
+                mainScrollSheet.scrollTop = 0;
+            }
+
+            if (!isSubPage && !isAllSearchPage && !isFavoritePage && subInput) {
+                subInput.value = '';
+                searchField?.classList.remove('has-value');
+                if (mainInput && mainInput.value) {
+                    mainInput.value = '';
+                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            } else if (isFavoritePage && subInput && subInput.value) {
+                filterFavoriteCards(subInput.value);
+            }
+        }
+
+        if (subInput && mainInput) {
+            subInput.addEventListener('input', () => {
+                searchField?.classList.toggle('has-value', subInput.value.length > 0);
+                if (isFavoriteViewActive()) {
+                    filterFavoriteCards(subInput.value);
+                } else {
+                    mainInput.value = subInput.value;
+                    mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            });
+
+            subInput.addEventListener('keydown', event => {
+                if (event.key === 'Escape') {
+                    subInput.value = '';
+                    searchField?.classList.remove('has-value');
+                    if (isFavoriteViewActive()) {
+                        filterFavoriteCards('');
+                    } else {
+                        mainInput.value = '';
+                        mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                    subInput.blur();
+                }
+            });
+        }
+
+        clearButton?.addEventListener('click', () => {
+            if (!subInput || !mainInput) return;
+            subInput.value = '';
+            searchField?.classList.remove('has-value');
+            if (isFavoriteViewActive()) {
+                filterFavoriteCards('');
+            } else {
+                mainInput.value = '';
+                mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            subInput.focus();
+        });
+
+        const observer = new MutationObserver(syncSearchVisibility);
+        const mainContainer = document.querySelector('main.container');
+        if (mainContainer) {
+            observer.observe(mainContainer, {
+                attributes: true,
+                childList: true,
+                subtree: true,
+                attributeFilter: ['class', 'style']
+            });
+        }
+        if (appTitleText) {
+            observer.observe(appTitleText, {
+                childList: true,
+                characterData: true,
+                subtree: true
+            });
+        }
+        syncSearchVisibility();
+    })();
+</script>
+
+<script>
+    // নেভিগেশন বার/টুলবারের আসল কালার পড়ে --app-main-color সেট করে এবং কাস্টম থিম শনাক্ত করে
+    (function syncMainColor() {
+        const DEFAULT = '#020624';
+        function apply() {
+            let color = DEFAULT;
+            const path = document.querySelector('.bottom-nav-svg path');
+            if (path) {
+                const fill = getComputedStyle(path).fill;
+                if (fill && fill !== 'none' && !/rgba\(.*,\s*0\)$/.test(fill) && fill !== 'transparent') color = fill;
+            }
+            document.documentElement.style.setProperty('--app-main-color', color);
+            const normalized = color.replace(/\s+/g, '').toLowerCase();
+            const isDefault = normalized === '#020624' || normalized === 'rgb(2,6,36)';
+            document.body?.classList.toggle('has-custom-theme', !isDefault);
+        }
+        document.addEventListener('DOMContentLoaded', apply);
+        window.addEventListener('load', apply);
+        new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ['style', 'class'] });
+        document.addEventListener('DOMContentLoaded', () => {
+            new MutationObserver(apply).observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] });
+        });
+        setInterval(apply, 1500);
+    })();
+</script>
 
 </body>
 </html>
