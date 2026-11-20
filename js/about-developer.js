@@ -57,28 +57,38 @@ function injectAboutDeveloperStyles() {
             display: flex;
             flex-direction: column;
             width: 100%;
-            min-height: 100%;
             position: relative;
         }
         #aboutDeveloperSheetView.hidden {
             display: none !important;
         }
 
-        /* পুরো উইজেট জুড়ে ফিক্সড/স্টিকি হিরো অংশ */
+        /* স্ক্রিনশটের মতো পুরো প্রস্থ জুড়ে ফিক্সড/স্টিকি হিরো কার্ড */
         .ad-hero-fixed-widget {
             position: sticky;
             top: 0;
-            z-index: 25;
+            z-index: 30;
             width: 100%;
             flex-shrink: 0;
             overflow: hidden;
-            background: radial-gradient(circle at top right, color-mix(in srgb, var(--ad-main) 78%, #3b82f6) 0%, var(--ad-main) 62%, #020624 100%);
-            border-radius: 0 0 28px 28px;
-            padding: 18px 18px 22px;
+            background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%);
+            border-radius: 0 0 32px 32px;
+            padding: 16px 18px 24px;
             text-align: center;
             color: #ffffff;
-            box-shadow: 0 10px 24px rgba(2, 6, 36, 0.25);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 14px 28px rgba(2, 6, 36, 0.28);
+        }
+
+        /* ফিক্সড হিরো কার্ডের ঠিক নিচে স্ক্রলের সময় সফট শ্যাডো/লেয়ার ইফেক্ট */
+        .ad-hero-fixed-widget::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 18px;
+            background: linear-gradient(to bottom, transparent, rgba(2, 6, 36, 0.28));
+            pointer-events: none;
         }
 
         /* নিচের স্ক্রলযোগ্য কন্টেন্ট এরিয়া */
@@ -86,10 +96,9 @@ function injectAboutDeveloperStyles() {
             display: flex;
             flex-direction: column;
             gap: 14px;
-            padding: 16px 14px 36px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            flex: 1;
+            padding: 18px 14px 36px;
+            position: relative;
+            z-index: 10;
         }
 
         #adParticleCanvas {
@@ -110,7 +119,7 @@ function injectAboutDeveloperStyles() {
             display: flex;
             justify-content: flex-end;
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .ad-pill-btn {
@@ -132,8 +141,8 @@ function injectAboutDeveloperStyles() {
             display: inline-flex;
             align-items: center;
             gap: 7px;
-            background: rgba(16, 185, 129, 0.18);
-            border: 1px solid rgba(16, 185, 129, 0.45);
+            background: rgba(16, 185, 129, 0.16);
+            border: 1px solid rgba(16, 185, 129, 0.42);
             color: #6ee7b7;
             padding: 4px 12px;
             border-radius: 20px;
@@ -254,7 +263,7 @@ function injectAboutDeveloperStyles() {
             background: #ffffff;
             border-radius: 20px;
             padding: 18px;
-            box-shadow: 0 6px 18px rgba(2, 6, 36, 0.06);
+            box-shadow: 0 8px 22px rgba(2, 6, 36, 0.08);
             border: 1px solid rgba(2, 6, 36, 0.08);
             color: #0f172a;
         }
