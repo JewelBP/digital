@@ -2,7 +2,13 @@
 
 const ABOUT_HIDE_IDS = [
     "mainDashboardView", "categoryDetailsView", "dataDetailsView",
-    "heroSlider", "searchBox", "subPageHeaderSearchWrapper", "slidingNoticeContainer"
+    "heroSlider", "searchBox", "subPageHeaderSearchWrapper", "slidingNoticeContainer",
+    "subPageHeader", "pageHeader", "headerBadge", "dateTimeBar", "topDateTime"
+];
+
+const ABOUT_HIDE_SELECTORS = [
+    ".page-header", ".sub-page-header", ".header-logo", ".app-logo",
+    ".date-time", ".datetime", ".header-date", ".header-time"
 ];
 
 let isAboutActive = false;
@@ -44,6 +50,22 @@ function showAboutToast(msg) {
         toast.classList.add("show");
         setTimeout(() => toast.classList.remove("show"), 2400);
     }
+}
+
+function getExtraHeaderElements() {
+    const found = new Set();
+    ABOUT_HIDE_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) found.add(el);
+    });
+    ABOUT_HIDE_SELECTORS.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+            if (!el.closest("#aboutDeveloperSheetView")) {
+                found.add(el);
+            }
+        });
+    });
+    return Array.from(found);
 }
 
 function injectAboutDeveloperStyles() {
@@ -727,12 +749,21 @@ function restoreAboutHeaderMode() {
 
 function hideMainViewsForAbout(hide) {
     if (hide) {
-        adViewSnapshot = {};
+        adViewSnapshot = { ids: {}, extras: [] };
         ABOUT_HIDE_IDS.forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
-            adViewSnapshot[id] = { hidden: el.classList.contains("hidden"), display: el.style.display };
+            adViewSnapshot.ids[id] = { hidden: el.classList.contains("hidden"), display: el.style.display };
             el.classList.add("hidden");
+        });
+        getExtraHeaderElements().forEach(el => {
+            adViewSnapshot.extras.push({
+                el,
+                hidden: el.classList.contains("hidden"),
+                display: el.style.display
+            });
+            el.classList.add("hidden");
+            el.style.display = "none";
         });
         const slider = document.getElementById("heroSlider");
         if (slider) slider.style.display = "none";
@@ -742,11 +773,18 @@ function hideMainViewsForAbout(hide) {
     if (!adViewSnapshot) return;
     ABOUT_HIDE_IDS.forEach(id => {
         const el = document.getElementById(id);
-        const snap = adViewSnapshot[id];
+        const snap = adViewSnapshot.ids ? adViewSnapshot.ids[id] : null;
         if (!el || !snap) return;
         el.classList.toggle("hidden", snap.hidden);
         el.style.display = snap.display;
     });
+    if (Array.isArray(adViewSnapshot.extras)) {
+        adViewSnapshot.extras.forEach(item => {
+            if (!item.el) return;
+            item.el.classList.toggle("hidden", item.hidden);
+            item.el.style.display = item.display;
+        });
+    }
     adViewSnapshot = null;
 }
 
@@ -756,6 +794,10 @@ function enforceAboutUI() {
     ABOUT_HIDE_IDS.forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.classList.contains("hidden")) el.classList.add("hidden");
+    });
+    getExtraHeaderElements().forEach(el => {
+        if (!el.classList.contains("hidden")) el.classList.add("hidden");
+        if (el.style.display !== "none") el.style.display = "none";
     });
     const slider = document.getElementById("heroSlider");
     if (slider && slider.style.display !== "none") slider.style.display = "none";
@@ -788,6 +830,9 @@ function startAboutObserver() {
     [...ABOUT_HIDE_IDS, "menuIcon", "backIcon"].forEach(id => {
         const el = document.getElementById(id);
         if (el) aboutObserver.observe(el, attrs);
+    });
+    getExtraHeaderElements().forEach(el => {
+        aboutObserver.observe(el, attrs);
     });
 }
 
