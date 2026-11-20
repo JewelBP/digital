@@ -1107,8 +1107,10 @@
 
 <script type="module">
     import { initNotificationSystem } from './js/notification.js';
+    import { initWebPushNotifications } from './js/fcm-setup.js';
     document.addEventListener("DOMContentLoaded", () => {
         initNotificationSystem();
+        initWebPushNotifications();
     });
 </script>
 
