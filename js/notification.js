@@ -109,7 +109,7 @@ function createNotificationUI() {
                 <!-- Tabs -->
                 <div class="notice-tabs" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color, #ddd); padding-bottom: 10px;">
                     <button type="button" class="tab-btn active-tab" data-target="tabSliding" style="flex: 1; min-width: 110px; padding: 8px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">স্লাইডিং নোটিশ</button>
-                    <button type="button" class="tab-btn" data-target="tabHome" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">হোম নোটিশ (পপআপ)</button>
+                    <button type="button" class="tab-btn" data-target="tabHome" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">হোম নোটিশ</button>
                     <button type="button" class="tab-btn" data-target="tabPush" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">পুশ নোটিশ</button>
                     <button type="button" class="tab-btn" data-target="tabSlider" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">ইমেজ স্লাইডার</button>
                 </div>
