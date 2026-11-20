@@ -3,7 +3,7 @@ import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/fireb
 import { ref, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
 // Firebase Console -> Project Settings -> Cloud Messaging -> Web Push certificates থেকে Key বসান
-const VAPID_KEY = "YOUR_WEB_PUSH_VAPID_KEY";
+const VAPID_KEY = "BMrkQHSj9Ecth4EmZgRAJI9Wy0SaC6fYzMbibosBFXdaUo8BE-TRotw9UXx9Lp9ABFsLQJZPA_4QaueOuIs9GaE";
 
 export async function initWebPushNotifications() {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
