@@ -619,6 +619,19 @@ function handleDrawerAction(action) {
                 renderFavoriteView(true);
             }
             break;
+
+        case "driving":
+            if (typeof window.openDrivingGuide === "function") {
+                window.openDrivingGuide();
+            } else {
+                import("./driving-guide.js").then(mod => {
+                    mod.openDrivingGuide();
+                }).catch(err => {
+                    console.error("Driving Guide load error:", err);
+                });
+            }
+            break;            
+        
         case "settings":
             initSettingsModal();
             break;
