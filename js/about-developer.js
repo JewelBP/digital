@@ -52,8 +52,28 @@ function showAboutToast(msg) {
     }
 }
 
+// প্রধান টপ হেডার (ব্যাক/মেনু বাটন + তারিখ-সময় + লোগো) খুঁজে বের করে
+function getMainTopHeader() {
+    const nav = document.getElementById("navToggleBtn");
+    if (!nav) return null;
+    const sheet = document.getElementById("mainScrollSheet");
+
+    const byTag = nav.closest("header, .app-header, .top-bar, .topbar, .header, .navbar, .app-bar");
+    if (byTag && !byTag.contains(sheet) && byTag !== document.body) return byTag;
+
+    // ফলব্যাক: নেভ বাটন থেকে উপরে উঠে সবচেয়ে বড় এমন প্যারেন্ট, যার ভেতরে মূল শিট নেই
+    let el = nav;
+    while (el.parentElement && el.parentElement !== document.body &&
+           !(sheet && el.parentElement.contains(sheet))) {
+        el = el.parentElement;
+    }
+    return el !== nav ? el : null;
+}
+
 function getExtraHeaderElements() {
     const found = new Set();
+    const topHeader = getMainTopHeader();
+    if (topHeader) found.add(topHeader);
     ABOUT_HIDE_IDS.forEach(id => {
         const el = document.getElementById(id);
         if (el) found.add(el);
