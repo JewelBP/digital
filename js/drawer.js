@@ -654,9 +654,17 @@ function handleDrawerAction(action) {
             } else {
                 alert("Sharing not supported on this browser.");
             }
-             break;
-                    case "about":
-            window.location.href = "about.html";            
+            break;
+        case "about":
+            if (typeof window.openAboutDeveloper === "function") {
+                window.openAboutDeveloper();
+            } else {
+                import("./about-developer.js").then(mod => {
+                    mod.openAboutDeveloper();
+                }).catch(err => {
+                    console.error("About Developer load error:", err);
+                });
+            }
             break;
         default:
             console.log(action + " clicked");
