@@ -1,6 +1,18 @@
 /* =========================================
-   Notification Custom Dialog System
+   Notification & Slider System Module (Complete & Active)
 ========================================= */
+
+import { db } from "./firebase.js";
+import { ref, push, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+let sliderInterval = null;
+
+export function initNotificationSystem() {
+    createNotificationUI();
+    setupNotificationEvents();
+    loadAllFirebaseListsAndListen();
+}
+
 function showCustomDialog(message, title = "বার্তা") {
     return new Promise((resolve) => {
         let dialogEl = document.getElementById("notifCustomDialog");
@@ -81,21 +93,6 @@ function showCustomConfirm(message, title = "নিশ্চিতকরণ") {
     });
 }
 
-/* =========================================
-   Notification & Slider System Module (Complete & Active)
-========================================= */
-
-import { db } from "./firebase.js";
-import { ref, push, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
-
-let sliderInterval = null;
-
-export function initNotificationSystem() {
-    createNotificationUI();
-    setupNotificationEvents();
-    loadAllFirebaseListsAndListen();
-}
-
 function createNotificationUI() {
     if (document.getElementById("notificationModal")) return;
 
@@ -112,7 +109,7 @@ function createNotificationUI() {
                 <!-- Tabs -->
                 <div class="notice-tabs" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color, #ddd); padding-bottom: 10px;">
                     <button type="button" class="tab-btn active-tab" data-target="tabSliding" style="flex: 1; min-width: 110px; padding: 8px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">স্লাইডিং নোটিশ</button>
-                    <button type="button" class="tab-btn" data-target="tabHome" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">হোম নোটিশ</button>
+                    <button type="button" class="tab-btn" data-target="tabHome" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">হোম নোটিশ (পপআপ)</button>
                     <button type="button" class="tab-btn" data-target="tabPush" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">পুশ নোটিশ</button>
                     <button type="button" class="tab-btn" data-target="tabSlider" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">ইমেজ স্লাইডার</button>
                 </div>
@@ -374,13 +371,13 @@ async function saveOrUpdateToFirebase(type) {
         keys = document.getElementById("sliderBtnLink").value.trim() || "#categoryList";
 
         if (!img || !title) {
-            alert("দয়া করে স্লাইডার ইমেজ লিংক এবং শিরোনাম দিন।");
+            await showCustomDialog("দয়া করে স্লাইডার ইমেজ লিংক এবং শিরোনাম দিন।", "সতর্কতা");
             return;
         }
     }
 
     if (type !== 'slider' && (!title || !message)) {
-        alert("দয়া করে শিরোনাম এবং বিস্তারিত বিবরণ লিখুন।");
+        await showCustomDialog("দয়া করে শিরোনাম এবং বিস্তারিত বিবরণ লিখুন।", "সতর্কতা");
         return;
     }
 
@@ -395,7 +392,7 @@ async function saveOrUpdateToFirebase(type) {
                 keys,
                 time: new Date().toLocaleString('bn-BD') + " (এডিটেড)"
             });
-            alert("ফায়ারবেজে সফলভাবে আপডেট করা হয়েছে!");
+            await showCustomDialog("ফায়ারবেজে সফলভাবে আপডেট করা হয়েছে!", "সফল");
         } else {
             const noticesRef = ref(db, 'webapp/notices');
             const newNoticeRef = push(noticesRef);
@@ -409,14 +406,14 @@ async function saveOrUpdateToFirebase(type) {
                 keys,
                 time: new Date().toLocaleString('bn-BD')
             });
-            alert("ফায়ারবেজে সফলভাবে সংরক্ষণ করা হয়েছে!");
+            await showCustomDialog("ফায়ারবেজে সফলভাবে সংরক্ষণ করা হয়েছে!", "সফল");
         }
 
         resetForm();
         document.getElementById("notificationModal").style.display = "none";
     } catch (error) {
         console.error("Firebase Error: ", error);
-        alert("সংরক্ষণ করতে ব্যর্থ হয়েছে");
+        await showCustomDialog("সংরক্ষণ করতে ব্যর্থ হয়েছে", "ত্রুটি");
     }
 }
 
@@ -662,9 +659,10 @@ function attachCardActions() {
     modal.querySelectorAll(".delete-btn").forEach(btn => {
         btn.addEventListener("click", async (e) => {
             const id = e.target.getAttribute("data-id");
-            if (confirm("আপনি কি এটি ডিলিট করতে চান?")) {
+            const ok = await showCustomConfirm("আপনি কি এটি ডিলিট করতে চান?", "নিশ্চিতকরণ");
+            if (ok) {
                 await remove(ref(db, 'webapp/notices/' + id));
-                alert("সফলভাবে ডিলিট করা হয়েছে!");
+                await showCustomDialog("সফলভাবে ডিলিট করা হয়েছে!", "সফল");
             }
         });
     });
