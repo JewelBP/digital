@@ -655,6 +655,7 @@ function setHeaderBackMode(titleText) {
     const backIcon = document.getElementById("backIcon");
     const navBtn = document.getElementById("navToggleBtn");
 
+    guideTitleNow = titleText;
     if (appTitleText) appTitleText.textContent = titleText;
     if (menuIcon && backIcon) {
         menuIcon.classList.add("hidden");
@@ -680,6 +681,81 @@ function setHeaderBackMode(titleText) {
             }
         }, true);
     }
+}
+
+/* ------------------- অ্যাডমিন লগইন/লগআউট বা অ্যাপের রিফ্রেশ থেকে সুরক্ষা -------------------
+ * লগইন/লগআউটের সময় অ্যাপ হোম ভিউ, হেডার টাইটেল ও মেনু আইকন রিসেট করে দেয়।
+ * গাইড চালু থাকলে সেই পরিবর্তন ধরে গাইডের অবস্থা আবার ঠিক করা হয় এবং
+ * অ্যাডমিন অবস্থা বদলালে গাইড নতুন করে আঁকা হয় (এডিট/ডিলিট বাটন ঠিকঠাক আসে)।
+ * ------------------------------------------------------------------------------------ */
+
+let guideTitleNow = "";
+let lastRenderedAdmin = null;
+let guideObserver = null;
+let enforceTimer = null;
+
+function enforceGuideUI() {
+    if (!isGuideActive) return;
+
+    // অ্যাপ যা আবার দেখিয়েছে তা লুকানো
+    GUIDE_HIDE_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.classList.contains("hidden")) el.classList.add("hidden");
+    });
+    const slider = document.getElementById("heroSlider");
+    if (slider && slider.style.display !== "none") slider.style.display = "none";
+
+    // হেডার টাইটেল ও ব্যাক আইকন
+    const appTitleText = document.querySelector(".app-title-text");
+    const menuIcon = document.getElementById("menuIcon");
+    const backIcon = document.getElementById("backIcon");
+    if (appTitleText && guideTitleNow && appTitleText.textContent !== guideTitleNow) {
+        appTitleText.textContent = guideTitleNow;
+    }
+    if (menuIcon && !menuIcon.classList.contains("hidden")) menuIcon.classList.add("hidden");
+    if (backIcon && backIcon.classList.contains("hidden")) backIcon.classList.remove("hidden");
+
+    // গাইড ভিউ, সার্চ ফিল্ড ও অ্যাডমিন অবস্থা ঠিক আছে কি না
+    const view = document.getElementById("drivingGuideSheetView");
+    if (view && view.classList.contains("hidden")) view.classList.remove("hidden");
+
+    const needsRender = !view || !document.getElementById("dgHeaderSearch") ||
+        lastRenderedAdmin !== isAdminUser();
+    if (needsRender) renderDrivingGuideInSheet();
+}
+
+function scheduleEnforce() {
+    if (!isGuideActive || enforceTimer) return;
+    enforceTimer = setTimeout(() => {
+        enforceTimer = null;
+        enforceGuideUI();
+        setTimeout(enforceGuideUI, 400); // অ্যাপ দেরিতে রিসেট করলেও ধরার জন্য
+    }, 30);
+}
+
+function startGuideObserver() {
+    stopGuideObserver();
+    guideObserver = new MutationObserver(scheduleEnforce);
+
+    const attrs = { attributes: true, attributeFilter: ["class", "style"] };
+    [...GUIDE_HIDE_IDS, "menuIcon", "backIcon"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) guideObserver.observe(el, attrs);
+    });
+
+    const title = document.querySelector(".app-title-text");
+    if (title) guideObserver.observe(title, { childList: true, characterData: true, subtree: true });
+
+    const adminBtn = document.getElementById("adminLoginBtn");
+    if (adminBtn) guideObserver.observe(adminBtn, { attributes: true, childList: true, characterData: true, subtree: true });
+
+    const mainEl = document.querySelector("#mainScrollSheet main.container");
+    if (mainEl) guideObserver.observe(mainEl, { childList: true });
+}
+
+function stopGuideObserver() {
+    if (guideObserver) { guideObserver.disconnect(); guideObserver = null; }
+    if (enforceTimer) { clearTimeout(enforceTimer); enforceTimer = null; }
 }
 
 function captureHeaderState() {
@@ -1201,6 +1277,7 @@ export function renderDrivingGuideInSheet() {
     if (!view) return;
 
     const admin = isAdminUser();
+    lastRenderedAdmin = admin;
     if (activeChapterId) {
         const chapter = guideState.chapters.find(c => c.id === activeChapterId);
         if (chapter) {
@@ -1248,6 +1325,7 @@ export async function openDrivingGuide() {
         view.classList.remove("hidden");
         renderDrivingGuideInSheet();
     }
+    startGuideObserver();
 }
 
 // fromPop === true মানে ফোনের ব্যাক থেকে এসেছে (history আগেই পিছিয়েছে)
@@ -1260,6 +1338,7 @@ export function closeDrivingGuide(fromPop = false) {
     }
     dgDepth = 0;
 
+    stopGuideObserver();
     isGuideActive = false;
     activeChapterId = null;
     editingChapterId = null;
