@@ -1,3 +1,5 @@
+"use strict";
+
 const APP_LANGUAGE_KEY = "selected_app_language";
 
 const OFFLINE_TRANSLATIONS = {
@@ -371,14 +373,26 @@ export function initOfflineLanguageSystem() {
 /* ==========================================
    FULL-SCREEN PROFILE IMAGE ZOOM VIEWER
 ========================================== */
+let activeZoomPopstateListener = null;
+let pushedZoomHistoryState = false;
+
 export function openProfileImageViewer(photoUrl, personName) {
     const modal = document.getElementById("imageZoomModal");
     const imgEl = document.getElementById("zoomTargetImage");
     const fallbackEl = document.getElementById("zoomFallbackIcon");
     const titleEl = document.getElementById("zoomModalTitle");
     const canvasArea = document.getElementById("zoomCanvasArea");
+    const zoomInBtn = document.getElementById("zoomInBtn");
+    const zoomOutBtn = document.getElementById("zoomOutBtn");
+    const zoomResetBtn = document.getElementById("zoomResetBtn");
+    const closeBtn = document.getElementById("closeImageZoomBtn");
 
     if (!modal || !imgEl || !fallbackEl || !canvasArea) return;
+
+    if (activeZoomPopstateListener) {
+        window.removeEventListener("popstate", activeZoomPopstateListener);
+        activeZoomPopstateListener = null;
+    }
 
     if (titleEl) titleEl.textContent = personName || "প্রোফাইল ছবি";
 
@@ -386,11 +400,26 @@ export function openProfileImageViewer(photoUrl, personName) {
     let translateX = 0;
     let translateY = 0;
     let activeTarget = null;
+    let closedByBackButton = false;
+
+    function clampTranslation() {
+        if (scale <= 1) {
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            return;
+        }
+        const maxOffsetX = Math.max(80, (canvasArea.clientWidth * (scale - 1)) / 2);
+        const maxOffsetY = Math.max(80, (canvasArea.clientHeight * (scale - 1)) / 2);
+        translateX = Math.min(Math.max(translateX, -maxOffsetX), maxOffsetX);
+        translateY = Math.min(Math.max(translateY, -maxOffsetY), maxOffsetY);
+    }
 
     function updateTransform(withTransition = false) {
         if (!activeTarget) return;
+        clampTranslation();
         activeTarget.style.transition = withTransition ? "transform 0.2s ease-out" : "none";
-        activeTarget.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        activeTarget.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`;
     }
 
     function resetZoom() {
@@ -400,8 +429,20 @@ export function openProfileImageViewer(photoUrl, personName) {
         updateTransform(true);
     }
 
-    if (photoUrl && photoUrl.trim() !== "") {
-        imgEl.src = photoUrl;
+    function setZoomScale(newScale, withTransition = true) {
+        scale = Math.min(Math.max(1, newScale), 5);
+        if (scale === 1) {
+            translateX = 0;
+            translateY = 0;
+        }
+        updateTransform(withTransition);
+    }
+
+    imgEl.onerror = null;
+    imgEl.onload = null;
+
+    if (photoUrl && String(photoUrl).trim() !== "") {
+        imgEl.src = String(photoUrl).trim();
         imgEl.classList.remove("hidden");
         fallbackEl.classList.add("hidden");
         activeTarget = imgEl;
@@ -413,6 +454,7 @@ export function openProfileImageViewer(photoUrl, personName) {
             resetZoom();
         };
     } else {
+        imgEl.removeAttribute("src");
         imgEl.classList.add("hidden");
         fallbackEl.classList.remove("hidden");
         activeTarget = fallbackEl;
@@ -421,65 +463,78 @@ export function openProfileImageViewer(photoUrl, personName) {
     resetZoom();
     modal.classList.remove("hidden");
 
-    history.pushState({ page: "imageZoom" }, "");
+    pushedZoomHistoryState = false;
+    try {
+        history.pushState({ page: "imageZoom" }, "");
+        pushedZoomHistoryState = true;
+    } catch (_) {}
 
-    const closeViewer = () => {
-        if (!modal.classList.contains("hidden")) {
-            modal.classList.add("hidden");
-            if (history.state && history.state.page === "imageZoom") {
+    const cleanupViewer = (fromPopState = false) => {
+        modal.classList.add("hidden");
+        if (activeZoomPopstateListener) {
+            window.removeEventListener("popstate", activeZoomPopstateListener);
+            activeZoomPopstateListener = null;
+        }
+        if (!fromPopState && pushedZoomHistoryState && history.state && history.state.page === "imageZoom") {
+            pushedZoomHistoryState = false;
+            closedByBackButton = true;
+            try {
                 history.back();
-            }
+            } catch (_) {}
         }
     };
 
-    const popStateListener = (e) => {
-        if (e.state && e.state.page === "imageZoom") {
+    activeZoomPopstateListener = () => {
+        if (closedByBackButton) {
+            closedByBackButton = false;
             return;
         }
-        modal.classList.add("hidden");
-        window.removeEventListener("popstate", popStateListener);
+        pushedZoomHistoryState = false;
+        cleanupViewer(true);
     };
-    window.addEventListener("popstate", popStateListener);
+    window.addEventListener("popstate", activeZoomPopstateListener);
 
-    document.getElementById("zoomInBtn").onclick = () => {
-        scale = Math.min(scale + 0.5, 5);
-        updateTransform(true);
-    };
+    if (zoomInBtn) {
+        zoomInBtn.onclick = (e) => {
+            e.stopPropagation();
+            setZoomScale(scale + 0.5, true);
+        };
+    }
 
-    document.getElementById("zoomOutBtn").onclick = () => {
-        scale = Math.max(scale - 0.5, 1);
-        if (scale === 1) {
-            translateX = 0;
-            translateY = 0;
-        }
-        updateTransform(true);
-    };
+    if (zoomOutBtn) {
+        zoomOutBtn.onclick = (e) => {
+            e.stopPropagation();
+            setZoomScale(scale - 0.5, true);
+        };
+    }
 
-    document.getElementById("zoomResetBtn").onclick = resetZoom;
+    if (zoomResetBtn) {
+        zoomResetBtn.onclick = (e) => {
+            e.stopPropagation();
+            resetZoom();
+        };
+    }
 
     let lastTap = 0;
-    canvasArea.onclick = () => {
+    canvasArea.onclick = (e) => {
+        if (e.target.closest("button")) return;
         const now = Date.now();
         if (now - lastTap < 300) {
+            lastTap = 0;
             if (scale > 1) {
                 resetZoom();
             } else {
-                scale = 2.5;
-                updateTransform(true);
+                setZoomScale(2.5, true);
             }
+        } else {
+            lastTap = now;
         }
-        lastTap = now;
     };
 
     canvasArea.onwheel = (e) => {
         e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.3 : -0.3;
-        scale = Math.min(Math.max(1, scale + delta), 5);
-        if (scale === 1) {
-            translateX = 0;
-            translateY = 0;
-        }
-        updateTransform(false);
+        const delta = e.deltaY < 0 ? 0.35 : -0.35;
+        setZoomScale(scale + delta, false);
     };
 
     let initialPinchDistance = null;
@@ -490,6 +545,7 @@ export function openProfileImageViewer(photoUrl, personName) {
 
     canvasArea.ontouchstart = (e) => {
         if (e.touches.length === 2) {
+            isDragging = false;
             initialPinchDistance = Math.hypot(
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
@@ -509,12 +565,7 @@ export function openProfileImageViewer(photoUrl, personName) {
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
             );
-            scale = Math.min(Math.max(1, initialScale * (currentDistance / initialPinchDistance)), 5);
-            if (scale === 1) {
-                translateX = 0;
-                translateY = 0;
-            }
-            updateTransform(false);
+            setZoomScale(initialScale * (currentDistance / initialPinchDistance), false);
         } else if (e.touches.length === 1 && isDragging && scale > 1) {
             e.preventDefault();
             translateX = e.touches[0].clientX - startX;
@@ -523,15 +574,26 @@ export function openProfileImageViewer(photoUrl, personName) {
         }
     };
 
-    canvasArea.ontouchend = () => {
+    canvasArea.ontouchend = (e) => {
+        if (e.touches.length < 2) {
+            initialPinchDistance = null;
+        }
+        if (e.touches.length === 0) {
+            isDragging = false;
+        }
+    };
+
+    canvasArea.ontouchcancel = () => {
         initialPinchDistance = null;
         isDragging = false;
     };
 
-    document.getElementById("closeImageZoomBtn").onclick = () => {
-        closeViewer();
-        window.removeEventListener("popstate", popStateListener);
-    };
+    if (closeBtn) {
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            cleanupViewer(false);
+        };
+    }
 }
 
 export function setupSmartCallAndWhatsApp(element, rawNumber, typeName, showToast) {
