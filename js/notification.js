@@ -22,16 +22,16 @@ function showCustomDialog(message, title = "বার্তা") {
             dialogEl.style.cssText = `
                 position: fixed; inset: 0; background: rgba(0,0,0,0.55);
                 display: none; justify-content: center; align-items: center;
-                z-index: 100000; padding: 16px;
+                z-index: 100000; padding: 20px; backdrop-filter: blur(2px);
             `;
             dialogEl.innerHTML = `
-                <div style="background: var(--card-bg, #ffffff); color: var(--text-main, #1e293b); width: 100%; max-width: 380px; border-radius: 16px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); position: relative;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h3 id="notifDialogTitle" style="margin: 0; font-size: 18px; font-weight: 700;"></h3>
-                        <button type="button" id="notifDialogCloseX" style="background: none; border: none; font-size: 20px; color: var(--text-muted, #64748b); cursor: pointer;">✕</button>
+                <div style="background: var(--card-bg, #ffffff); color: var(--text-main, #1e293b); width: 100%; max-width: 360px; border-radius: 20px; padding: 24px 24px 22px 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.28); position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 id="notifDialogTitle" style="margin: 0; font-size: 22px; font-weight: 700; color: var(--text-main, #0f172a); letter-spacing: -0.2px;"></h3>
+                        <button type="button" id="notifDialogCloseX" style="background: none; border: none; font-size: 22px; line-height: 1; color: var(--text-muted, #334155); cursor: pointer; padding: 4px;">✕</button>
                     </div>
-                    <p id="notifDialogMsg" style="margin: 0 0 20px 0; font-size: 14.5px; line-height: 1.5; color: var(--text-main, #334155);"></p>
-                    <div id="notifDialogActions" style="display: flex; justify-content: flex-end; gap: 10px;"></div>
+                    <p id="notifDialogMsg" style="margin: 0 0 28px 0; font-size: 16px; line-height: 1.55; color: var(--text-main, #334155);"></p>
+                    <div id="notifDialogActions" style="display: flex; justify-content: flex-end; align-items: center; gap: 12px;"></div>
                 </div>
             `;
             document.body.appendChild(dialogEl);
@@ -45,7 +45,7 @@ function showCustomDialog(message, title = "বার্তা") {
         titleEl.innerText = title;
         msgEl.innerText = message;
         actionsEl.innerHTML = `
-            <button type="button" id="notifDialogOkBtn" style="padding: 8px 20px; background: #0d6efd; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">ঠিক আছে</button>
+            <button type="button" id="notifDialogOkBtn" style="padding: 10px 24px; background: #0d6efd; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(13,110,253,0.25);">ঠিক আছে</button>
         `;
 
         dialogEl.style.display = "flex";
@@ -76,8 +76,8 @@ function showCustomConfirm(message, title = "নিশ্চিতকরণ") {
         titleEl.innerText = title;
         msgEl.innerText = message;
         actionsEl.innerHTML = `
-            <button type="button" id="notifConfirmCancelBtn" style="padding: 8px 16px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer;">বাতিল</button>
-            <button type="button" id="notifConfirmYesBtn" style="padding: 8px 16px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">হ্যাঁ, মুছুন</button>
+            <button type="button" id="notifConfirmCancelBtn" style="padding: 10px 20px; background: #ffffff; color: #334155; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">বাতিল</button>
+            <button type="button" id="notifConfirmYesBtn" style="padding: 10px 20px; background: #ef4444; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(239,68,68,0.28);">হ্যাঁ, মুছুন</button>
         `;
 
         dialogEl.style.display = "flex";
