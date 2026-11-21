@@ -283,23 +283,8 @@ function closeHeaderSearch() {
 }
 
 function handlePopState(event) {
-    const state = event.state;
-
-    // Image Zoom modal খোলা বা বন্ধ হওয়ার সময় মেইন পেজ স্টেট রিসেট করবেন না
-    if (state && state.page === "imageZoom") {
-        return;
-    }
-
-    const zoomModal = document.getElementById("imageZoomModal");
-    if (zoomModal && !zoomModal.classList.contains("hidden")) {
-        zoomModal.classList.add("hidden");
-        zoomModal.style.display = "none";
-        if (currentDataId) {
-            return;
-        }
-    }
-
     closeHeaderSearch();
+    const state = event.state;
 
     if (!state || state.page === "home") {
         isFavoriteActive = false;
@@ -1685,7 +1670,7 @@ function renderDataDetailsContent(item) {
 
     container.innerHTML = `
         <div class="details-header-section">
-            <div class="avatar-wrapper" style="cursor:pointer;">${avatarHtml}</div>
+            <div class="avatar-wrapper">${avatarHtml}</div>
             <h2 style="font-size:22px;font-weight:700;">${name}</h2>
             <p style="color:var(--text-muted);font-size:15px;">${designation}</p>
         </div>
@@ -1728,9 +1713,7 @@ function renderDataDetailsContent(item) {
 
     const avatarWrapper = container.querySelector(".avatar-wrapper");
     if (avatarWrapper) {
-        avatarWrapper.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        avatarWrapper.addEventListener("click", () => {
             openProfileImageViewer(item.photo, item.name);
         });
     }
