@@ -108,6 +108,34 @@
         .zoom-ctrl-btn:active {
             background: rgba(255, 255, 255, 0.3);
         }
+        .url-picker-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .url-picker-row input[type="url"] {
+            flex: 1;
+            min-width: 0;
+        }
+        .image-pick-btn {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color, #cbd5e1);
+            background: var(--card-bg, #f8fafc);
+            color: var(--text-main, #0f172a);
+            font-size: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        .image-pick-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
@@ -188,10 +216,10 @@
                 </div>
                 <div class="form-group">
                     <label>ছবি লিঙ্ক (URL)</label>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <input id="categoryImageInput" type="url" placeholder="https://example.com/image.png" style="flex: 1; min-width: 0;">
-                        <button id="categoryImagePickBtn" type="button" title="গ্যালারি থেকে ছবি নির্বাচন করুন (সর্বোচ্চ ৩০০ KB)" style="padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); background: var(--card-bg, #f8fafc); cursor: pointer; font-size: 16px; line-height: 1;">📷</button>
-                        <input id="categoryImageFileInput" type="file" accept="image/*" class="hidden" style="display: none;">
+                    <div class="url-picker-row">
+                        <input id="categoryImageInput" type="url" placeholder="https://example.com/image.png">
+                        <button id="categoryImagePickBtn" class="image-pick-btn" type="button" title="ছবি নির্বাচন করুন (সর্বোচ্চ ৩০০ KB)">📷</button>
+                        <input id="categoryImageFileInput" type="file" accept="image/*" class="hidden">
                     </div>
                 </div>
                 <div class="form-group">
@@ -230,10 +258,10 @@
                 </div>
                 <div class="form-group">
                     <label>ছবি লিঙ্ক (URL)</label>
-                    <div style="display: flex; align-items: center; gap: 6px;">
-                        <input id="dataPhoto" type="url" placeholder="https://example.com/photo.jpg" style="flex: 1; min-width: 0;">
-                        <button id="dataPhotoPickBtn" type="button" title="গ্যালারি থেকে ছবি নির্বাচন করুন (সর্বোচ্চ ৩০০ KB)" style="padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-color, #cbd5e1); background: var(--card-bg, #f8fafc); cursor: pointer; font-size: 16px; line-height: 1;">📷</button>
-                        <input id="dataPhotoFileInput" type="file" accept="image/*" class="hidden" style="display: none;">
+                    <div class="url-picker-row">
+                        <input id="dataPhoto" type="url" placeholder="https://example.com/photo.jpg">
+                        <button id="dataPhotoPickBtn" class="image-pick-btn" type="button" title="ছবি নির্বাচন করুন (সর্বোচ্চ ৩০০ KB)">📷</button>
+                        <input id="dataPhotoFileInput" type="file" accept="image/*" class="hidden">
                     </div>
                 </div>
                 <div class="form-group">
