@@ -2,7 +2,7 @@
 
 const ABOUT_HIDE_IDS = [
     "mainDashboardView", "categoryDetailsView", "dataDetailsView",
-    "heroSlider", "searchBox", "subPageHeaderSearchWrapper", "slidingNoticeContainer",
+    "searchBox", "subPageHeaderSearchWrapper", "slidingNoticeContainer",
     "subPageHeader", "pageHeader", "headerBadge", "dateTimeBar", "topDateTime"
 ];
 
@@ -10,6 +10,10 @@ const ABOUT_HIDE_SELECTORS = [
     ".page-header", ".sub-page-header", ".header-logo", ".app-logo",
     ".date-time", ".datetime", ".header-date", ".header-time"
 ];
+
+const DEV_PHONE_LOCAL = "01723580852";
+const DEV_PHONE_INTL = "8801723580852";
+const DEV_PROFILE_IMG = "https://i.ibb.co/svHHtGfg/1001087129.jpg";
 
 let isAboutActive = false;
 let adDepth = 0;
@@ -43,6 +47,40 @@ const ABOUT_ROLES = {
         "Firebase & Offline Solution Specialist"
     ]
 };
+
+function getSavedDarkMode() {
+    const devTheme = localStorage.getItem("dev_page_theme");
+    if (devTheme === "dark") return true;
+    if (devTheme === "light") return false;
+
+    const appTheme = localStorage.getItem("theme");
+    if (appTheme === "dark") return true;
+    if (appTheme === "light") return false;
+
+    const darkFlag = localStorage.getItem("darkMode");
+    if (darkFlag === "true" || darkFlag === "1") return true;
+    if (darkFlag === "false" || darkFlag === "0") return false;
+
+    return document.body.classList.contains("dark-mode");
+}
+
+function applySavedThemeState() {
+    const isDark = getSavedDarkMode();
+    document.body.classList.toggle("dark-mode", isDark);
+    document.documentElement.classList.toggle("dark-mode", isDark);
+    return isDark;
+}
+
+function saveThemeState(isDark) {
+    localStorage.setItem("dev_page_theme", isDark ? "dark" : "light");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+    localStorage.setItem("darkMode", isDark ? "true" : "false");
+    document.body.classList.toggle("dark-mode", isDark);
+    document.documentElement.classList.toggle("dark-mode", isDark);
+}
+
+// পেজ লোড বা রিফ্রেশের পরও সেভ থাকা থিম বহাল রাখে
+applySavedThemeState();
 
 function backIconSvg() {
     return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`;
@@ -299,6 +337,14 @@ function injectAboutDeveloperStyles() {
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .ad-avatar-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
         }
 
         .ad-verified-badge {
@@ -707,6 +753,13 @@ function injectAboutDeveloperStyles() {
             overflow: hidden;
         }
 
+        .ad-modal-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
         .ad-feedback-box {
             background: #ffffff;
             color: #0f172a;
@@ -792,9 +845,14 @@ window.addEventListener("popstate", (e) => {
 }, true);
 
 window.addEventListener("pageshow", (e) => {
+    applySavedThemeState();
     if (!e || !e.persisted) return;
     if (isAboutActive) { enforceAboutUI(); return; }
     if (adViewSnapshot) hideMainViewsForAbout(false);
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+    applySavedThemeState();
 });
 
 function setAboutHeaderMode() {
@@ -844,6 +902,16 @@ function restoreAboutHeaderMode() {
     if (backIcon) backIcon.classList.toggle("hidden", prevBackHidden);
 }
 
+function restoreHeroSlider() {
+    const slider = document.getElementById("heroSlider");
+    if (!slider) return;
+    slider.classList.remove("hidden");
+    slider.style.removeProperty("display");
+    if (getComputedStyle(slider).display === "none") {
+        slider.style.display = "";
+    }
+}
+
 function hideMainViewsForAbout(hide) {
     if (hide) {
         adViewSnapshot = { ids: {}, extras: [] };
@@ -863,26 +931,38 @@ function hideMainViewsForAbout(hide) {
             el.style.display = "none";
         });
         const slider = document.getElementById("heroSlider");
-        if (slider) slider.style.display = "none";
+        if (slider) {
+            adViewSnapshot.slider = { hidden: slider.classList.contains("hidden"), display: slider.style.display };
+            slider.style.display = "none";
+        }
         return;
     }
 
-    if (!adViewSnapshot) return;
-    ABOUT_HIDE_IDS.forEach(id => {
-        const el = document.getElementById(id);
-        const snap = adViewSnapshot.ids ? adViewSnapshot.ids[id] : null;
-        if (!el || !snap) return;
-        el.classList.toggle("hidden", snap.hidden);
-        el.style.display = snap.display;
-    });
-    if (Array.isArray(adViewSnapshot.extras)) {
-        adViewSnapshot.extras.forEach(item => {
-            if (!item.el) return;
-            item.el.classList.toggle("hidden", item.hidden);
-            item.el.style.display = item.display;
+    if (adViewSnapshot) {
+        ABOUT_HIDE_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            const snap = adViewSnapshot.ids ? adViewSnapshot.ids[id] : null;
+            if (!el || !snap) return;
+            el.classList.toggle("hidden", snap.hidden);
+            el.style.display = snap.display;
         });
+        if (Array.isArray(adViewSnapshot.extras)) {
+            adViewSnapshot.extras.forEach(item => {
+                if (!item.el) return;
+                item.el.classList.toggle("hidden", item.hidden);
+                item.el.style.display = item.display;
+            });
+        }
+        if (adViewSnapshot.slider) {
+            const slider = document.getElementById("heroSlider");
+            if (slider) {
+                slider.classList.toggle("hidden", adViewSnapshot.slider.hidden);
+                slider.style.display = adViewSnapshot.slider.display;
+            }
+        }
+        adViewSnapshot = null;
     }
-    adViewSnapshot = null;
+    restoreHeroSlider();
 }
 
 function restoreMainVisibilityFallback() {
@@ -891,12 +971,14 @@ function restoreMainVisibilityFallback() {
         const el = document.getElementById(id);
         return el && !el.classList.contains("hidden") && el.style.display !== "none";
     });
-    if (anyVisible) return;
-    const dash = document.getElementById("mainDashboardView");
-    if (dash) {
-        dash.classList.remove("hidden");
-        dash.style.display = "";
+    if (!anyVisible) {
+        const dash = document.getElementById("mainDashboardView");
+        if (dash) {
+            dash.classList.remove("hidden");
+            dash.style.display = "";
+        }
     }
+    restoreHeroSlider();
 }
 
 function enforceAboutUI() {
@@ -953,7 +1035,7 @@ function stopAboutObserver() {
     if (aboutEnforceTimer) { clearTimeout(aboutEnforceTimer); aboutEnforceTimer = null; }
 }
 
-function avatarSvgMarkup() {
+function avatarSvgFallbackMarkup() {
     return `
         <svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -967,6 +1049,10 @@ function avatarSvgMarkup() {
             <path d="M40 185 C40 135, 160 135, 160 185" fill="#00d2ff"/>
             <text x="100" y="168" font-family="Poppins, sans-serif" font-size="22" font-weight="700" fill="#020624" text-anchor="middle">&lt;JR /&gt;</text>
         </svg>`;
+}
+
+function avatarMarkup() {
+    return `<img src="${DEV_PROFILE_IMG}" alt="Md. Jewel Rana" loading="eager" onerror="this.parentElement.innerHTML = avatarSvgFallbackMarkup();">`;
 }
 
 function startAboutParticles() {
@@ -1063,7 +1149,7 @@ function applyAboutLanguage(view, lang) {
 
 function renderAboutDeveloperView(view) {
     setAboutHeaderMode();
-    const isDarkNow = document.body.classList.contains("dark-mode");
+    const isDarkNow = applySavedThemeState();
 
     view.innerHTML = `
         <div class="ad-header" id="adHeader">
@@ -1086,7 +1172,7 @@ function renderAboutDeveloperView(view) {
                     <div class="ad-avatar-wrapper" id="adAvatarOpen">
                         <div class="ad-avatar-ring">
                             <div class="ad-avatar-inner">
-                                <div class="ad-avatar-img">${avatarSvgMarkup()}</div>
+                                <div class="ad-avatar-img">${avatarMarkup()}</div>
                             </div>
                         </div>
                         <div class="ad-verified-badge" title="Verified Developer">
@@ -1242,11 +1328,11 @@ function renderAboutDeveloperView(view) {
                 </p>
 
                 <div class="ad-action-grid">
-                    <a href="tel:+8801700000000" class="ad-action-btn ad-btn-call">
+                    <a href="tel:+${DEV_PHONE_INTL}" class="ad-action-btn ad-btn-call">
                         <i class="fas fa-phone-alt"></i>
                         <span data-bn="সরাসরি কল" data-en="Call Now">সরাসরি কল</span>
                     </a>
-                    <a href="https://wa.me/8801700000000" target="_blank" rel="noopener noreferrer" class="ad-action-btn ad-btn-wa">
+                    <a href="https://wa.me/${DEV_PHONE_INTL}" target="_blank" rel="noopener noreferrer" class="ad-action-btn ad-btn-wa">
                         <i class="fab fa-whatsapp"></i>
                         <span>WhatsApp</span>
                     </a>
@@ -1274,7 +1360,7 @@ function renderAboutDeveloperView(view) {
 
         <div class="ad-modal-overlay" id="adProfileModal">
             <button type="button" class="ad-modal-close" id="adCloseProfileModal">&times;</button>
-            <div class="ad-modal-avatar">${avatarSvgMarkup()}</div>
+            <div class="ad-modal-avatar">${avatarMarkup()}</div>
             <div style="color:#ffffff; margin-top:14px; font-size:17px; font-weight:700;">মোঃ জুয়েল রানা (Jewel Rana)</div>
         </div>
 
@@ -1305,10 +1391,10 @@ function renderAboutDeveloperView(view) {
     });
 
     view.querySelector("#adThemeBtn")?.addEventListener("click", () => {
-        const isDark = document.body.classList.toggle("dark-mode");
-        localStorage.setItem("dev_page_theme", isDark ? "dark" : "light");
+        const nextDark = !document.body.classList.contains("dark-mode");
+        saveThemeState(nextDark);
         const iconWrap = view.querySelector("#adThemeIconWrap");
-        if (iconWrap) iconWrap.innerHTML = isDark ? sunIconSvg() : moonIconSvg();
+        if (iconWrap) iconWrap.innerHTML = nextDark ? sunIconSvg() : moonIconSvg();
     });
 
     view.querySelectorAll(".ad-filter-tab").forEach(tab => {
@@ -1341,7 +1427,7 @@ function renderAboutDeveloperView(view) {
             return;
         }
         const text = encodeURIComponent(`Assalamu Alaikum Jewel Rana,\nName: ${name}\nMessage: ${msg}`);
-        window.open(`https://wa.me/8801700000000?text=${text}`, "_blank");
+        window.open(`https://wa.me/${DEV_PHONE_INTL}?text=${text}`, "_blank");
         fModal?.classList.remove("open");
     });
 
@@ -1372,6 +1458,7 @@ function renderAboutDeveloperView(view) {
 }
 
 export function openAboutDeveloper() {
+    applySavedThemeState();
     injectAboutDeveloperStyles();
 
     if (!isAboutActive) {
@@ -1427,6 +1514,7 @@ export function closeAboutDeveloper(fromPop = false) {
     restoreAboutHeaderMode();
     hideMainViewsForAbout(false);
     restoreMainVisibilityFallback();
+    applySavedThemeState();
 }
 
 window.openAboutDeveloper = openAboutDeveloper;
