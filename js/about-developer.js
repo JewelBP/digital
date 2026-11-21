@@ -27,9 +27,7 @@ let aboutCharIndex = 0;
 let aboutIsDeleting = false;
 let aboutTypingTimer = null;
 let aboutParticleFrame = null;
-let aboutScrollHandler = null;
-let aboutResizeHandler = null;
-let aboutMeasureHeader = null;
+let aboutViewportResizeFn = null;
 
 const ABOUT_ROLES = {
     bn: [
@@ -55,7 +53,6 @@ function showAboutToast(msg) {
     }
 }
 
-// প্রধান টপ হেডার (ব্যাক/মেনু বাটন + তারিখ-সময় + লোগো) খুঁজে বের করে
 function getMainTopHeader() {
     const nav = document.getElementById("navToggleBtn");
     if (!nav) return null;
@@ -64,7 +61,6 @@ function getMainTopHeader() {
     const byTag = nav.closest("header, .app-header, .top-bar, .topbar, .header, .navbar, .app-bar");
     if (byTag && !byTag.contains(sheet) && byTag !== document.body) return byTag;
 
-    // ফলব্যাক: নেভ বাটন থেকে উপরে উঠে সবচেয়ে বড় এমন প্যারেন্ট, যার ভেতরে মূল শিট নেই
     let el = nav;
     while (el.parentElement && el.parentElement !== document.body &&
            !(sheet && el.parentElement.contains(sheet))) {
@@ -92,135 +88,126 @@ function getExtraHeaderElements() {
 }
 
 function injectAboutDeveloperStyles() {
-    if (document.getElementById("aboutDeveloperModuleStyles")) return;
+    const oldStyle = document.getElementById("aboutDeveloperModuleStyles");
+    if (oldStyle) oldStyle.remove();
 
     const style = document.createElement("style");
     style.id = "aboutDeveloperModuleStyles";
     style.textContent = `
+        /* মূল html ও body-এর স্ক্রল সম্পূর্ণ লক করা হয়েছে */
+        html.ad-about-lock,
+        body.ad-about-active {
+            overflow: hidden !important;
+            height: 100% !important;
+            max-height: 100% !important;
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            overscroll-behavior: none !important;
+        }
+
+        /* মেইন ভিউপোর্ট কন্টেইনার যা স্ক্রিনের ঠিক সমান উঁচু হবে */
         #aboutDeveloperSheetView {
             --ad-main: var(--app-main-color, var(--primary-color, #020624));
-            display: block;
-            width: 100%;
-            position: relative;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100vw !important;
+            height: 100% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+            z-index: 9990 !important;
+            background: var(--bg-color, #f1f5f9) !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            transform: none !important;
+        }
+        body.dark-mode #aboutDeveloperSheetView {
+            background: #03071e !important;
         }
         #aboutDeveloperSheetView.hidden {
             display: none !important;
         }
 
-        /* স্ক্রিনের দুই কিনারা পর্যন্ত পুরো প্রস্থ জুড়ে ফিক্সড/স্টিকি হিরো অংশ */
-        /* পুরো কালো অংশ (টপবার + অ্যানিমেটেড হিরো) এখন ফিক্সড হেডার */
-        .ad-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 40;
-            background: #07103a;
-            box-shadow: 0 8px 22px rgba(2, 6, 36, 0.35);
-            border-radius: 0 0 32px 32px;
-            overflow: hidden;
+        /* উপরের কালো অংশ — শতভাগ ফিক্সড, কখনোই স্ক্রল বা নড়াচড়া করবে না */
+        #aboutDeveloperSheetView .ad-header {
+            flex: 0 0 auto !important;
+            flex-shrink: 0 !important;
+            position: relative !important;
+            width: 100% !important;
+            z-index: 20 !important;
+            background: #07103a !important;
+            box-shadow: 0 10px 26px rgba(2, 6, 36, 0.38) !important;
+            border-radius: 0 0 32px 32px !important;
+            overflow: hidden !important;
+            touch-action: none !important;
         }
-        .ad-header-spacer { width: 100%; transition: height 0.3s ease; }
 
-        /* উচ্চতা মাপার সময় ট্রানজিশন সাময়িক বন্ধ রাখা হয়, নাহলে ভুল উচ্চতা মাপা হয় */
-        .ad-header.no-anim, .ad-header.no-anim * { transition: none !important; }
-        .ad-topbar {
-            position: relative;
-            z-index: 3;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-sizing: border-box;
-            padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 4px;
-            color: #ffffff;
-            background: #07103a;
+        #aboutDeveloperSheetView .ad-topbar {
+            position: relative !important;
+            z-index: 3 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            box-sizing: border-box !important;
+            padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 4px !important;
+            color: #ffffff !important;
+            background: transparent !important;
         }
-        .ad-topbar-title {
-            flex: 1;
-            min-width: 0;
-            font-size: 15px;
-            font-weight: 700;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        #aboutDeveloperSheetView .ad-topbar-title {
+            flex: 1 !important;
+            min-width: 0 !important;
+            font-size: 15.5px !important;
+            font-weight: 700 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
         }
-        .ad-topbar .ad-pill-btn { min-height: 34px; }
-        .ad-back-btn { width: 36px; height: 36px; padding: 0; justify-content: center; font-size: 15px; }
+        #aboutDeveloperSheetView .ad-topbar .ad-pill-btn { min-height: 34px !important; }
+        #aboutDeveloperSheetView .ad-back-btn { width: 36px !important; height: 36px !important; padding: 0 !important; justify-content: center !important; font-size: 15px !important; }
 
-        /* অ্যাবাউট পেজ চালু থাকলে মূল শিট একদম উপর থেকে শুরু হবে */
-        body.ad-about-active #mainScrollSheet {
-            margin-top: 0 !important;
-            top: 0 !important;
-            padding-top: 0 !important;
-            border-radius: 0 !important;
-            transform: none !important;
-            /* অ্যাবাউট পেজে স্ক্রল নিশ্চিত করতে */
+        #aboutDeveloperSheetView .ad-hero-full-fixed {
+            position: relative !important;
+            width: 100% !important;
+            overflow: hidden !important;
+            background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%) !important;
+            padding: 8px 16px 22px !important;
+            text-align: center !important;
+            color: #ffffff !important;
+            box-sizing: border-box !important;
+        }
+
+        #aboutDeveloperSheetView .ad-hero-full-fixed::after {
+            content: "" !important;
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            height: 18px !important;
+            background: linear-gradient(to bottom, transparent, rgba(2, 6, 36, 0.28)) !important;
+            pointer-events: none !important;
+        }
+
+        /* শুধুমাত্র নিচের এই কার্ড কন্টেইনারটি আলাদাভাবে স্ক্রল/স্লাইড হবে */
+        #aboutDeveloperSheetView .ad-scroll-body {
+            flex: 1 1 auto !important;
+            min-height: 0 !important;
+            height: 0 !important;
             overflow-y: auto !important;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-        }
-        body.ad-about-active #mainScrollSheet main.container {
-            padding-top: 0 !important;
-            margin-top: 0 !important;
-        }
-
-        .ad-hero-full-fixed {
-            position: relative;
-            width: 100%;
-            overflow: hidden;
-            background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%);
-            padding: 10px 16px 24px;
-            text-align: center;
-            color: #ffffff;
-            transition: padding 0.3s ease;
-        }
-
-        .ad-hero-full-fixed::after {
-            content: "";
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 18px;
-            background: linear-gradient(to bottom, transparent, rgba(2, 6, 36, 0.28));
-            pointer-events: none;
-        }
-
-        /* নিচের স্ক্রলযোগ্য কন্টেন্ট এরিয়া */
-        /* স্ক্রল করলে হেডার ছোট হয় (অ্যানিমেশন থাকে, জায়গা কম নেয়) */
-        .ad-status-pill, .ad-dev-subname, .ad-typing-role {
-            max-height: 80px;
-            overflow: hidden;
-            transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease, padding 0.3s ease, border-width 0.3s ease;
-        }
-        .ad-avatar-wrapper { transition: width 0.3s ease, height 0.3s ease, margin 0.3s ease; }
-        .ad-verified-badge { transition: all 0.3s ease; }
-        .ad-dev-name { transition: font-size 0.3s ease; }
-
-        .ad-header.ad-compact .ad-status-pill,
-        .ad-header.ad-compact .ad-dev-subname,
-        .ad-header.ad-compact .ad-typing-role {
-            max-height: 0;
-            opacity: 0;
-            margin-top: 0;
-            margin-bottom: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            min-height: 0;
-            border-width: 0;
-        }
-        .ad-header.ad-compact .ad-hero-full-fixed { padding-top: 4px; padding-bottom: 12px; }
-        .ad-header.ad-compact .ad-avatar-wrapper { width: 52px; height: 52px; margin-bottom: 4px; }
-        .ad-header.ad-compact .ad-verified-badge { width: 16px; height: 16px; font-size: 8px; border-width: 2px; bottom: 0; right: 0; }
-        .ad-header.ad-compact .ad-dev-name { font-size: 17px; margin: 0; }
-
-        .ad-scroll-body {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            padding: 18px 4px 40px;
-            position: relative;
-            z-index: 10;
+            overflow-x: hidden !important;
+            -webkit-overflow-scrolling: touch !important;
+            overscroll-behavior-y: contain !important;
+            touch-action: pan-y !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 14px !important;
+            padding: 18px 14px calc(env(safe-area-inset-bottom, 0px) + 60px) !important;
+            position: relative !important;
+            z-index: 10 !important;
+            box-sizing: border-box !important;
         }
 
         #adParticleCanvas {
@@ -236,13 +223,6 @@ function injectAboutDeveloperStyles() {
             z-index: 2;
             max-width: 600px;
             margin: 0 auto;
-        }
-
-        .ad-top-controls {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-bottom: 6px;
         }
 
         .ad-pill-btn {
@@ -263,8 +243,7 @@ function injectAboutDeveloperStyles() {
         .ad-status-pill {
             display: flex;
             width: fit-content;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 0 auto 10px;
             align-items: center;
             gap: 7px;
             background: rgba(16, 185, 129, 0.16);
@@ -274,7 +253,6 @@ function injectAboutDeveloperStyles() {
             border-radius: 20px;
             font-size: 11.5px;
             font-weight: 600;
-            margin-bottom: 12px;
         }
 
         .ad-pulse-dot {
@@ -292,12 +270,11 @@ function injectAboutDeveloperStyles() {
             100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
-        /* স্থির রাউন্ড অ্যাভাটার রিং — কোনো ঘূর্ণন বা স্লাইডিং নেই */
         .ad-avatar-wrapper {
             position: relative;
-            width: 112px;
-            height: 112px;
-            margin: 0 auto 12px;
+            width: 102px;
+            height: 102px;
+            margin: 0 auto 10px;
             cursor: pointer;
         }
 
@@ -331,22 +308,22 @@ function injectAboutDeveloperStyles() {
 
         .ad-verified-badge {
             position: absolute;
-            bottom: 3px;
-            right: 3px;
+            bottom: 2px;
+            right: 2px;
             background: linear-gradient(135deg, #10b981, #059669);
             color: #ffffff;
-            width: 28px;
-            height: 28px;
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
             border: 2.5px solid #020624;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .ad-dev-name {
-            font-size: 23px;
+            font-size: 22px;
             font-weight: 700;
             margin: 0 0 2px;
             color: #ffffff;
@@ -354,12 +331,12 @@ function injectAboutDeveloperStyles() {
 
         .ad-dev-subname {
             font-family: "Poppins", sans-serif;
-            font-size: 12px;
+            font-size: 11.5px;
             color: #00d2ff;
             font-weight: 600;
             letter-spacing: 1px;
             text-transform: uppercase;
-            margin: 0 0 10px;
+            margin: 0 0 9px;
         }
 
         .ad-typing-role {
@@ -394,6 +371,7 @@ function injectAboutDeveloperStyles() {
             box-shadow: 0 8px 22px rgba(2, 6, 36, 0.08);
             border: 1px solid rgba(2, 6, 36, 0.08);
             color: #0f172a;
+            flex-shrink: 0;
         }
 
         body.dark-mode #aboutDeveloperSheetView .ad-card {
@@ -700,7 +678,7 @@ function injectAboutDeveloperStyles() {
             position: fixed;
             inset: 0;
             background: rgba(2, 6, 36, 0.92);
-            z-index: 9999;
+            z-index: 99999;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -766,17 +744,25 @@ function injectAboutDeveloperStyles() {
     document.head.appendChild(style);
 }
 
-function ensureAboutSheetContainer() {
-    const sheet = document.getElementById("mainScrollSheet");
-    if (!sheet) return null;
+// স্ক্রিনের আসল পিক্সেল উচ্চতা নির্ণয় করে লক করার ফাংশন (WebView-এর জন্য সবচেয়ে নির্ভরযোগ্য)
+function syncAboutViewportHeight() {
+    const view = document.getElementById("aboutDeveloperSheetView");
+    if (!view || !isAboutActive) return;
+    const h = window.innerHeight || document.documentElement.clientHeight;
+    view.style.setProperty("height", h + "px", "important");
+    view.style.setProperty("max-height", h + "px", "important");
+}
 
+function ensureAboutSheetContainer() {
     let view = document.getElementById("aboutDeveloperSheetView");
     if (!view) {
         view = document.createElement("div");
         view.id = "aboutDeveloperSheetView";
         view.className = "hidden";
-        const mainEl = sheet.querySelector("main.container") || sheet;
-        mainEl.appendChild(view);
+    }
+    // যদি ভুলবশত অন্য কোনো কন্টেইনারের ভেতরে থাকে, তবে সরাসরি document.body-তে নিয়ে আসবে
+    if (view.parentElement !== document.body) {
+        document.body.appendChild(view);
     }
     return view;
 }
@@ -787,8 +773,6 @@ function pushAboutState(level) {
         history.pushState({ adLevel: level }, "", location.href);
         pushed = true;
     } catch (e) { pushed = false; }
-    // pushState ব্যর্থ হলে history স্ট্যাকে নতুন এন্ট্রি নেই — তখন adDepth বাড়ানো যাবে না,
-    // নাহলে close-এর সময় history.go(-1) অ্যাপের বাইরের এন্ট্রিতে চলে যাবে (সাদা স্ক্রিনের কারণ)
     adDepth = pushed ? level : 0;
 }
 
@@ -799,7 +783,6 @@ window.addEventListener("popstate", (e) => {
         return;
     }
     if (!isAboutActive) {
-        // ব্যাক প্রেসের পরেও স্ন্যাপশট থেকে গেলে মানে close ঠিকমতো হয়নি — মেইন ভিউ রিস্টোর করো
         if (adViewSnapshot) hideMainViewsForAbout(false);
         return;
     }
@@ -814,7 +797,6 @@ window.addEventListener("popstate", (e) => {
     closeAboutDeveloper(true);
 }, true);
 
-// bfcache/ব্যাক-নেভিগেশনে ফিরে এলে JS স্টেট ও DOM মিলিয়ে যেতে পারে — এখানে রিকভার
 window.addEventListener("pageshow", (e) => {
     if (!e || !e.persisted) return;
     if (isAboutActive) { enforceAboutUI(); return; }
@@ -909,7 +891,6 @@ function hideMainViewsForAbout(hide) {
     adViewSnapshot = null;
 }
 
-// ব্যাক প্রেসের পর যদি কোনো মেইন ভিউই দৃশ্যমান না থাকে (সাদা স্ক্রিন), মেইন ড্যাশবোর্ড ফিরিয়ে আনো
 function restoreMainVisibilityFallback() {
     const viewIds = ["mainDashboardView", "categoryDetailsView", "dataDetailsView"];
     const anyVisible = viewIds.some(id => {
@@ -949,6 +930,7 @@ function enforceAboutUI() {
 
     const view = document.getElementById("aboutDeveloperSheetView");
     if (view && view.classList.contains("hidden")) view.classList.remove("hidden");
+    syncAboutViewportHeight();
 }
 
 function scheduleAboutEnforce() {
@@ -1082,133 +1064,58 @@ function applyAboutLanguage(view, lang) {
     });
 
     startAboutTyping();
-    setTimeout(() => aboutMeasureHeader && aboutMeasureHeader(), 60);
-}
-
-function teardownAboutHeaderBehavior() {
-    if (aboutScrollHandler) window.removeEventListener("scroll", aboutScrollHandler, true);
-    if (aboutResizeHandler) window.removeEventListener("resize", aboutResizeHandler);
-    aboutScrollHandler = null;
-    aboutResizeHandler = null;
-    aboutMeasureHeader = null;
-}
-
-function setupAboutHeaderBehavior(view) {
-    teardownAboutHeaderBehavior();
-    const header = view.querySelector("#adHeader");
-    const spacer = view.querySelector("#adHeaderSpacer");
-    if (!header || !spacer) return;
-
-    let compact = false;
-    let expandedH = 0;
-    let compactH = 0;
-    let ticking = false;
-    let pendingSt = 0;
-
-    // বড় ও ছোট — দুই অবস্থারই হেডার উচ্চতা আগেই মেপে রাখা হয়। স্পেসারও হেডারের
-    // সাথে সিঙ্কে কম-বেশি হয় (একই ০.৩s ট্রানজিশনে), ফলে স্ক্রলে কনটেন্ট লাফায় না
-    // এবং হেডার উঁচু-নিচু (jitter) করে না।
-    aboutMeasureHeader = () => {
-        const wasCompact = compact;
-        header.classList.add("no-anim");
-        header.classList.add("ad-compact");
-        compactH = header.offsetHeight;
-        header.classList.remove("ad-compact");
-        expandedH = header.offsetHeight;
-        if (wasCompact) header.classList.add("ad-compact");
-        header.classList.remove("no-anim");
-        spacer.style.transition = "none";
-        spacer.style.height = (wasCompact ? compactH : expandedH) + "px";
-        requestAnimationFrame(() => { spacer.style.transition = ""; });
-    };
-    aboutMeasureHeader();
-    requestAnimationFrame(aboutMeasureHeader);
-    if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(() => aboutMeasureHeader && aboutMeasureHeader());
-    }
-
-    const sheet = document.getElementById("mainScrollSheet");
-    if (sheet) sheet.scrollTop = 0;
-    window.scrollTo(0, 0);
-
-    const getTop = (t) => (t === document || t === document.documentElement || t === document.body)
-        ? (window.scrollY || document.documentElement.scrollTop || 0)
-        : t.scrollTop;
-
-    // rAF-থ্রটল + হিস্টেরেসিস (৬০px-এর বেশি হলে ছোট, ৮px-এর নিচে হলে বড়) —
-    // এক ফ্রেমে একাধিক টগল হয় না, তাই হেডার কাঁপে না
-    const applyCompactState = () => {
-        ticking = false;
-        const next = pendingSt > 60 ? true : (pendingSt < 8 ? false : compact);
-        if (next === compact) return;
-        compact = next;
-        header.classList.toggle("ad-compact", compact);
-        spacer.style.height = (compact ? compactH : expandedH) + "px";
-    };
-
-    aboutScrollHandler = (e) => {
-        const t = e.target;
-        if (t !== document && t !== document.documentElement &&
-            !(t.contains && t.contains(view))) return;
-        pendingSt = getTop(t);
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(applyCompactState);
-    };
-    window.addEventListener("scroll", aboutScrollHandler, { capture: true, passive: true });
-
-    aboutResizeHandler = () => aboutMeasureHeader && aboutMeasureHeader();
-    window.addEventListener("resize", aboutResizeHandler);
+    syncAboutViewportHeight();
 }
 
 function renderAboutDeveloperView(view) {
     setAboutHeaderMode();
 
     view.innerHTML = `
+        <!-- উপরের ফিক্সড অংশ (কখনোই নড়বে না) -->
         <div class="ad-header" id="adHeader">
-        <div class="ad-topbar">
-            <button type="button" class="ad-pill-btn ad-back-btn" id="adBackBtn" aria-label="Back">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <div class="ad-topbar-title" data-bn="ডেভেলপার পরিচিতি" data-en="About Developer">ডেভেলপার পরিচিতি</div>
-            <button type="button" class="ad-pill-btn" id="adLangBtn">
-                <i class="fas fa-language"></i> <span id="adLangText">${aboutCurrentLang === "bn" ? "EN" : "বাংলা"}</span>
-            </button>
-            <button type="button" class="ad-pill-btn" id="adThemeBtn" title="Toggle Dark Mode">
-                <i class="fas fa-moon" id="adThemeIcon"></i>
-            </button>
-        </div>
+            <div class="ad-topbar">
+                <button type="button" class="ad-pill-btn ad-back-btn" id="adBackBtn" aria-label="Back">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="ad-topbar-title" data-bn="ডেভেলপার পরিচিতি" data-en="About Developer">ডেভেলপার পরিচিতি</div>
+                <button type="button" class="ad-pill-btn" id="adLangBtn">
+                    <i class="fas fa-language"></i> <span id="adLangText">${aboutCurrentLang === "bn" ? "EN" : "বাংলা"}</span>
+                </button>
+                <button type="button" class="ad-pill-btn" id="adThemeBtn" title="Toggle Dark Mode">
+                    <i class="fas fa-moon" id="adThemeIcon"></i>
+                </button>
+            </div>
 
-        <section class="ad-hero-full-fixed">
-            <canvas id="adParticleCanvas"></canvas>
-            <div class="ad-hero-content">
-                <div class="ad-status-pill">
-                    <span class="ad-pulse-dot"></span>
-                    <span data-bn="অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়" data-en="Available for App Dev & Support">অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়</span>
-                </div>
+            <section class="ad-hero-full-fixed">
+                <canvas id="adParticleCanvas"></canvas>
+                <div class="ad-hero-content">
+                    <div class="ad-status-pill">
+                        <span class="ad-pulse-dot"></span>
+                        <span data-bn="অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়" data-en="Available for App Dev & Support">অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়</span>
+                    </div>
 
-                <div class="ad-avatar-wrapper" id="adAvatarOpen">
-                    <div class="ad-avatar-ring">
-                        <div class="ad-avatar-inner">
-                            <div class="ad-avatar-img">${avatarSvgMarkup()}</div>
+                    <div class="ad-avatar-wrapper" id="adAvatarOpen">
+                        <div class="ad-avatar-ring">
+                            <div class="ad-avatar-inner">
+                                <div class="ad-avatar-img">${avatarSvgMarkup()}</div>
+                            </div>
+                        </div>
+                        <div class="ad-verified-badge" title="Verified Developer">
+                            <i class="fas fa-check"></i>
                         </div>
                     </div>
-                    <div class="ad-verified-badge" title="Verified Developer">
-                        <i class="fas fa-check"></i>
+
+                    <h1 class="ad-dev-name" data-bn="মোঃ জুয়েল রানা" data-en="Md. Jewel Rana">মোঃ জুয়েল রানা</h1>
+                    <p class="ad-dev-subname">Jewel Rana • App & Web Developer</p>
+
+                    <div class="ad-typing-role">
+                        <span id="adTypedText"></span><span class="ad-cursor">&nbsp;</span>
                     </div>
                 </div>
-
-                <h1 class="ad-dev-name" data-bn="মোঃ জুয়েল রানা" data-en="Md. Jewel Rana">মোঃ জুয়েল রানা</h1>
-                <p class="ad-dev-subname">Jewel Rana • App & Web Developer</p>
-
-                <div class="ad-typing-role">
-                    <span id="adTypedText"></span><span class="ad-cursor">&nbsp;</span>
-                </div>
-            </div>
-        </section>
+            </section>
         </div>
-        <div class="ad-header-spacer" id="adHeaderSpacer"></div>
 
+        <!-- নিচের স্ক্রলযোগ্য অংশ (শুধুমাত্র এই অংশটি স্লাইড হবে) -->
         <div class="ad-scroll-body">
             <div class="ad-card">
                 <h2 class="ad-section-title">
@@ -1478,7 +1385,7 @@ function renderAboutDeveloperView(view) {
     });
 
     applyAboutLanguage(view, aboutCurrentLang);
-    setupAboutHeaderBehavior(view);
+    syncAboutViewportHeight();
     startAboutParticles();
 }
 
@@ -1492,12 +1399,19 @@ export function openAboutDeveloper() {
     }
 
     isAboutActive = true;
+    document.documentElement.classList.add("ad-about-lock");
     document.body.classList.add("ad-about-active");
+
     const view = ensureAboutSheetContainer();
     if (view) {
         view.classList.remove("hidden");
         renderAboutDeveloperView(view);
     }
+
+    if (aboutViewportResizeFn) window.removeEventListener("resize", aboutViewportResizeFn);
+    aboutViewportResizeFn = syncAboutViewportHeight;
+    window.addEventListener("resize", aboutViewportResizeFn);
+
     startAboutObserver();
 }
 
@@ -1507,17 +1421,19 @@ export function closeAboutDeveloper(fromPop = false) {
     if (fromPop !== true && adDepth > 0) {
         adSwallowPop++;
         try { history.go(-adDepth); } catch (e) { adSwallowPop = 0; }
-        // popstate কোনো কারণে ফায় না হলে কাউন্টার বেঁকে থাকে এবং মেইন অ্যাপের
-        // পরের popstate খেয়ে ফেলে সাদা স্ক্রিন দেখায় — তাই টাইমআউটে রিসেট
         setTimeout(() => { adSwallowPop = 0; }, 800);
     }
     adDepth = 0;
 
     clearTimeout(aboutTypingTimer);
     if (aboutParticleFrame) cancelAnimationFrame(aboutParticleFrame);
+    if (aboutViewportResizeFn) {
+        window.removeEventListener("resize", aboutViewportResizeFn);
+        aboutViewportResizeFn = null;
+    }
     stopAboutObserver();
-    teardownAboutHeaderBehavior();
     isAboutActive = false;
+    document.documentElement.classList.remove("ad-about-lock");
     document.body.classList.remove("ad-about-active");
 
     const view = document.getElementById("aboutDeveloperSheetView");
