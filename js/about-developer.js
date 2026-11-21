@@ -1086,13 +1086,7 @@ function renderAboutDeveloperView(view) {
                 </button>
             </div>
 
-            <section class="ad-hero-full-fixed">
-                <canvas id="adParticleCanvas"></canvas>
-                <div class="ad-hero-content">
-                    <div class="ad-status-pill">
-                        <span class="ad-pulse-dot"></span>
-                        <span data-bn="অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়" data-en="Available for App Dev & Support">অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়</span>
-                    </div>
+
 
                     <div class="ad-avatar-wrapper" id="adAvatarOpen">
                         <div class="ad-avatar-ring">
