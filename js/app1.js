@@ -612,3 +612,75 @@ export function setupEmailAction(element, rawEmail, showToast) {
         window.location.href = `mailto:${rawEmail}`;
     });
 }
+
+export async function uploadImageToImgBB(file, apiKey, onLoadingChange, showToast) {
+    const MAX_IMAGE_BYTES = 300 * 1024;
+
+    if (!file) {
+        return null;
+    }
+
+    if (!file.type || !file.type.startsWith("image/")) {
+        if (typeof showToast === "function") {
+            showToast("⚠️ অনুগ্রহ করে একটি বৈধ ছবি নির্বাচন করুন!");
+        }
+        return null;
+    }
+
+    if (file.size > MAX_IMAGE_BYTES) {
+        const sizeKb = (file.size / 1024).toFixed(1);
+        if (typeof showToast === "function") {
+            showToast(`❌ ছবির সাইজ ${sizeKb} KB (৩০০ KB-এর বেশি)! রিজেক্ট করা হয়েছে।`);
+        }
+        return null;
+    }
+
+    if (!apiKey || !String(apiKey).trim()) {
+        if (typeof showToast === "function") {
+            showToast("⚠️ API Key সেট করা নেই!");
+        }
+        return null;
+    }
+
+    if (!navigator.onLine) {
+        if (typeof showToast === "function") {
+            showToast("⚠️ ছবি আপলোড করার জন্য ইন্টারনেট সংযোগ প্রয়োজন!");
+        }
+        return null;
+    }
+
+    try {
+        if (typeof onLoadingChange === "function") onLoadingChange(true);
+
+        const formData = new FormData();
+        formData.append("image", file);
+
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey.trim())}`, {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result?.success && result?.data) {
+            const directUrl = result.data.url || result.data.display_url || "";
+            if (typeof showToast === "function") {
+                showToast("✅ ছবি আপলোড হয়ে লিংক তৈরি হয়েছে!");
+            }
+            return directUrl;
+        } else {
+            if (typeof showToast === "function") {
+                showToast("❌ লিংক তৈরি করা যায়নি!");
+            }
+            return null;
+        }
+    } catch (err) {
+        console.error("ImgBB upload error:", err);
+        if (typeof showToast === "function") {
+            showToast("❌ ছবি আপলোড করতে সমস্যা হয়েছে!");
+        }
+        return null;
+    } finally {
+        if (typeof onLoadingChange === "function") onLoadingChange(false);
+    }
+}
