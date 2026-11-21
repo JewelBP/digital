@@ -1,5 +1,85 @@
 // js/drawer.js
 
+function showDrawerDialog(message, title = "বার্তা") {
+    return new Promise((resolve) => {
+        let dialogEl = document.getElementById("drawerCustomDialog");
+        if (!dialogEl) {
+            dialogEl = document.createElement("div");
+            dialogEl.id = "drawerCustomDialog";
+            dialogEl.style.cssText = `
+                position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+                display: none; justify-content: center; align-items: center;
+                z-index: 1000000; padding: 20px; backdrop-filter: blur(2px);
+            `;
+            dialogEl.innerHTML = `
+                <div style="background: #ffffff; color: #1e293b; width: 100%; max-width: 360px; border-radius: 20px; padding: 24px 24px 22px 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.28); position: relative; font-family: inherit;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 id="drawerDialogTitle" style="margin: 0; font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: -0.2px;"></h3>
+                        <button type="button" id="drawerDialogCloseX" style="background: none; border: none; font-size: 22px; line-height: 1; color: #334155; cursor: pointer; padding: 4px;">✕</button>
+                    </div>
+                    <p id="drawerDialogMsg" style="margin: 0 0 28px 0; font-size: 16px; line-height: 1.55; color: #334155;"></p>
+                    <div id="drawerDialogActions" style="display: flex; justify-content: flex-end; align-items: center; gap: 12px;"></div>
+                </div>
+            `;
+            document.body.appendChild(dialogEl);
+        }
+
+        const titleEl = document.getElementById("drawerDialogTitle");
+        const msgEl = document.getElementById("drawerDialogMsg");
+        const actionsEl = document.getElementById("drawerDialogActions");
+        const closeX = document.getElementById("drawerDialogCloseX");
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        actionsEl.innerHTML = `
+            <button type="button" id="drawerDialogOkBtn" style="padding: 10px 24px; background: #0d6efd; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(13,110,253,0.25);">ঠিক আছে</button>
+        `;
+
+        dialogEl.style.display = "flex";
+
+        const finish = () => {
+            dialogEl.style.display = "none";
+            resolve();
+        };
+
+        document.getElementById("drawerDialogOkBtn").onclick = finish;
+        closeX.onclick = finish;
+    });
+}
+
+function showDrawerConfirm(message, title = "নিশ্চিতকরণ") {
+    return new Promise((resolve) => {
+        let dialogEl = document.getElementById("drawerCustomDialog");
+        if (!dialogEl) {
+            showDrawerDialog("", "");
+            dialogEl = document.getElementById("drawerCustomDialog");
+        }
+
+        const titleEl = document.getElementById("drawerDialogTitle");
+        const msgEl = document.getElementById("drawerDialogMsg");
+        const actionsEl = document.getElementById("drawerDialogActions");
+        const closeX = document.getElementById("drawerDialogCloseX");
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        actionsEl.innerHTML = `
+            <button type="button" id="drawerConfirmCancelBtn" style="padding: 10px 20px; background: #ffffff; color: #334155; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;">বাতিল</button>
+            <button type="button" id="drawerConfirmYesBtn" style="padding: 10px 20px; background: #ef4444; color: #ffffff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(239,68,68,0.28);">হ্যাঁ, মুছুন</button>
+        `;
+
+        dialogEl.style.display = "flex";
+
+        const finish = (val) => {
+            dialogEl.style.display = "none";
+            resolve(val);
+        };
+
+        document.getElementById("drawerConfirmCancelBtn").onclick = () => finish(false);
+        document.getElementById("drawerConfirmYesBtn").onclick = () => finish(true);
+        closeX.onclick = () => finish(false);
+    });
+}
+
 export function initDrawer() {
 
     const drawerHTML = `
@@ -261,6 +341,7 @@ function applySavedTextColor() {
             el.closest("#appDrawer") ||
             el.closest("#settingsModal") ||
             el.closest("#customDeleteModal") ||
+            el.closest("#drawerCustomDialog") ||
             el.classList.contains("firebase-formatted-text") ||
             el.querySelector(".firebase-formatted-text")
         ) {
@@ -276,83 +357,14 @@ function applySavedTextColor() {
    CUSTOM DELETE MODAL
 ============================================================ */
 
-function showCustomDeleteModal(onConfirm) {
-    const existing = document.getElementById("customDeleteModal");
-    if (existing) existing.remove();
-
-    const modalHTML = `
-        <div id="customDeleteModal"
-             style="
-                position:fixed;top:0;left:0;width:100%;height:100%;
-                background:rgba(0,0,0,.5);
-                display:flex;align-items:center;
-                justify-content:center;z-index:99999;padding:20px;
-             ">
-
-            <div style="
-                background:#fff;width:100%;max-width:380px;
-                border-radius:20px;padding:24px;
-                box-shadow:0 10px 25px rgba(0,0,0,.2);
-                position:relative;font-family:inherit;
-            ">
-
-                <button id="modalCloseBtn"
-                        style="
-                            position:absolute;top:18px;right:18px;
-                            background:none;border:none;font-size:20px;
-                            cursor:pointer;color:#333;
-                        ">
-                    ✕
-                </button>
-
-                <h3 style="margin:0 0 15px 0;font-size:20px;font-weight:700;color:#111;">
-                    নিশ্চিতকরণ
-                </h3>
-
-                <p style="margin:0 0 25px 0;font-size:15px;color:#444;line-height:1.5;">
-                    আপনি কি নিশ্চিত সমস্ত ডাটা ও লগইন তথ্য মুছে ফেলতে চান? (এর ফলে অ্যাপটি একদম প্রথম ইন্সটলের অবস্থার মতো হয়ে যাবে এবং পুনরায় পাসওয়ার্ড দিয়ে প্রবেশ করতে হবে।)
-                </p>
-
-                <div style="display:flex;justify-content:flex-end;gap:10px;">
-                    <button id="modalCancelBtn"
-                            style="
-                                padding:8px 18px;border:1px solid #ccc;
-                                background:#fff;color:#333;border-radius:8px;
-                                font-size:14px;font-weight:600;cursor:pointer;
-                            ">
-                        বাতিল
-                    </button>
-
-                    <button id="modalConfirmBtn"
-                            style="
-                                padding:8px 18px;border:none;
-                                background:#ff4d4d;color:#fff;
-                                border-radius:8px;font-size:14px;
-                                font-weight:600;cursor:pointer;
-                            ">
-                        হ্যাঁ, মুছুন
-                    </button>
-                </div>
-
-            </div>
-        </div>
-    `;
-
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-
-    const modal = document.getElementById("customDeleteModal");
-
-    document.getElementById("modalCloseBtn").addEventListener("click", () => modal.remove());
-    document.getElementById("modalCancelBtn").addEventListener("click", () => modal.remove());
-
-    modal.addEventListener("click", e => {
-        if (e.target === modal) modal.remove();
-    });
-
-    document.getElementById("modalConfirmBtn").addEventListener("click", () => {
-        modal.remove();
+async function showCustomDeleteModal(onConfirm) {
+    const confirmed = await showDrawerConfirm(
+        "আপনি কি নিশ্চিত সমস্ত ডাটা ও লগইন তথ্য মুছে ফেলতে চান? (এর ফলে অ্যাপটি একদম প্রথম ইন্সটলের অবস্থার মতো হয়ে যাবে এবং পুনরায় পাসওয়ার্ড দিয়ে প্রবেশ করতে হবে।)",
+        "নিশ্চিতকরণ"
+    );
+    if (confirmed && typeof onConfirm === "function") {
         onConfirm();
-    });
+    }
 }
 
 
@@ -562,7 +574,7 @@ function initSettingsModal() {
         }
     });
 
-    document.getElementById("resetSettingsBtn").addEventListener("click", () => {
+    document.getElementById("resetSettingsBtn").addEventListener("click", async () => {
         localStorage.removeItem("app_theme_color");
         localStorage.removeItem("app_bg_color");
         localStorage.removeItem("app_text_color");
@@ -573,7 +585,7 @@ function initSettingsModal() {
         document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=" + document.domain + "; path=/;";
 
-        alert("সেটিংস রিসেট করা হয়েছে!");
+        await showDrawerDialog("সেটিংস রিসেট করা হয়েছে!", "সফল");
         closeModalAndCleanup();
     });
 
@@ -652,7 +664,7 @@ function handleDrawerAction(action) {
                     url: window.location.href
                 }).catch(console.error);
             } else {
-                alert("Sharing not supported on this browser.");
+                showDrawerDialog("এই ব্রাউজারে শেয়ার সুবিধা সমর্থিত নয়।", "সতর্কতা");
             }
             break;
         case "about":
