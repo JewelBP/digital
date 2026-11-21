@@ -916,6 +916,24 @@
             background-color: rgba(15, 23, 42, 0.75) !important;
             backdrop-filter: blur(2px);
         }
+    
+        /* ক্যাটাগরির উপরের বাড়তি ফাঁকা কমানো
+           - গেস্ট/ইউজারের জন্য ফাঁকা (অ্যাডমিন বাটনহীন) হেডার সেকশন লুকানো হয়
+           - টেক্সট স্লাইডিং বন্ধ থাকলে (display:none) কোনো বাড়তি জায়গা থাকে না */
+        #mainDashboardView > .dashboard-header:not(:has(#adminActionContainer:not(.hidden))) {
+            display: none !important;
+        }
+        #mainDashboardView > .dashboard-header {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+        #slidingNoticeContainer {
+            margin-bottom: 8px !important;
+        }
+        #slidingNoticeContainer[style*="display: none"] {
+            margin: 0 !important;
+            border: 0 !important;
+        }
     </style>
 </head>
 
@@ -1174,6 +1192,8 @@
             });
         }
 
+        let lastViewKey = null;
+
         function syncSearchVisibility() {
             const isHomeHidden = mainDashboard && mainDashboard.classList.contains('hidden');
             const isSubPage = categoryDetails && !categoryDetails.classList.contains('hidden');
@@ -1192,7 +1212,12 @@
             subPageSearchWrapper.classList.toggle('is-visible', showSubSearch);
             subPageSearchWrapper.classList.toggle('hidden', !showSubSearch);
 
-            if (mainScrollSheet && !document.activeElement?.matches('#subPageSearchInput, #searchInput')) {
+            // শুধু পেজ/ভিউ বদলালে স্ক্রল উপরে যাবে (বাটনে চাপ/স্লাইডার অ্যানিমেশনে নয়)
+            const viewKey = [isHomeHidden, isSubPage, isDataPage, isFavoritePage, isAllSearchPage, titleText].join('|');
+            const viewChanged = viewKey !== lastViewKey;
+            lastViewKey = viewKey;
+
+            if (viewChanged && mainScrollSheet && !document.activeElement?.matches('#subPageSearchInput, #searchInput')) {
                 mainScrollSheet.scrollTop = 0;
             }
 
