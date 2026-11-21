@@ -376,8 +376,35 @@ export function initOfflineLanguageSystem() {
 let activeZoomPopstateListener = null;
 let pushedZoomHistoryState = false;
 
+function ensureImageZoomModalDOM() {
+    let modal = document.getElementById("imageZoomModal");
+    if (modal) return modal;
+
+    const wrapper = document.createElement("div");
+    wrapper.innerHTML = `
+        <div id="imageZoomModal" class="image-zoom-modal hidden" style="position:fixed;inset:0;background:rgba(2,6,36,0.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:999999;display:flex;flex-direction:column;justify-content:space-between;touch-action:none;user-select:none;">
+            <div class="zoom-modal-header" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(180deg,rgba(0,0,0,0.75) 0%,transparent 100%);color:#ffffff;z-index:10;">
+                <span id="zoomModalTitle" class="zoom-modal-title" style="font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:75%;">প্রোফাইল ছবি</span>
+                <button type="button" id="closeImageZoomBtn" class="zoom-close-btn" title="বন্ধ করুন" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+            </div>
+            <div class="zoom-canvas-area" id="zoomCanvasArea" style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;width:100%;height:100%;">
+                <img id="zoomTargetImage" src="" alt="Profile Photo" class="hidden" style="max-width:92vw;max-height:76vh;border-radius:14px;object-fit:contain;box-shadow:0 10px 35px rgba(0,0,0,0.6);transform-origin:center center;will-change:transform;">
+                <div id="zoomFallbackIcon" class="hidden" style="width:220px;height:220px;border-radius:50%;background:#1e293b;border:4px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:110px;transform-origin:center center;will-change:transform;">👤</div>
+            </div>
+            <div class="zoom-controls-bar" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px;background:linear-gradient(0deg,rgba(0,0,0,0.8) 0%,transparent 100%);z-index:10;">
+                <button type="button" id="zoomOutBtn" class="zoom-ctrl-btn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;padding:8px 14px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;">➖ জুম আউট</button>
+                <button type="button" id="zoomResetBtn" class="zoom-ctrl-btn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;padding:8px 14px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;">🔄 রিসেট</button>
+                <button type="button" id="zoomInBtn" class="zoom-ctrl-btn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;padding:8px 14px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;">➕ জুম ইন</button>
+            </div>
+        </div>
+    `;
+    modal = wrapper.firstElementChild;
+    document.body.appendChild(modal);
+    return modal;
+}
+
 export function openProfileImageViewer(photoUrl, personName) {
-    const modal = document.getElementById("imageZoomModal");
+    const modal = ensureImageZoomModalDOM();
     const imgEl = document.getElementById("zoomTargetImage");
     const fallbackEl = document.getElementById("zoomFallbackIcon");
     const titleEl = document.getElementById("zoomModalTitle");
@@ -401,6 +428,21 @@ export function openProfileImageViewer(photoUrl, personName) {
     let translateY = 0;
     let activeTarget = null;
     let closedByBackButton = false;
+
+    function showTarget(el) {
+        activeTarget = el;
+        if (el === imgEl) {
+            imgEl.classList.remove("hidden");
+            imgEl.style.display = "block";
+            fallbackEl.classList.add("hidden");
+            fallbackEl.style.display = "none";
+        } else {
+            fallbackEl.classList.remove("hidden");
+            fallbackEl.style.display = "flex";
+            imgEl.classList.add("hidden");
+            imgEl.style.display = "none";
+        }
+    }
 
     function clampTranslation() {
         if (scale <= 1) {
@@ -442,26 +484,20 @@ export function openProfileImageViewer(photoUrl, personName) {
     imgEl.onload = null;
 
     if (photoUrl && String(photoUrl).trim() !== "") {
+        showTarget(imgEl);
         imgEl.src = String(photoUrl).trim();
-        imgEl.classList.remove("hidden");
-        fallbackEl.classList.add("hidden");
-        activeTarget = imgEl;
 
         imgEl.onerror = () => {
-            imgEl.classList.add("hidden");
-            fallbackEl.classList.remove("hidden");
-            activeTarget = fallbackEl;
+            showTarget(fallbackEl);
             resetZoom();
         };
     } else {
-        imgEl.removeAttribute("src");
-        imgEl.classList.add("hidden");
-        fallbackEl.classList.remove("hidden");
-        activeTarget = fallbackEl;
+        showTarget(fallbackEl);
     }
 
     resetZoom();
     modal.classList.remove("hidden");
+    modal.style.display = "flex";
 
     pushedZoomHistoryState = false;
     try {
@@ -471,6 +507,7 @@ export function openProfileImageViewer(photoUrl, personName) {
 
     const cleanupViewer = (fromPopState = false) => {
         modal.classList.add("hidden");
+        modal.style.display = "none";
         if (activeZoomPopstateListener) {
             window.removeEventListener("popstate", activeZoomPopstateListener);
             activeZoomPopstateListener = null;
