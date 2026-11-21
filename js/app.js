@@ -397,6 +397,12 @@ function closeHeaderSearch() {
 function handlePopState(event) {
     closeHeaderSearch();
     const state = event.state;
+    const leavingDataPage = isDataPageVisible();
+
+    // ছবি জুম ভিউয়ার বন্ধ করার ব্যাক: প্রোফাইল পেজ আবার রেন্ডার করার দরকার নেই
+    if (state && state.page === "data" && leavingDataPage && currentDataId === state.dataId) {
+        return;
+    }
 
     if (!state || state.page === "home") {
         isFavoriteActive = false;
@@ -421,6 +427,11 @@ function handlePopState(event) {
         isFavoriteActive = false;
         closeAllSearchUI();
         showDataPage(state.dataId, false);
+    }
+
+    // প্রোফাইল থেকে ব্যাক করলে আগের স্ক্রল পজিশনে ফেরা
+    if (leavingDataPage && (!state || state.page !== "data") && savedListScroll !== null) {
+        restoreListScroll(savedListScroll);
     }
 }
 
@@ -1552,6 +1563,17 @@ function showMainDashboardView() {
 }
 
 function refreshCurrentView() {
+    const sheet = getMainSheet();
+    const top = sheet ? sheet.scrollTop : 0;
+    refreshCurrentViewInner();
+    // ডাটা আপডেটে রি-রেন্ডার হলে স্ক্রল উপরে লাফিয়ে না যাওয়া
+    if (sheet && top > 0) {
+        sheet.scrollTop = top;
+        requestAnimationFrame(() => { sheet.scrollTop = top; });
+    }
+}
+
+function refreshCurrentViewInner() {
     if (currentDataId) {
         showDataPage(currentDataId, false);
     } else if (currentCategoryId) {
@@ -1717,7 +1739,33 @@ function renderCategoryDetails(searchVal = "") {
     updateAdminUI();
 }
 
+let savedListScroll = null;
+
+function getMainSheet() {
+    return document.getElementById("mainScrollSheet");
+}
+
+function isDataPageVisible() {
+    const v = document.getElementById("dataDetailsView");
+    return !!v && !v.classList.contains("hidden");
+}
+
+function restoreListScroll(top) {
+    const apply = () => {
+        const sheet = getMainSheet();
+        if (sheet) sheet.scrollTop = top;
+    };
+    apply();
+    requestAnimationFrame(apply);
+    setTimeout(apply, 80);
+    setTimeout(apply, 250);
+}
+
 function openDataPage(dataId, pushHistory = true) {
+    // লিস্ট থেকে প্রোফাইলে যাওয়ার আগে স্ক্রল পজিশন মনে রাখা
+    const sheet = getMainSheet();
+    if (sheet && !isDataPageVisible()) savedListScroll = sheet.scrollTop;
+
     if (pushHistory) history.pushState({ page: "data", dataId: dataId }, "");
     showDataPage(dataId);
 }
@@ -1767,6 +1815,11 @@ function renderDataDetailsContent(item) {
     if (!container) return;
 
     const isAdmin = window.currentUserRole === "admin";
+
+    // একই ডাটা আবার রেন্ডার করলে ছবি রিলোড হয়ে পেজ লাফায়, তাই বদল না হলে বাদ
+    const renderSig = JSON.stringify([item, isAdmin, isDeviceVerified]);
+    if (container.dataset.renderSig === renderSig && container.firstElementChild) return;
+    container.dataset.renderSig = renderSig;
     const name = escapeHTML(item.name || "নাম পাওয়া যায়নি");
     const designation = escapeHTML(item.designation || "পদবী নেই");
     const mobile = escapeHTML(item.mobile || "মোবাইল নেই");
