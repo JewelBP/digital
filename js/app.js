@@ -1806,7 +1806,7 @@ function renderDataDetailsContent(item) {
             ${currentOffice ? `<div class="details-info-box"><div class="info-label">🏢 বর্তমান ঠিকানা</div><div class="info-value">${currentOffice}</div></div>` : ""}
             ${showPermanentAddressBox ? `<div class="details-info-box"><div class="info-label">🏠 স্থায়ী ঠিকানা</div><div class="info-value">${permanentAddress}</div></div>` : ""}
             ${showAdminInfoBox ? `<div class="details-info-box" style="border-left:4px solid #f59e0b;"><div class="info-label">📝 প্রশাসনিক তথ্য</div><div class="info-value">${adminInfo}</div></div>` : ""}
-            ${showVerifyBtnInDetails ? `<div style="text-align: right; margin-top: 5px;"><button class="btn-get-verify" id="detailsVerifyBtn">Get VIP</button></div>` : ""}
+            ${showVerifyBtnInDetails ? `<div style="text-align: right; margin-top: 5px; padding-right: 12px;"><button class="btn-get-verify" id="detailsVerifyBtn">Get VIP</button></div>` : ""}
         </div>
     `;
 
