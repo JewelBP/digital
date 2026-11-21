@@ -22,14 +22,12 @@ import {
     isDataMatch,
     openProfileImageViewer,
     setupSmartCallAndWhatsApp,
-    setupEmailAction,
-    uploadImageToImgBB
+    setupEmailAction
 } from "./app1.js";
 
 "use strict";
 
 const DEFAULT_CATEGORY_IMAGE = "https://cdn-icons-png.flaticon.com/512/3541/3541850.png";
-const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY";
 
 function escapeHTML(str) {
     return String(str || "").replace(
@@ -424,53 +422,6 @@ function sortContactData(items) {
     });
 }
 
-function getActiveImgBBKey() {
-    if (window.currentUserRole !== "admin") return "";
-    return localStorage.getItem("police_pb_imgbb_key") || IMGBB_API_KEY;
-}
-
-function bindImageLinkPicker(pickBtnId, fileInputId, targetUrlInputId) {
-    const pickBtn = document.getElementById(pickBtnId);
-    const fileInput = document.getElementById(fileInputId);
-    const urlInput = document.getElementById(targetUrlInputId);
-
-    if (!pickBtn || !fileInput || !urlInput) return;
-
-    pickBtn.addEventListener("click", () => {
-        if (window.currentUserRole !== "admin") {
-            return showToast("শুধুমাত্র Admin ছবি আপলোড করতে পারবেন");
-        }
-        fileInput.value = "";
-        fileInput.click();
-    });
-
-    fileInput.addEventListener("change", async (e) => {
-        if (window.currentUserRole !== "admin") {
-            fileInput.value = "";
-            return showToast("শুধুমাত্র Admin ছবি আপলোড করতে পারবেন");
-        }
-
-        const file = e.target.files?.[0];
-        fileInput.value = "";
-        if (!file) return;
-
-        const uploadedUrl = await uploadImageToImgBB(
-            file,
-            getActiveImgBBKey(),
-            (isUploading) => {
-                pickBtn.disabled = isUploading;
-                pickBtn.textContent = isUploading ? "⏳" : "📷";
-            },
-            showToast
-        );
-
-        if (uploadedUrl) {
-            urlInput.value = uploadedUrl;
-            urlInput.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-    });
-}
-
 function setupEvents() {
     document.getElementById("themeBtn")?.addEventListener("click", toggleTheme);
 
@@ -545,9 +496,6 @@ function setupEvents() {
 
     document.getElementById("addHeaderBtn")?.addEventListener("click", () => openHeaderModal());
     document.getElementById("addDataBtn")?.addEventListener("click", () => openDataModal());
-
-    bindImageLinkPicker("categoryImagePickBtn", "categoryImageFileInput", "categoryImageInput");
-    bindImageLinkPicker("dataPhotoPickBtn", "dataPhotoFileInput", "dataPhoto");
 
     document.querySelectorAll("[data-close]").forEach(btn => {
         btn.addEventListener("click", () => closeModal(btn.dataset.close));
@@ -952,7 +900,6 @@ function openCategoryModal(isSubCategory = false, editObj = null) {
     const title = document.getElementById("categoryModalTitle");
     const inputName = document.getElementById("categoryNameInput");
     const inputImage = document.getElementById("categoryImageInput");
-    const fileInput = document.getElementById("categoryImageFileInput");
 
     if (editObj) {
         title.textContent = "Category এডিট করুন";
@@ -963,7 +910,6 @@ function openCategoryModal(isSubCategory = false, editObj = null) {
         inputName.value = "";
         if (inputImage) inputImage.value = "";
     }
-    if (fileInput) fileInput.value = "";
 
     openModal("categoryModal");
 }
@@ -1265,8 +1211,6 @@ function openDataModal(editObj = null) {
     if (title) title.textContent = editObj ? "Data এডিট করুন" : "Data যোগ করুন";
 
     document.getElementById("dataPhoto").value = editObj?.photo || "";
-    const fileInput = document.getElementById("dataPhotoFileInput");
-    if (fileInput) fileInput.value = "";
     document.getElementById("dataName").value = editObj?.name || "";
     document.getElementById("dataMobile").value = editObj?.mobile || "";
     document.getElementById("dataPhone").value = editObj?.phone || "";
