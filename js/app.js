@@ -1,5 +1,3 @@
-"use strict";
-
 import {
     watchAuth,
     loginAdmin,
@@ -27,9 +25,9 @@ import {
     setupEmailAction
 } from "./app1.js";
 
+"use strict";
+
 const DEFAULT_CATEGORY_IMAGE = "https://cdn-icons-png.flaticon.com/512/3541/3541850.png";
-const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY";
-const MAX_IMAGE_UPLOAD_BYTES = 300 * 1024;
 
 function escapeHTML(str) {
     return String(str || "").replace(
@@ -191,7 +189,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     checkDeviceVerificationStatus();
     loadLocalCache();
-    loadDatabase();
     checkOnlineStatus();
 
     history.replaceState({ page: "home" }, "");
@@ -286,8 +283,23 @@ function closeHeaderSearch() {
 }
 
 function handlePopState(event) {
-    closeHeaderSearch();
     const state = event.state;
+
+    // Image Zoom modal খোলা বা বন্ধ হওয়ার সময় মেইন পেজ স্টেট রিসেট করবেন না
+    if (state && state.page === "imageZoom") {
+        return;
+    }
+
+    const zoomModal = document.getElementById("imageZoomModal");
+    if (zoomModal && !zoomModal.classList.contains("hidden")) {
+        zoomModal.classList.add("hidden");
+        zoomModal.style.display = "none";
+        if (currentDataId) {
+            return;
+        }
+    }
+
+    closeHeaderSearch();
 
     if (!state || state.page === "home") {
         isFavoriteActive = false;
@@ -425,194 +437,6 @@ function sortContactData(items) {
     });
 }
 
-function getActiveImgBBKey() {
-    if (window.currentUserRole !== "admin") return "";
-    return localStorage.getItem("police_pb_imgbb_key") || IMGBB_API_KEY;
-}
-
-function readFileAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = () => reject(new Error("ফাইল পড়া যায়নি"));
-        reader.readAsDataURL(file);
-    });
-}
-
-function loadImageElement(src) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error("ছবি লোড করা যায়নি"));
-        img.src = src;
-    });
-}
-
-function canvasToBlob(canvas, type, quality) {
-    return new Promise((resolve) => {
-        canvas.toBlob((blob) => resolve(blob), type, quality);
-    });
-}
-
-async function prepareImageUnderLimit(file, maxBytes = MAX_IMAGE_UPLOAD_BYTES) {
-    if (file.size <= maxBytes) {
-        return file;
-    }
-
-    const dataUrl = await readFileAsDataURL(file);
-    const img = await loadImageElement(dataUrl);
-
-    let width = img.naturalWidth || img.width;
-    let height = img.naturalHeight || img.height;
-    const maxDimension = 1280;
-
-    if (width > maxDimension || height > maxDimension) {
-        if (width >= height) {
-            height = Math.round((height * maxDimension) / width);
-            width = maxDimension;
-        } else {
-            width = Math.round((width * maxDimension) / height);
-            height = maxDimension;
-        }
-    }
-
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const outputType = file.type === "image/png" ? "image/png" : "image/jpeg";
-
-    for (let scaleStep = 0; scaleStep < 5; scaleStep++) {
-        canvas.width = Math.max(1, Math.round(width));
-        canvas.height = Math.max(1, Math.round(height));
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        if (outputType === "image/jpeg") {
-            let quality = 0.85;
-            while (quality >= 0.35) {
-                const blob = await canvasToBlob(canvas, "image/jpeg", quality);
-                if (blob && blob.size <= maxBytes) {
-                    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
-                }
-                quality -= 0.1;
-            }
-        } else {
-            const pngBlob = await canvasToBlob(canvas, "image/png");
-            if (pngBlob && pngBlob.size <= maxBytes) {
-                return new File([pngBlob], file.name, { type: "image/png" });
-            }
-            let quality = 0.85;
-            while (quality >= 0.4) {
-                const jpgBlob = await canvasToBlob(canvas, "image/jpeg", quality);
-                if (jpgBlob && jpgBlob.size <= maxBytes) {
-                    return new File([jpgBlob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
-                }
-                quality -= 0.15;
-            }
-        }
-
-        width *= 0.8;
-        height *= 0.8;
-    }
-
-    return null;
-}
-
-export async function uploadImageToImgBB(file, apiKey, onLoadingChange) {
-    const setLoading = typeof onLoadingChange === "function" ? onLoadingChange : () => {};
-
-    if (!file) return null;
-
-    if (!file.type || !file.type.startsWith("image/")) {
-        showToast("⚠️ অনুগ্রহ করে একটি বৈধ ছবি নির্বাচন করুন!");
-        return null;
-    }
-
-    if (!apiKey || apiKey === "YOUR_IMGBB_API_KEY") {
-        showToast("⚠️ ImgBB API Key সেট করা নেই!");
-        return null;
-    }
-
-    if (!navigator.onLine) {
-        showToast("⚠️ ছবি আপলোড করার জন্য ইন্টারনেট সংযোগ আবশ্যক!");
-        return null;
-    }
-
-    setLoading(true);
-    try {
-        showToast("⏳ ছবি যাচাই ও আপলোড হচ্ছে...");
-
-        const readyFile = await prepareImageUnderLimit(file, MAX_IMAGE_UPLOAD_BYTES);
-        if (!readyFile || readyFile.size > MAX_IMAGE_UPLOAD_BYTES) {
-            showToast("⚠️ ছবির সাইজ ৩০০ KB-এর বেশি! অনুগ্রহ করে ৩০০ KB বা তার কম সাইজের ছবি নির্বাচন করুন।");
-            return null;
-        }
-
-        const formData = new FormData();
-        formData.append("image", readyFile);
-
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, {
-            method: "POST",
-            body: formData
-        });
-
-        const result = await response.json();
-        if (response.ok && result?.success && result?.data?.url) {
-            showToast("✅ ছবি সফলভাবে আপলোড হয়েছে!");
-            return result.data.display_url || result.data.url;
-        }
-
-        showToast("❌ ছবি আপলোড ব্যর্থ হয়েছে!");
-        return null;
-    } catch (error) {
-        console.error("ImgBB upload error:", error);
-        showToast("❌ ছবি আপলোড করতে সমস্যা হয়েছে!");
-        return null;
-    } finally {
-        setLoading(false);
-    }
-}
-
-function bindImageLinkPicker(pickBtnId, fileInputId, targetUrlInputId) {
-    const pickBtn = document.getElementById(pickBtnId);
-    const fileInput = document.getElementById(fileInputId);
-    const urlInput = document.getElementById(targetUrlInputId);
-
-    if (!pickBtn || !fileInput || !urlInput) return;
-
-    pickBtn.addEventListener("click", () => {
-        if (window.currentUserRole !== "admin") {
-            return showToast("শুধুমাত্র Admin ছবি আপলোড করতে পারবেন");
-        }
-        fileInput.value = "";
-        fileInput.click();
-    });
-
-    fileInput.addEventListener("change", async (e) => {
-        if (window.currentUserRole !== "admin") {
-            fileInput.value = "";
-            return showToast("শুধুমাত্র Admin ছবি আপলোড করতে পারবেন");
-        }
-
-        const file = e.target.files?.[0];
-        fileInput.value = "";
-        if (!file) return;
-
-        const uploadedUrl = await uploadImageToImgBB(
-            file,
-            getActiveImgBBKey(),
-            (isUploading) => {
-                pickBtn.disabled = isUploading;
-                pickBtn.textContent = isUploading ? "⏳" : "📷";
-            }
-        );
-
-        if (uploadedUrl) {
-            urlInput.value = uploadedUrl;
-            urlInput.dispatchEvent(new Event("input", { bubbles: true }));
-        }
-    });
-}
-
 function setupEvents() {
     document.getElementById("themeBtn")?.addEventListener("click", toggleTheme);
 
@@ -687,9 +511,6 @@ function setupEvents() {
 
     document.getElementById("addHeaderBtn")?.addEventListener("click", () => openHeaderModal());
     document.getElementById("addDataBtn")?.addEventListener("click", () => openDataModal());
-
-    bindImageLinkPicker("categoryImagePickBtn", "categoryImageFileInput", "categoryImageInput");
-    bindImageLinkPicker("dataPhotoPickBtn", "dataPhotoFileInput", "dataPhoto");
 
     document.querySelectorAll("[data-close]").forEach(btn => {
         btn.addEventListener("click", () => closeModal(btn.dataset.close));
@@ -1013,7 +834,7 @@ function renderCategories(searchVal = "") {
 
     if (!list || !emptyState) return;
 
-    let categoriesToShow = (database.categories || []).filter(cat => !cat.parentId);
+    let categoriesToShow = database.categories.filter(cat => !cat.parentId);
 
     if (searchVal && searchVal !== "admin@jr") {
         categoriesToShow = categoriesToShow.filter(cat => isMatch(cat.name, searchVal));
@@ -1094,7 +915,6 @@ function openCategoryModal(isSubCategory = false, editObj = null) {
     const title = document.getElementById("categoryModalTitle");
     const inputName = document.getElementById("categoryNameInput");
     const inputImage = document.getElementById("categoryImageInput");
-    const fileInput = document.getElementById("categoryImageFileInput");
 
     if (editObj) {
         title.textContent = "Category এডিট করুন";
@@ -1105,7 +925,6 @@ function openCategoryModal(isSubCategory = false, editObj = null) {
         inputName.value = "";
         if (inputImage) inputImage.value = "";
     }
-    if (fileInput) fileInput.value = "";
 
     openModal("categoryModal");
 }
@@ -1407,8 +1226,6 @@ function openDataModal(editObj = null) {
     if (title) title.textContent = editObj ? "Data এডিট করুন" : "Data যোগ করুন";
 
     document.getElementById("dataPhoto").value = editObj?.photo || "";
-    const fileInput = document.getElementById("dataPhotoFileInput");
-    if (fileInput) fileInput.value = "";
     document.getElementById("dataName").value = editObj?.name || "";
     document.getElementById("dataMobile").value = editObj?.mobile || "";
     document.getElementById("dataPhone").value = editObj?.phone || "";
@@ -1868,7 +1685,7 @@ function renderDataDetailsContent(item) {
 
     container.innerHTML = `
         <div class="details-header-section">
-            <div class="avatar-wrapper">${avatarHtml}</div>
+            <div class="avatar-wrapper" style="cursor:pointer;">${avatarHtml}</div>
             <h2 style="font-size:22px;font-weight:700;">${name}</h2>
             <p style="color:var(--text-muted);font-size:15px;">${designation}</p>
         </div>
@@ -1911,7 +1728,9 @@ function renderDataDetailsContent(item) {
 
     const avatarWrapper = container.querySelector(".avatar-wrapper");
     if (avatarWrapper) {
-        avatarWrapper.addEventListener("click", () => {
+        avatarWrapper.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             openProfileImageViewer(item.photo, item.name);
         });
     }
