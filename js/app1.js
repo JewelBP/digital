@@ -401,17 +401,16 @@ export function openProfileImageViewer(photoUrl, personName) {
     }
 
     if (photoUrl && photoUrl.trim() !== "") {
-        imgEl.src = photoUrl;
-        imgEl.classList.remove("hidden");
-        fallbackEl.classList.add("hidden");
-        activeTarget = imgEl;
-
         imgEl.onerror = () => {
             imgEl.classList.add("hidden");
             fallbackEl.classList.remove("hidden");
             activeTarget = fallbackEl;
             resetZoom();
         };
+        imgEl.classList.remove("hidden");
+        fallbackEl.classList.add("hidden");
+        activeTarget = imgEl;
+        imgEl.src = photoUrl;
     } else {
         imgEl.classList.add("hidden");
         fallbackEl.classList.remove("hidden");
