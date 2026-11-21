@@ -42,6 +42,117 @@ function escapeHTML(str) {
     );
 }
 
+/* ==========================================
+   IMGBB IMAGE UPLOAD (গ্যালারি → লিংক)
+========================================== */
+const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY"; // <-- এখানে আপনার ImgBB API Key বসান
+const MAX_IMAGE_SIZE_BYTES = 300 * 1024;    // সর্বোচ্চ ৩০০ KB
+let activeImageUploads = 0;
+
+function setUploadStatus(targetId, text, type) {
+    const el = document.querySelector(`[data-status-for="${targetId}"]`);
+    if (!el) return;
+    el.textContent = text;
+    el.className = "img-upload-status" + (type ? " " + type : "");
+}
+
+async function uploadImageToImgBB(file) {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+        const res = await fetch(
+            `https://api.imgbb.com/1/upload?key=${encodeURIComponent(IMGBB_API_KEY)}`,
+            { method: "POST", body: formData, signal: controller.signal }
+        );
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok || !json || !json.success) {
+            throw new Error((json && json.error && json.error.message) || "ImgBB আপলোড ব্যর্থ হয়েছে");
+        }
+        return json.data.display_url || json.data.url;
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+function setupImageUploadEvents() {
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest?.("[data-upload-btn]");
+        if (!btn || btn.disabled) return;
+        if (window.currentUserRole !== "admin") return;
+
+        const fileInput = document.querySelector(`[data-upload-file][data-target="${btn.dataset.target}"]`);
+        if (fileInput) fileInput.click();
+    });
+
+    document.addEventListener("change", async (e) => {
+        const fileInput = e.target;
+        if (!fileInput.matches || !fileInput.matches("[data-upload-file]")) return;
+
+        const targetId = fileInput.dataset.target;
+        const urlInput = document.getElementById(targetId);
+        const btn = document.querySelector(`[data-upload-btn][data-target="${targetId}"]`);
+        const file = fileInput.files && fileInput.files[0];
+
+        if (!file || !urlInput) return;
+
+        if (window.currentUserRole !== "admin") {
+            fileInput.value = "";
+            return;
+        }
+
+        // ১) ফাইল টাইপ চেক
+        if (!file.type.startsWith("image/")) {
+            fileInput.value = "";
+            setUploadStatus(targetId, "❌ শুধু ছবি (Image) ফাইল দেওয়া যাবে", "err");
+            showToast("⚠️ শুধু ছবি ফাইল নির্বাচন করুন!");
+            return;
+        }
+
+        // ২) সাইজ চেক — ৩০০ KB এর বেশি হলে আপলোড/সেভ হবে না
+        if (file.size > MAX_IMAGE_SIZE_BYTES) {
+            const sizeKB = Math.round(file.size / 1024);
+            fileInput.value = "";
+            setUploadStatus(targetId, `❌ ছবির সাইজ ${sizeKB} KB — সর্বোচ্চ ৩০০ KB অনুমোদিত`, "err");
+            showToast(`⚠️ ছবির সাইজ ${sizeKB} KB! ৩০০ KB এর বেশি আপলোড করা যাবে না।`);
+            return;
+        }
+
+        if (!IMGBB_API_KEY || IMGBB_API_KEY === "YOUR_IMGBB_API_KEY") {
+            fileInput.value = "";
+            setUploadStatus(targetId, "❌ ImgBB API Key সেট করা নেই", "err");
+            showToast("⚠️ app.js এ ImgBB API Key বসানো হয়নি!");
+            return;
+        }
+
+        // ৩) ImgBB তে আপলোড
+        activeImageUploads++;
+        if (btn) btn.disabled = true;
+        setUploadStatus(targetId, "⏳ আপলোড হচ্ছে...", "info");
+
+        try {
+            const url = await uploadImageToImgBB(file);
+            urlInput.value = url;
+            urlInput.dispatchEvent(new Event("input", { bubbles: true }));
+            setUploadStatus(targetId, "✅ আপলোড সম্পন্ন, লিংক বসানো হয়েছে", "ok");
+            showToast("ছবি আপলোড সম্পন্ন হয়েছে");
+        } catch (err) {
+            console.error("ImgBB upload error:", err);
+            const msg = err && err.name === "AbortError" ? "সময় শেষ, আবার চেষ্টা করুন" : (err.message || "আপলোড ব্যর্থ");
+            setUploadStatus(targetId, "❌ " + msg, "err");
+            showToast("⚠️ ছবি আপলোড হয়নি!");
+        } finally {
+            activeImageUploads = Math.max(0, activeImageUploads - 1);
+            if (btn) btn.disabled = false;
+            fileInput.value = "";
+        }
+    });
+}
+
 let database = {
     categories: [],
     headers: [],
@@ -183,6 +294,7 @@ function updateAdminUI() {
 document.addEventListener("DOMContentLoaded", () => {
     initOfflineLanguageSystem();
     setupEvents();
+    setupImageUploadEvents();
     initTheme();
     updateAdminUI();
     initImageSlider();
@@ -911,11 +1023,13 @@ function openCategoryModal(isSubCategory = false, editObj = null) {
         if (inputImage) inputImage.value = "";
     }
 
+    setUploadStatus("categoryImageInput", "সর্বোচ্চ ৩০০ KB", "");
     openModal("categoryModal");
 }
 
 async function saveCategory() {
     if (window.currentUserRole !== "admin") return;
+    if (activeImageUploads > 0) return showToast("ছবি আপলোড শেষ হওয়া পর্যন্ত অপেক্ষা করুন");
 
     const name = document.getElementById("categoryNameInput")?.value.trim();
     const image = document.getElementById("categoryImageInput")?.value.trim() || "";
@@ -1234,11 +1348,13 @@ function openDataModal(editObj = null) {
             });
     }
 
+    setUploadStatus("dataPhoto", "সর্বোচ্চ ৩০০ KB", "");
     openModal("dataModal");
 }
 
 async function saveData() {
     if (window.currentUserRole !== "admin") return;
+    if (activeImageUploads > 0) return showToast("ছবি আপলোড শেষ হওয়া পর্যন্ত অপেক্ষা করুন");
     if (!currentCategoryId && !editingItem) return showToast("ক্যাটাগরি সিলেক্ট করা নেই");
 
     const name = document.getElementById("dataName")?.value.trim() || "";
