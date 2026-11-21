@@ -1748,16 +1748,18 @@ function showDataPage(dataId) {
 
     const devId = getDeviceId();
     const approvedRef = ref(db, `webapp/approved_devices/${devId}`);
+    const verifiedBefore = isDeviceVerified;
 
     get(approvedRef).then((snapshot) => {
         if (snapshot.exists() && snapshot.val().status === "approved") {
             isDeviceVerified = true;
         }
 
-        renderDataDetailsContent(item);
-    }).catch(() => {
-        renderDataDetailsContent(item);
-    });
+        // ভেরিফিকেশন স্ট্যাটাস বদলালে তবেই আবার রেন্ডার (অকারণ রি-রেন্ডারে পেজ লাফায়)
+        if (isDeviceVerified !== verifiedBefore && currentDataId === dataId) {
+            renderDataDetailsContent(item);
+        }
+    }).catch(() => {});
 }
 
 function renderDataDetailsContent(item) {
@@ -1776,7 +1778,7 @@ function renderDataDetailsContent(item) {
     const photo = item.photo ? escapeHTML(item.photo) : null;
 
     const avatarHtml = photo
-        ? `<img src="${photo}" alt="${name}" class="details-avatar-large" onerror="this.outerHTML='<div class=\\'details-avatar-large\\'>👤</div>'">`
+        ? `<img src="${photo}" alt="" class="details-avatar-large" onerror="this.outerHTML='<div class=\\'details-avatar-large\\'>👤</div>'">`
         : `<div class="details-avatar-large">👤</div>`;
 
     const isAuthorized = isDeviceVerified || isAdmin;
@@ -1806,7 +1808,7 @@ function renderDataDetailsContent(item) {
             ${currentOffice ? `<div class="details-info-box"><div class="info-label">🏢 বর্তমান ঠিকানা</div><div class="info-value">${currentOffice}</div></div>` : ""}
             ${showPermanentAddressBox ? `<div class="details-info-box"><div class="info-label">🏠 স্থায়ী ঠিকানা</div><div class="info-value">${permanentAddress}</div></div>` : ""}
             ${showAdminInfoBox ? `<div class="details-info-box" style="border-left:4px solid #f59e0b;"><div class="info-label">📝 প্রশাসনিক তথ্য</div><div class="info-value">${adminInfo}</div></div>` : ""}
-            ${showVerifyBtnInDetails ? `<div style="text-align: right; margin-top: 12px; padding-right: 12px;"><button class="btn-get-verify" id="detailsVerifyBtn">Get VIP</button></div>` : ""}
+            ${showVerifyBtnInDetails ? `<div style="text-align: right; margin-top: 5px; padding-right: 12px;"><button class="btn-get-verify" id="detailsVerifyBtn">Get VIP</button></div>` : ""}
         </div>
     `;
 
