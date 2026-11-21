@@ -2,7 +2,7 @@ import {
     watchAuth,
     loginAdmin,
     logoutAdmin
-} from "./auth.js";
+} from "./auth.js";[span_1](start_span)[span_1](end_span)
 
 import {
     ref,
@@ -10,11 +10,11 @@ import {
     get,
     onValue,
     remove
-} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";[span_2](start_span)[span_2](end_span)
 
 import {
     db
-} from "./firebase.js";
+} from "./firebase.js";[span_3](start_span)[span_3](end_span)
 
 import {
     initOfflineLanguageSystem,
@@ -24,11 +24,11 @@ import {
     setupSmartCallAndWhatsApp,
     setupEmailAction,
     uploadImageToImgBB
-} from "./app1.js";
+} from "./app1.js";[span_4](start_span)[span_4](end_span)
 
-"use strict";
+"use strict";[span_5](start_span)[span_5](end_span)
 
-const DEFAULT_CATEGORY_IMAGE = "https://cdn-icons-png.flaticon.com/512/3541/3541850.png";
+const DEFAULT_CATEGORY_IMAGE = "https://cdn-icons-png.flaticon.com/512/3541/3541850.png";[span_6](start_span)[span_6](end_span)
 const IMGBB_API_KEY = "YOUR_IMGBB_API_KEY";
 
 function escapeHTML(str) {
@@ -42,24 +42,24 @@ function escapeHTML(str) {
             "'": "&#039;"
         }[match])
     );
-}
+}[span_7](start_span)[span_7](end_span)
 
 let database = {
     categories: [],
     headers: [],
     data: []
-};
+};[span_8](start_span)[span_8](end_span)
 
-let currentCategoryId = null;
-let currentDataId = null;
-let editingItem = null;
-let movingDataId = null;
-let isAllSearchActive = false;
-let isSearchMode = false;
-let isFavoriteActive = false;
+let currentCategoryId = null;[span_9](start_span)[span_9](end_span)
+let currentDataId = null;[span_10](start_span)[span_10](end_span)
+let editingItem = null;[span_11](start_span)[span_11](end_span)
+let movingDataId = null;[span_12](start_span)[span_12](end_span)
+let isAllSearchActive = false;[span_13](start_span)[span_13](end_span)
+let isSearchMode = false;[span_14](start_span)[span_14](end_span)
+let isFavoriteActive = false;[span_15](start_span)[span_15](end_span)
 
-window.currentUserRole = "guest";
-let isDeviceVerified = false;
+window.currentUserRole = "guest";[span_16](start_span)[span_16](end_span)
+let isDeviceVerified = false;[span_17](start_span)[span_17](end_span)
 
 function getDeviceId() {
     let devId = localStorage.getItem("police_pb_device_id");
@@ -68,7 +68,7 @@ function getDeviceId() {
         localStorage.setItem("police_pb_device_id", devId);
     }
     return devId;
-}
+}[span_18](start_span)[span_18](end_span)
 
 function checkDeviceVerificationStatus() {
     const devId = getDeviceId();
@@ -86,21 +86,21 @@ function checkDeviceVerificationStatus() {
         }
         refreshCurrentView();
     });
-}
+}[span_19](start_span)[span_19](end_span)
 
 function checkOnlineStatus() {
     if (!navigator.onLine) {
         showToast("⚠️ ইন্টারনেট সংযোগ নেই!");
         loadLocalCache();
     }
-}
+}[span_20](start_span)[span_20](end_span)
 
 window.addEventListener("online", () => {
     showToast("🟢 অনলাইন মোডে আছেন ");
     loadDatabase();
-});
+});[span_21](start_span)[span_21](end_span)
 
-window.addEventListener("offline", checkOnlineStatus);
+window.addEventListener("offline", checkOnlineStatus);[span_22](start_span)[span_22](end_span)
 
 watchAuth((user, role) => {
     const adminBtn = document.getElementById("adminLoginBtn");
@@ -123,11 +123,11 @@ watchAuth((user, role) => {
 
     updateAdminUI();
     loadDatabase();
-});
+});[span_23](start_span)[span_23](end_span)
 
 function isAllSupportOrSearchActive() {
     return isAllSearchActive || currentCategoryId !== null || currentDataId !== null || isFavoriteActive;
-}
+}[span_24](start_span)[span_24](end_span)
 
 function updateAdminUI() {
     const isAdmin = window.currentUserRole === "admin";
@@ -180,7 +180,7 @@ function updateAdminUI() {
             logoutContainer.classList.add("hidden");
         }
     }
-}
+}[span_25](start_span)[span_25](end_span)
 
 document.addEventListener("DOMContentLoaded", () => {
     initOfflineLanguageSystem();
@@ -195,7 +195,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     history.replaceState({ page: "home" }, "");
     window.addEventListener("popstate", handlePopState);
-});
+});[span_26](start_span)[span_26](end_span)
 
 /* ==========================================
    AUTOMATIC IMAGE SLIDER BANNER
@@ -229,7 +229,7 @@ function initImageSlider() {
     });
 
     setInterval(nextSlide, 3500);
-}
+}[span_27](start_span)[span_27](end_span)
 
 function setNavState(searchOrSubPageActive) {
     isSearchMode = searchOrSubPageActive;
@@ -243,7 +243,7 @@ function setNavState(searchOrSubPageActive) {
         menuIcon?.classList.remove("hidden");
         backIcon?.classList.add("hidden");
     }
-}
+}[span_28](start_span)[span_28](end_span)
 
 function openHeaderSearch() {
     const searchBox = document.getElementById("searchBox");
@@ -257,7 +257,7 @@ function openHeaderSearch() {
         setNavState(true);
         document.getElementById("searchInput")?.focus();
     }
-}
+}[span_29](start_span)[span_29](end_span)
 
 function closeHeaderSearch() {
     const searchBox = document.getElementById("searchBox");
@@ -282,7 +282,7 @@ function closeHeaderSearch() {
         }
         handleSearch();
     }
-}
+}[span_30](start_span)[span_30](end_span)
 
 function handlePopState(event) {
     closeHeaderSearch();
@@ -312,20 +312,20 @@ function handlePopState(event) {
         closeAllSearchUI();
         showDataPage(state.dataId, false);
     }
-}
+}[span_31](start_span)[span_31](end_span)
 
 function initTheme() {
     if (localStorage.getItem("theme") === "dark") {
         document.body.classList.add("dark-mode");
     }
-}
+}[span_32](start_span)[span_32](end_span)
 
 function toggleTheme() {
     document.body.classList.toggle("dark-mode");
     const isDark = document.body.classList.contains("dark-mode");
     localStorage.setItem("theme", isDark ? "dark" : "light");
     showToast(isDark ? "নাইট মোড অন করা হয়েছে" : "ডে মোড অন করা হয়েছে");
-}
+}[span_33](start_span)[span_33](end_span)
 
 function loadLocalCache() {
     const cached = localStorage.getItem("police_phonebook_data");
@@ -340,7 +340,7 @@ function loadLocalCache() {
             console.error("Local Cache Error:", e);
         }
     }
-}
+}[span_34](start_span)[span_34](end_span)
 
 async function loadDatabase() {
     loadLocalCache();
@@ -360,7 +360,7 @@ async function loadDatabase() {
     } catch (error) {
         console.error("Database load error:", error);
     }
-}
+}[span_35](start_span)[span_35](end_span)
 
 async function saveDatabase() {
     if (window.currentUserRole !== "admin") {
@@ -380,11 +380,11 @@ async function saveDatabase() {
         console.error("Database background save error:", error);
         showToast("ক্লাউডে সিঙ্ক করতে সমস্যা হয়েছে");
     });
-}
+}[span_36](start_span)[span_36](end_span)
 
 function generateId(prefix) {
     return prefix + "_" + Date.now() + "_" + Math.random().toString(36).substring(2, 8);
-}
+}[span_37](start_span)[span_37](end_span)
 
 function sortItemsByPin(items) {
     return items.sort((a, b) => {
@@ -403,7 +403,7 @@ function sortItemsByPin(items) {
 
         return timeA - timeB;
     });
-}
+}[span_38](start_span)[span_38](end_span)
 
 function sortContactData(items) {
     return items.sort((a, b) => {
@@ -422,7 +422,7 @@ function sortContactData(items) {
 
         return nameA.localeCompare(nameB, "bn", { numeric: true, sensitivity: "base" });
     });
-}
+}[span_39](start_span)[span_39](end_span)
 
 function getActiveImgBBKey() {
     if (window.currentUserRole !== "admin") return "";
@@ -472,7 +472,7 @@ function bindImageLinkPicker(pickBtnId, fileInputId, targetUrlInputId) {
 }
 
 function setupEvents() {
-    document.getElementById("themeBtn")?.addEventListener("click", toggleTheme);
+    document.getElementById("themeBtn")?.addEventListener("click", toggleTheme);[span_40](start_span)[span_40](end_span)
 
     document.getElementById("navToggleBtn")?.addEventListener("click", (e) => {
         const searchBox = document.getElementById("searchBox");
@@ -489,18 +489,18 @@ function setupEvents() {
             history.back();
             return;
         }
-    }, true);
+    }, true);[span_41](start_span)[span_41](end_span)
 
     document.getElementById("searchBtn")?.addEventListener("click", () => {
         openHeaderSearch();
-    });
+    });[span_42](start_span)[span_42](end_span)
 
-    document.getElementById("searchInput")?.addEventListener("input", handleSearch);
-    document.getElementById("subPageSearchInput")?.addEventListener("input", handleSearch);
+    document.getElementById("searchInput")?.addEventListener("input", handleSearch);[span_43](start_span)[span_43](end_span)
+    document.getElementById("subPageSearchInput")?.addEventListener("input", handleSearch);[span_44](start_span)[span_44](end_span)
 
-    document.getElementById("adminLoginBtn")?.addEventListener("click", () => openModal("loginModal"));
+    document.getElementById("adminLoginBtn")?.addEventListener("click", () => openModal("loginModal"));[span_45](start_span)[span_45](end_span)
 
-    setupAdminButtonLongPress();
+    setupAdminButtonLongPress();[span_46](start_span)[span_46](end_span)
 
     document.getElementById("submitLoginBtn")?.addEventListener("click", async () => {
         if (!navigator.onLine) {
@@ -522,7 +522,7 @@ function setupEvents() {
         } else {
             showToast("লগইন ব্যর্থ হয়েছে: " + res.error);
         }
-    });
+    });[span_47](start_span)[span_47](end_span)
 
     document.getElementById("logoutBtn")?.addEventListener("click", async () => {
         const result = await logoutAdmin();
@@ -530,29 +530,29 @@ function setupEvents() {
             closeModal("loginModal");
             showToast("লগআউট করা হয়েছে");
         }
-    });
+    });[span_48](start_span)[span_48](end_span)
 
-    document.getElementById("submitVerifyBtn")?.addEventListener("click", submitVerificationRequest);
+    document.getElementById("submitVerifyBtn")?.addEventListener("click", submitVerificationRequest);[span_49](start_span)[span_49](end_span)
 
-    document.getElementById("addCategoryBtn")?.addEventListener("click", () => openCategoryModal(false));
-    document.getElementById("emptyAddBtn")?.addEventListener("click", () => openCategoryModal(false));
-    document.getElementById("addSubCategoryBtn")?.addEventListener("click", () => openCategoryModal(true));
-    document.getElementById("saveCategoryBtn")?.addEventListener("click", saveCategory);
+    document.getElementById("addCategoryBtn")?.addEventListener("click", () => openCategoryModal(false));[span_50](start_span)[span_50](end_span)
+    document.getElementById("emptyAddBtn")?.addEventListener("click", () => openCategoryModal(false));[span_51](start_span)[span_51](end_span)
+    document.getElementById("addSubCategoryBtn")?.addEventListener("click", () => openCategoryModal(true));[span_52](start_span)[span_52](end_span)
+    document.getElementById("saveCategoryBtn")?.addEventListener("click", saveCategory);[span_53](start_span)[span_53](end_span)
 
-    document.getElementById("saveHeaderBtn")?.addEventListener("click", saveHeader);
-    document.getElementById("saveDataBtn")?.addEventListener("click", saveData);
-    document.getElementById("confirmMoveBtn")?.addEventListener("click", confirmMoveData);
+    document.getElementById("saveHeaderBtn")?.addEventListener("click", saveHeader);[span_54](start_span)[span_54](end_span)
+    document.getElementById("saveDataBtn")?.addEventListener("click", saveData);[span_55](start_span)[span_55](end_span)
+    document.getElementById("confirmMoveBtn")?.addEventListener("click", confirmMoveData);[span_56](start_span)[span_56](end_span)
 
-    document.getElementById("addHeaderBtn")?.addEventListener("click", () => openHeaderModal());
-    document.getElementById("addDataBtn")?.addEventListener("click", () => openDataModal());
+    document.getElementById("addHeaderBtn")?.addEventListener("click", () => openHeaderModal());[span_57](start_span)[span_57](end_span)
+    document.getElementById("addDataBtn")?.addEventListener("click", () => openDataModal());[span_58](start_span)[span_58](end_span)
 
     bindImageLinkPicker("categoryImagePickBtn", "categoryImageFileInput", "categoryImageInput");
     bindImageLinkPicker("dataPhotoPickBtn", "dataPhotoFileInput", "dataPhoto");
 
     document.querySelectorAll("[data-close]").forEach(btn => {
         btn.addEventListener("click", () => closeModal(btn.dataset.close));
-    });
-}
+    });[span_59](start_span)[span_59](end_span)
+}[span_60](start_span)[span_60](end_span)
 
 function setupAdminButtonLongPress() {
     const adminLoginBtn = document.getElementById("adminLoginBtn");
@@ -586,13 +586,13 @@ function setupAdminButtonLongPress() {
     adminLoginBtn.addEventListener("mouseleave", clearAdminHold);
     adminLoginBtn.addEventListener("touchend", clearAdminHold);
     adminLoginBtn.addEventListener("touchcancel", clearAdminHold);
-}
+}[span_61](start_span)[span_61](end_span)
 
 function openAdminVerifyRequestsModal() {
     if (window.currentUserRole !== "admin") return;
     openModal("adminVerifyRequestsModal");
     loadVerificationRequests();
-}
+}[span_62](start_span)[span_62](end_span)
 
 async function loadVerificationRequests() {
     const listContainer = document.getElementById("verifyRequestsList");
@@ -643,7 +643,7 @@ async function loadVerificationRequests() {
         console.error("Error loading verification requests:", error);
         listContainer.innerHTML = `<p style="text-align: center; color: #ef4444;">ডাটা লোড করতে সমস্যা হয়েছে</p>`;
     }
-}
+}[span_63](start_span)[span_63](end_span)
 
 async function approveDevice(devId, reqData) {
     if (window.currentUserRole !== "admin") return;
@@ -662,7 +662,7 @@ async function approveDevice(devId, reqData) {
     } catch (e) {
         showToast("অ্যাপ্রুভ করতে ব্যর্থ হয়েছে");
     }
-}
+}[span_64](start_span)[span_64](end_span)
 
 async function rejectDeviceRequest(devId) {
     if (window.currentUserRole !== "admin") return;
@@ -677,7 +677,7 @@ async function rejectDeviceRequest(devId) {
     } catch (e) {
         showToast("ডিলিট করতে ব্যর্থ হয়েছে");
     }
-}
+}[span_65](start_span)[span_65](end_span)
 
 async function submitVerificationRequest() {
     const name = document.getElementById("applicantName")?.value.trim();
@@ -700,7 +700,7 @@ async function submitVerificationRequest() {
     } catch (e) {
         showToast("রিকোয়েস্ট পাঠাতে ব্যর্থ হয়েছে");
     }
-}
+}[span_66](start_span)[span_66](end_span)
 
 function handleSearch() {
     const mainVal = document.getElementById("searchInput")?.value.trim() || "";
@@ -729,7 +729,7 @@ function handleSearch() {
     } else {
         renderCategories(searchVal);
     }
-}
+}[span_67](start_span)[span_67](end_span)
 
 function activateAllSearchUI(pushHistory = true) {
     if (pushHistory) {
@@ -795,10 +795,10 @@ function activateAllSearchUI(pushHistory = true) {
 
     updateAdminUI();
     renderAllSearch();
-}
+}[span_68](start_span)[span_68](end_span)
 
-window.activateAllSearchUI = activateAllSearchUI;
-window.openAllSearchPage = activateAllSearchUI;
+window.activateAllSearchUI = activateAllSearchUI;[span_69](start_span)[span_69](end_span)
+window.openAllSearchPage = activateAllSearchUI;[span_70](start_span)[span_70](end_span)
 
 function closeAllSearchUI() {
     isAllSearchActive = false;
@@ -822,7 +822,7 @@ function closeAllSearchUI() {
     if (!currentCategoryId && !currentDataId && !isFavoriteActive) {
         renderCategories("");
     }
-}
+}[span_71](start_span)[span_71](end_span)
 
 function renderAllSearch() {
     const container = document.getElementById("allSearchContainer");
@@ -858,7 +858,7 @@ function renderAllSearch() {
     });
 
     updateAdminUI();
-}
+}[span_72](start_span)[span_72](end_span)
 
 function renderCategories(searchVal = "") {
     if (isAllSearchActive) {
@@ -943,7 +943,7 @@ function renderCategories(searchVal = "") {
     });
 
     updateAdminUI();
-}
+}[span_73](start_span)[span_73](end_span)
 
 function openCategoryModal(isSubCategory = false, editObj = null) {
     if (window.currentUserRole !== "admin") return;
@@ -966,7 +966,7 @@ function openCategoryModal(isSubCategory = false, editObj = null) {
     if (fileInput) fileInput.value = "";
 
     openModal("categoryModal");
-}
+}[span_74](start_span)[span_74](end_span)
 
 async function saveCategory() {
     if (window.currentUserRole !== "admin") return;
@@ -995,7 +995,7 @@ async function saveCategory() {
     closeModal("categoryModal");
     await saveDatabase();
     showToast("সেভ করা হয়েছে");
-}
+}[span_75](start_span)[span_75](end_span)
 
 async function togglePinCategory(id) {
     const cat = database.categories.find(c => c.id === id);
@@ -1005,12 +1005,12 @@ async function togglePinCategory(id) {
         await saveDatabase();
         showToast(cat.pinned ? "পিন করা হয়েছে" : "আনপিন করা হয়েছে");
     }
-}
+}[span_76](start_span)[span_76](end_span)
 
 function editCategory(id) {
     const cat = database.categories.find(c => c.id === id);
     if (cat) openCategoryModal(false, cat);
-}
+}[span_77](start_span)[span_77](end_span)
 
 async function deleteCategory(id) {
     const isConfirmed = await customConfirm("আপনি কি নিশ্চিত এই Category মুছে ফেলতে চান?");
@@ -1022,7 +1022,7 @@ async function deleteCategory(id) {
 
     await saveDatabase();
     showToast("ডিলিট করা হয়েছে");
-}
+}[span_78](start_span)[span_78](end_span)
 
 function openHeaderModal(editObj = null) {
     if (window.currentUserRole !== "admin") return;
@@ -1030,7 +1030,7 @@ function openHeaderModal(editObj = null) {
     const input = document.getElementById("headerNameInput");
     if (input) input.value = editObj ? editObj.title : "";
     openModal("headerModal");
-}
+}[span_79](start_span)[span_79](end_span)
 
 async function saveHeader() {
     if (window.currentUserRole !== "admin") return;
@@ -1055,7 +1055,7 @@ async function saveHeader() {
     closeModal("headerModal");
     await saveDatabase();
     showToast("Header সেভ করা হয়েছে");
-}
+}[span_80](start_span)[span_80](end_span)
 
 async function togglePinHeader(id) {
     const header = database.headers.find(h => h.id === id);
@@ -1065,12 +1065,12 @@ async function togglePinHeader(id) {
         await saveDatabase();
         showToast(header.pinned ? "হেডার পিন করা হয়েছে" : "হেডার আনপিন করা হয়েছে");
     }
-}
+}[span_81](start_span)[span_81](end_span)
 
 function editHeader(id) {
     const h = database.headers.find(item => item.id === id);
     if (h) openHeaderModal(h);
-}
+}[span_82](start_span)[span_82](end_span)
 
 async function deleteHeader(id) {
     const isConfirmed = await customConfirm("এই Header ডিলিট করতে চান? ডাটাগুলো সরানো হবে না।");
@@ -1083,7 +1083,7 @@ async function deleteHeader(id) {
 
     await saveDatabase();
     showToast("Header ডিলিট করা হয়েছে");
-}
+}[span_83](start_span)[span_83](end_span)
 
 function getFavoriteIds() {
     try {
@@ -1092,7 +1092,7 @@ function getFavoriteIds() {
     } catch (e) {
         return [];
     }
-}
+}[span_84](start_span)[span_84](end_span)
 
 function toggleFavorite(dataId, event) {
     if (event) event.stopPropagation();
@@ -1109,11 +1109,11 @@ function toggleFavorite(dataId, event) {
 
     localStorage.setItem("police_pb_favorites", JSON.stringify(favs));
     if (typeof refreshCurrentView === "function") refreshCurrentView();
-}
+}[span_85](start_span)[span_85](end_span)
 
 function isFavorite(dataId) {
     return getFavoriteIds().includes(dataId);
-}
+}[span_86](start_span)[span_86](end_span)
 
 function renderFavoriteView(pushHistory = true) {
     if (pushHistory) history.pushState({ page: "favorite" }, "");
@@ -1172,9 +1172,9 @@ function renderFavoriteView(pushHistory = true) {
         });
     }
     updateAdminUI();
-}
+}[span_87](start_span)[span_87](end_span)
 
-window.renderFavoriteView = renderFavoriteView;
+window.renderFavoriteView = renderFavoriteView;[span_88](start_span)[span_88](end_span)
 
 function createDataCardElement(item) {
     const isAdmin = window.currentUserRole === "admin";
@@ -1255,7 +1255,7 @@ function createDataCardElement(item) {
     }
 
     return dataEl;
-}
+}[span_89](start_span)[span_89](end_span)
 
 function openDataModal(editObj = null) {
     if (window.currentUserRole !== "admin") return;
@@ -1291,7 +1291,7 @@ function openDataModal(editObj = null) {
     }
 
     openModal("dataModal");
-}
+}[span_90](start_span)[span_90](end_span)
 
 async function saveData() {
     if (window.currentUserRole !== "admin") return;
@@ -1342,12 +1342,12 @@ async function saveData() {
     closeModal("dataModal");
     await saveDatabase();
     showToast("ডাটা সেভ হয়েছে");
-}
+}[span_91](start_span)[span_91](end_span)
 
 function editData(id) {
     const item = database.data.find(d => d.id === id);
     if (item) openDataModal(item);
-}
+}[span_92](start_span)[span_92](end_span)
 
 async function deleteData(id) {
     const isConfirmed = await customConfirm("আপনি কি এই Data মুছে ফেলতে চান?");
@@ -1356,7 +1356,7 @@ async function deleteData(id) {
     database.data = database.data.filter(d => d.id !== id);
     await saveDatabase();
     showToast("ডাটা ডিলিট করা হয়েছে");
-}
+}[span_93](start_span)[span_93](end_span)
 
 async function togglePinData(id) {
     const item = database.data.find(d => d.id === id);
@@ -1366,7 +1366,7 @@ async function togglePinData(id) {
         await saveDatabase();
         showToast(item.pinned ? "ডাটা পিন করা হয়েছে" : "ডাটা আনপিন করা হয়েছে");
     }
-}
+}[span_94](start_span)[span_94](end_span)
 
 function openMoveDataModal(id) {
     movingDataId = id;
@@ -1383,7 +1383,7 @@ function openMoveDataModal(id) {
     updateMoveHeaderOptions();
     catSelect?.addEventListener("change", updateMoveHeaderOptions);
     openModal("moveDataModal");
-}
+}[span_95](start_span)[span_95](end_span)
 
 function updateMoveHeaderOptions() {
     const catId = document.getElementById("moveCategorySelect")?.value;
@@ -1397,7 +1397,7 @@ function updateMoveHeaderOptions() {
                 headSelect.innerHTML += `<option value="${h.id}">${escapeHTML(h.title)}</option>`;
             });
     }
-}
+}[span_96](start_span)[span_96](end_span)
 
 async function confirmMoveData() {
     const catId = document.getElementById("moveCategorySelect")?.value;
@@ -1411,12 +1411,12 @@ async function confirmMoveData() {
         await saveDatabase();
         showToast("ডাটা সফলভাবে মুভ করা হয়েছে!");
     }
-}
+}[span_97](start_span)[span_97](end_span)
 
 function openCategory(id, pushHistory = true) {
     if (pushHistory) history.pushState({ page: "category", categoryId: id }, "");
     showCategoryView(id);
-}
+}[span_98](start_span)[span_98](end_span)
 
 function showCategoryView(id) {
     const category = database.categories.find(item => item.id === id);
@@ -1449,7 +1449,7 @@ function showCategoryView(id) {
 
     updateAdminUI();
     renderCategoryDetails(document.getElementById("searchInput")?.value.trim().toLowerCase());
-}
+}[span_99](start_span)[span_99](end_span)
 
 function showMainDashboardView() {
     currentCategoryId = null;
@@ -1489,7 +1489,7 @@ function showMainDashboardView() {
         document.getElementById("allSearchContainer")?.classList.add("hidden");
         renderCategories(document.getElementById("searchInput")?.value.trim().toLowerCase());
     }
-}
+}[span_100](start_span)[span_100](end_span)
 
 function refreshCurrentView() {
     if (currentDataId) {
@@ -1503,7 +1503,7 @@ function refreshCurrentView() {
     } else {
         showMainDashboardView(false);
     }
-}
+}[span_101](start_span)[span_101](end_span)
 
 function renderCategoryDetails(searchVal = "") {
     const container = document.getElementById("detailsContent");
@@ -1655,12 +1655,12 @@ function renderCategoryDetails(searchVal = "") {
     });
 
     updateAdminUI();
-}
+}[span_102](start_span)[span_102](end_span)
 
 function openDataPage(dataId, pushHistory = true) {
     if (pushHistory) history.pushState({ page: "data", dataId: dataId }, "");
     showDataPage(dataId);
-}
+}[span_103](start_span)[span_103](end_span)
 
 function showDataPage(dataId) {
     const item = database.data.find(d => d.id === dataId);
@@ -1698,7 +1698,7 @@ function showDataPage(dataId) {
     }).catch(() => {
         renderDataDetailsContent(item);
     });
-}
+}[span_104](start_span)[span_104](end_span)
 
 function renderDataDetailsContent(item) {
     const container = document.getElementById("dataPageContent");
@@ -1773,7 +1773,7 @@ function renderDataDetailsContent(item) {
             openProfileImageViewer(item.photo, item.name);
         });
     }
-}
+}[span_105](start_span)[span_105](end_span)
 
 function setupHoldToVerify(button) {
     let holdTimer = null;
@@ -1810,15 +1810,15 @@ function setupHoldToVerify(button) {
         e.preventDefault();
         showToast("⚠️ 'Get VIP' বাটনটি কমপক্ষে ১০ সেকেন্ড চেপে ধরে রাখুন!");
     });
-}
+}[span_106](start_span)[span_106](end_span)
 
 function openModal(id) {
     document.getElementById(id)?.classList.remove("hidden");
-}
+}[span_107](start_span)[span_107](end_span)
 
 function closeModal(id) {
     document.getElementById(id)?.classList.add("hidden");
-}
+}[span_108](start_span)[span_108](end_span)
 
 function customConfirm(message, title = "নিশ্চিতকরণ", confirmText = "হ্যাঁ, মুছুন") {
     return new Promise((resolve) => {
@@ -1859,7 +1859,7 @@ function customConfirm(message, title = "নিশ্চিতকরণ", confir
         cancelBtn?.addEventListener("click", onCancel);
         closeBtn?.addEventListener("click", onCancel);
     });
-}
+}[span_109](start_span)[span_109](end_span)
 
 function showToast(msg) {
     const toast = document.getElementById("toast");
@@ -1868,4 +1868,4 @@ function showToast(msg) {
     toast.textContent = msg;
     toast.classList.add("show");
     setTimeout(() => toast.classList.remove("show"), 2500);
-}
+}[span_110](start_span)[span_110](end_span)
