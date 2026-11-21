@@ -1,5 +1,3 @@
-"use strict";
-
 const APP_LANGUAGE_KEY = "selected_app_language";
 
 const OFFLINE_TRANSLATIONS = {
@@ -373,53 +371,14 @@ export function initOfflineLanguageSystem() {
 /* ==========================================
    FULL-SCREEN PROFILE IMAGE ZOOM VIEWER
 ========================================== */
-let activeZoomPopstateListener = null;
-let pushedZoomHistoryState = false;
-
-function ensureImageZoomModalDOM() {
-    let modal = document.getElementById("imageZoomModal");
-    if (modal) return modal;
-
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = `
-        <div id="imageZoomModal" class="image-zoom-modal hidden" style="position:fixed;inset:0;background:rgba(2,6,36,0.96);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:999999;display:flex;flex-direction:column;justify-content:space-between;touch-action:none;user-select:none;">
-            <div class="zoom-modal-header" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:linear-gradient(180deg,rgba(0,0,0,0.75) 0%,transparent 100%);color:#ffffff;z-index:10;">
-                <span id="zoomModalTitle" class="zoom-modal-title" style="font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:75%;">প্রোফাইল ছবি</span>
-                <button type="button" id="closeImageZoomBtn" class="zoom-close-btn" title="বন্ধ করুন" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
-            </div>
-            <div class="zoom-canvas-area" id="zoomCanvasArea" style="flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;width:100%;height:100%;">
-                <img id="zoomTargetImage" src="" alt="Profile Photo" class="hidden" style="max-width:92vw;max-height:76vh;border-radius:14px;object-fit:contain;box-shadow:0 10px 35px rgba(0,0,0,0.6);transform-origin:center center;will-change:transform;">
-                <div id="zoomFallbackIcon" class="hidden" style="width:220px;height:220px;border-radius:50%;background:#1e293b;border:4px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-size:110px;transform-origin:center center;will-change:transform;">👤</div>
-            </div>
-            <div class="zoom-controls-bar" style="display:flex;align-items:center;justify-content:center;gap:12px;padding:16px;background:linear-gradient(0deg,rgba(0,0,0,0.8) 0%,transparent 100%);z-index:10;">
-                <button type="button" id="zoomOutBtn" class="zoom-ctrl-btn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;padding:8px 14px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;">➖ জুম আউট</button>
-                <button type="button" id="zoomResetBtn" class="zoom-ctrl-btn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;padding:8px 14px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;">🔄 রিসেট</button>
-                <button type="button" id="zoomInBtn" class="zoom-ctrl-btn" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#ffffff;padding:8px 14px;border-radius:50px;font-size:13px;font-weight:600;cursor:pointer;">➕ জুম ইন</button>
-            </div>
-        </div>
-    `;
-    modal = wrapper.firstElementChild;
-    document.body.appendChild(modal);
-    return modal;
-}
-
 export function openProfileImageViewer(photoUrl, personName) {
-    const modal = ensureImageZoomModalDOM();
+    const modal = document.getElementById("imageZoomModal");
     const imgEl = document.getElementById("zoomTargetImage");
     const fallbackEl = document.getElementById("zoomFallbackIcon");
     const titleEl = document.getElementById("zoomModalTitle");
     const canvasArea = document.getElementById("zoomCanvasArea");
-    const zoomInBtn = document.getElementById("zoomInBtn");
-    const zoomOutBtn = document.getElementById("zoomOutBtn");
-    const zoomResetBtn = document.getElementById("zoomResetBtn");
-    const closeBtn = document.getElementById("closeImageZoomBtn");
 
     if (!modal || !imgEl || !fallbackEl || !canvasArea) return;
-
-    if (activeZoomPopstateListener) {
-        window.removeEventListener("popstate", activeZoomPopstateListener);
-        activeZoomPopstateListener = null;
-    }
 
     if (titleEl) titleEl.textContent = personName || "প্রোফাইল ছবি";
 
@@ -427,41 +386,11 @@ export function openProfileImageViewer(photoUrl, personName) {
     let translateX = 0;
     let translateY = 0;
     let activeTarget = null;
-    let closedByBackButton = false;
-
-    function showTarget(el) {
-        activeTarget = el;
-        if (el === imgEl) {
-            imgEl.classList.remove("hidden");
-            imgEl.style.display = "block";
-            fallbackEl.classList.add("hidden");
-            fallbackEl.style.display = "none";
-        } else {
-            fallbackEl.classList.remove("hidden");
-            fallbackEl.style.display = "flex";
-            imgEl.classList.add("hidden");
-            imgEl.style.display = "none";
-        }
-    }
-
-    function clampTranslation() {
-        if (scale <= 1) {
-            scale = 1;
-            translateX = 0;
-            translateY = 0;
-            return;
-        }
-        const maxOffsetX = Math.max(80, (canvasArea.clientWidth * (scale - 1)) / 2);
-        const maxOffsetY = Math.max(80, (canvasArea.clientHeight * (scale - 1)) / 2);
-        translateX = Math.min(Math.max(translateX, -maxOffsetX), maxOffsetX);
-        translateY = Math.min(Math.max(translateY, -maxOffsetY), maxOffsetY);
-    }
 
     function updateTransform(withTransition = false) {
         if (!activeTarget) return;
-        clampTranslation();
         activeTarget.style.transition = withTransition ? "transform 0.2s ease-out" : "none";
-        activeTarget.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${scale})`;
+        activeTarget.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     }
 
     function resetZoom() {
@@ -471,107 +400,86 @@ export function openProfileImageViewer(photoUrl, personName) {
         updateTransform(true);
     }
 
-    function setZoomScale(newScale, withTransition = true) {
-        scale = Math.min(Math.max(1, newScale), 5);
-        if (scale === 1) {
-            translateX = 0;
-            translateY = 0;
-        }
-        updateTransform(withTransition);
-    }
-
-    imgEl.onerror = null;
-    imgEl.onload = null;
-
-    if (photoUrl && String(photoUrl).trim() !== "") {
-        showTarget(imgEl);
-        imgEl.src = String(photoUrl).trim();
+    if (photoUrl && photoUrl.trim() !== "") {
+        imgEl.src = photoUrl;
+        imgEl.classList.remove("hidden");
+        fallbackEl.classList.add("hidden");
+        activeTarget = imgEl;
 
         imgEl.onerror = () => {
-            showTarget(fallbackEl);
+            imgEl.classList.add("hidden");
+            fallbackEl.classList.remove("hidden");
+            activeTarget = fallbackEl;
             resetZoom();
         };
     } else {
-        showTarget(fallbackEl);
+        imgEl.classList.add("hidden");
+        fallbackEl.classList.remove("hidden");
+        activeTarget = fallbackEl;
     }
 
     resetZoom();
     modal.classList.remove("hidden");
-    modal.style.display = "flex";
 
-    pushedZoomHistoryState = false;
-    try {
-        history.pushState({ page: "imageZoom" }, "");
-        pushedZoomHistoryState = true;
-    } catch (_) {}
+    history.pushState({ page: "imageZoom" }, "");
 
-    const cleanupViewer = (fromPopState = false) => {
-        modal.classList.add("hidden");
-        modal.style.display = "none";
-        if (activeZoomPopstateListener) {
-            window.removeEventListener("popstate", activeZoomPopstateListener);
-            activeZoomPopstateListener = null;
-        }
-        if (!fromPopState && pushedZoomHistoryState && history.state && history.state.page === "imageZoom") {
-            pushedZoomHistoryState = false;
-            closedByBackButton = true;
-            try {
+    const closeViewer = () => {
+        if (!modal.classList.contains("hidden")) {
+            modal.classList.add("hidden");
+            if (history.state && history.state.page === "imageZoom") {
                 history.back();
-            } catch (_) {}
+            }
         }
     };
 
-    activeZoomPopstateListener = () => {
-        if (closedByBackButton) {
-            closedByBackButton = false;
+    const popStateListener = (e) => {
+        if (e.state && e.state.page === "imageZoom") {
             return;
         }
-        pushedZoomHistoryState = false;
-        cleanupViewer(true);
+        modal.classList.add("hidden");
+        window.removeEventListener("popstate", popStateListener);
     };
-    window.addEventListener("popstate", activeZoomPopstateListener);
+    window.addEventListener("popstate", popStateListener);
 
-    if (zoomInBtn) {
-        zoomInBtn.onclick = (e) => {
-            e.stopPropagation();
-            setZoomScale(scale + 0.5, true);
-        };
-    }
+    document.getElementById("zoomInBtn").onclick = () => {
+        scale = Math.min(scale + 0.5, 5);
+        updateTransform(true);
+    };
 
-    if (zoomOutBtn) {
-        zoomOutBtn.onclick = (e) => {
-            e.stopPropagation();
-            setZoomScale(scale - 0.5, true);
-        };
-    }
+    document.getElementById("zoomOutBtn").onclick = () => {
+        scale = Math.max(scale - 0.5, 1);
+        if (scale === 1) {
+            translateX = 0;
+            translateY = 0;
+        }
+        updateTransform(true);
+    };
 
-    if (zoomResetBtn) {
-        zoomResetBtn.onclick = (e) => {
-            e.stopPropagation();
-            resetZoom();
-        };
-    }
+    document.getElementById("zoomResetBtn").onclick = resetZoom;
 
     let lastTap = 0;
-    canvasArea.onclick = (e) => {
-        if (e.target.closest("button")) return;
+    canvasArea.onclick = () => {
         const now = Date.now();
         if (now - lastTap < 300) {
-            lastTap = 0;
             if (scale > 1) {
                 resetZoom();
             } else {
-                setZoomScale(2.5, true);
+                scale = 2.5;
+                updateTransform(true);
             }
-        } else {
-            lastTap = now;
         }
+        lastTap = now;
     };
 
     canvasArea.onwheel = (e) => {
         e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.35 : -0.35;
-        setZoomScale(scale + delta, false);
+        const delta = e.deltaY < 0 ? 0.3 : -0.3;
+        scale = Math.min(Math.max(1, scale + delta), 5);
+        if (scale === 1) {
+            translateX = 0;
+            translateY = 0;
+        }
+        updateTransform(false);
     };
 
     let initialPinchDistance = null;
@@ -582,7 +490,6 @@ export function openProfileImageViewer(photoUrl, personName) {
 
     canvasArea.ontouchstart = (e) => {
         if (e.touches.length === 2) {
-            isDragging = false;
             initialPinchDistance = Math.hypot(
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
@@ -602,7 +509,12 @@ export function openProfileImageViewer(photoUrl, personName) {
                 e.touches[0].clientX - e.touches[1].clientX,
                 e.touches[0].clientY - e.touches[1].clientY
             );
-            setZoomScale(initialScale * (currentDistance / initialPinchDistance), false);
+            scale = Math.min(Math.max(1, initialScale * (currentDistance / initialPinchDistance)), 5);
+            if (scale === 1) {
+                translateX = 0;
+                translateY = 0;
+            }
+            updateTransform(false);
         } else if (e.touches.length === 1 && isDragging && scale > 1) {
             e.preventDefault();
             translateX = e.touches[0].clientX - startX;
@@ -611,26 +523,15 @@ export function openProfileImageViewer(photoUrl, personName) {
         }
     };
 
-    canvasArea.ontouchend = (e) => {
-        if (e.touches.length < 2) {
-            initialPinchDistance = null;
-        }
-        if (e.touches.length === 0) {
-            isDragging = false;
-        }
-    };
-
-    canvasArea.ontouchcancel = () => {
+    canvasArea.ontouchend = () => {
         initialPinchDistance = null;
         isDragging = false;
     };
 
-    if (closeBtn) {
-        closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            cleanupViewer(false);
-        };
-    }
+    document.getElementById("closeImageZoomBtn").onclick = () => {
+        closeViewer();
+        window.removeEventListener("popstate", popStateListener);
+    };
 }
 
 export function setupSmartCallAndWhatsApp(element, rawNumber, typeName, showToast) {
