@@ -5,7 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RMP MT Contacts - Modals & Viewer</title>
-    <style>
+</head>
+
+<body>
+    <div id="index1Content">
+        <style>
         /* ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো */
         .image-zoom-modal {
             position: fixed;
@@ -108,11 +112,29 @@
         .zoom-ctrl-btn:active {
             background: rgba(255, 255, 255, 0.3);
         }
-    </style>
-</head>
 
-<body>
-    <div id="index1Content">
+        /* ছবি আপলোড (ImgBB) UI */
+        .img-url-row { display: flex; gap: 8px; align-items: stretch; }
+        .img-url-row input { flex: 1; min-width: 0; }
+        .img-upload-btn {
+            flex-shrink: 0;
+            padding: 0 12px;
+            border: 1px solid var(--border-color, #cbd5e1);
+            border-radius: 8px;
+            background: var(--card-bg, #f1f5f9);
+            color: var(--text-main, #0f172a);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .img-upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .img-upload-status { display: block; margin-top: 4px; font-size: 12px; min-height: 16px; }
+        .img-upload-status.info { color: #2563eb; }
+        .img-upload-status.ok { color: #16a34a; }
+        .img-upload-status.err { color: #dc2626; }
+        </style>
+
         <!-- Modals -->
         <div id="loginModal" class="modal hidden">
             <div class="modal-content">
@@ -188,7 +210,12 @@
                 </div>
                 <div class="form-group">
                     <label>ছবি লিঙ্ক (URL)</label>
-                    <input id="categoryImageInput" type="url" placeholder="https://example.com/image.png">
+                    <div class="img-url-row">
+                        <input id="categoryImageInput" type="url" placeholder="https://example.com/image.png">
+                        <button type="button" class="img-upload-btn" data-upload-btn data-target="categoryImageInput">📷 গ্যালারি</button>
+                    </div>
+                    <input type="file" accept="image/*" style="display:none" data-upload-file data-target="categoryImageInput">
+                    <small class="img-upload-status" data-status-for="categoryImageInput">সর্বোচ্চ ৩০০ KB</small>
                 </div>
                 <div class="form-group">
                     <label>ক্যাটাগরির নাম</label>
@@ -226,7 +253,12 @@
                 </div>
                 <div class="form-group">
                     <label>ছবি লিঙ্ক (URL)</label>
-                    <input id="dataPhoto" type="url">
+                    <div class="img-url-row">
+                        <input id="dataPhoto" type="url">
+                        <button type="button" class="img-upload-btn" data-upload-btn data-target="dataPhoto">📷 গ্যালারি</button>
+                    </div>
+                    <input type="file" accept="image/*" style="display:none" data-upload-file data-target="dataPhoto">
+                    <small class="img-upload-status" data-status-for="dataPhoto">সর্বোচ্চ ৩০০ KB</small>
                 </div>
                 <div class="form-group">
                     <label>নাম *</label>
