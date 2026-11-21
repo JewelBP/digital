@@ -1,49 +1,50 @@
-// js/about-developer.js
+// js/driving-guide.js
 
-const ABOUT_HIDE_IDS = [
-    "mainDashboardView", "categoryDetailsView", "dataDetailsView",
-    "heroSlider", "searchBox", "subPageHeaderSearchWrapper", "slidingNoticeContainer",
-    "subPageHeader", "pageHeader", "headerBadge", "dateTimeBar", "topDateTime"
-];
+import {
+    ref,
+    set,
+    get,
+    onValue
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
-const ABOUT_HIDE_SELECTORS = [
-    ".page-header", ".sub-page-header", ".header-logo", ".app-logo",
-    ".date-time", ".datetime", ".header-date", ".header-time"
-];
+import { db } from "./firebase.js";
 
-let isAboutActive = false;
-let adDepth = 0;
-let adSwallowPop = 0;
-let adViewSnapshot = null;
+const STORAGE_KEY = "rmp_driving_guide_v5";
+const DB_PATH = "webapp/driving_guide";
+const DEFAULT_GUIDE_IMG = "https://cdn-icons-png.flaticon.com/512/3097/3097144.png";
+
+let guideState = {
+    chapters: []
+};
+
+let activeChapterId = null;
+let editingChapterId = null;
+let editingDocId = null;
+let guideSearchQuery = "";
+let isGuideActive = false;
+let isListening = false;
 let prevTitleText = "";
 let prevBackHidden = true;
 let prevMenuHidden = false;
-let aboutTitleNow = "";
-let aboutObserver = null;
-let aboutEnforceTimer = null;
-let aboutCurrentLang = localStorage.getItem("dev_page_lang") || "bn";
-let aboutRoleIndex = 0;
-let aboutCharIndex = 0;
-let aboutIsDeleting = false;
-let aboutTypingTimer = null;
-let aboutParticleFrame = null;
 
-const ABOUT_ROLES = {
-    bn: [
-        "অ্যান্ড্রয়েড অ্যাপ ডেভেলপার",
-        "ওয়েব অ্যাপ্লিকেশন নির্মাতা",
-        "মোবাইল-ফার্স্ট UI ডিজাইনার",
-        "Firebase ও অফলাইন সলিউশন এক্সপার্ট"
-    ],
-    en: [
-        "Android App Developer",
-        "Web Application Creator",
-        "Mobile-First UI Designer",
-        "Firebase & Offline Solution Specialist"
-    ]
-};
+function escapeHTML(str) {
+    return String(str || "").replace(
+        /[&<>"']/g,
+        m => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[m])
+    );
+}
 
-function showAboutToast(msg) {
+function isAdminUser() {
+    return window.currentUserRole === "admin";
+}
+
+function showGuideToast(msg) {
     const toast = document.getElementById("toast");
     if (toast) {
         toast.textContent = msg;
@@ -52,1367 +53,892 @@ function showAboutToast(msg) {
     }
 }
 
-function getMainTopHeader() {
-    const nav = document.getElementById("navToggleBtn");
-    if (!nav) return null;
-    const sheet = document.getElementById("mainScrollSheet");
+function generateGuideId(prefix) {
+    return `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+}
 
-    const byTag = nav.closest("header, .app-header, .top-bar, .topbar, .header, .navbar, .app-bar");
-    if (byTag && !byTag.contains(sheet) && byTag !== document.body) return byTag;
-
-    let el = nav;
-    while (el.parentElement && el.parentElement !== document.body &&
-           !(sheet && el.parentElement.contains(sheet))) {
-        el = el.parentElement;
+function saveLocalGuide() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(guideState));
+    } catch (e) {
+        console.error("Driving guide local save error:", e);
     }
-    return el !== nav ? el : null;
 }
 
-function getExtraHeaderElements() {
-    const found = new Set();
-    const topHeader = getMainTopHeader();
-    if (topHeader) found.add(topHeader);
-    ABOUT_HIDE_IDS.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) found.add(el);
-    });
-    ABOUT_HIDE_SELECTORS.forEach(sel => {
-        document.querySelectorAll(sel).forEach(el => {
-            if (!el.closest("#aboutDeveloperSheetView")) {
-                found.add(el);
+function loadLocalGuide() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.chapters)) {
+                guideState = parsed;
             }
-        });
-    });
-    return Array.from(found);
+        }
+    } catch (e) {
+        console.error("Driving guide local load error:", e);
+    }
 }
 
-function injectAboutDeveloperStyles() {
-    if (document.getElementById("aboutDeveloperModuleStyles")) return;
+async function persistGuide() {
+    saveLocalGuide();
+    renderDrivingGuideInSheet();
+
+    if (!navigator.onLine) {
+        showGuideToast("অফলাইনে সেভ হয়েছে! অনলাইন হলে সিঙ্ক হবে।");
+        return;
+    }
+
+    try {
+        await set(ref(db, DB_PATH), guideState);
+        showGuideToast("ড্রাইভিং গাইড সেভ হয়েছে");
+    } catch (err) {
+        console.error("Firebase driving guide save error:", err);
+        showGuideToast("ক্লাউডে সিঙ্ক করতে সমস্যা হয়েছে");
+    }
+}
+
+function startRealtimeSync() {
+    if (isListening) return;
+    isListening = true;
+
+    loadLocalGuide();
+
+    onValue(ref(db, DB_PATH), (snapshot) => {
+        if (snapshot.exists()) {
+            const val = snapshot.val();
+            if (val && Array.isArray(val.chapters)) {
+                guideState = val;
+                saveLocalGuide();
+                if (isGuideActive) {
+                    renderDrivingGuideInSheet();
+                }
+            }
+        }
+    }, (err) => {
+        console.warn("Driving guide realtime error:", err);
+    });
+}
+
+function injectModernNotebookStyles() {
+    if (document.getElementById("drivingGuideModernStyles")) return;
 
     const style = document.createElement("style");
-    style.id = "aboutDeveloperModuleStyles";
+    style.id = "drivingGuideModernStyles";
     style.textContent = `
-        /* মূল পেজ লক থাকবে, যাতে শুধুমাত্র নিচের কার্ডগুলো স্লাইড হয় */
-        body.ad-about-active {
-            overflow: hidden !important;
-        }
-        body.ad-about-active #mainScrollSheet {
-            margin-top: 0 !important;
-            top: 0 !important;
-            padding: 0 !important;
-            border-radius: 0 !important;
-            transform: none !important;
-            overflow: hidden !important;
-            height: 100dvh !important;
-            max-height: 100dvh !important;
-        }
-        body.ad-about-active #mainScrollSheet main.container {
-            padding: 0 !important;
-            margin: 0 !important;
-            max-width: 100% !important;
-            height: 100% !important;
-        }
-
-        /* পুরো ভিউকে ২ ভাগে ভাগ করা হয়েছে: উপরে ফিক্সড হেডার, নিচে স্ক্রলযোগ্য কার্ড এরিয়া */
-        #aboutDeveloperSheetView {
-            --ad-main: var(--app-main-color, var(--primary-color, #020624));
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            z-index: 50;
-            background: var(--bg-color, #f1f5f9);
-        }
-        body.dark-mode #aboutDeveloperSheetView {
-            background: #03071e;
-        }
-        #aboutDeveloperSheetView.hidden {
-            display: none !important;
-        }
-
-        /* উপরের কালো অংশ — সম্পূর্ণ ফিক্সড, কখনো নড়বে না বা কাঁপবে না */
-        .ad-header {
-            flex-shrink: 0;
-            position: relative;
-            width: 100%;
-            z-index: 20;
-            background: #07103a;
-            box-shadow: 0 10px 26px rgba(2, 6, 36, 0.35);
-            border-radius: 0 0 32px 32px;
-            overflow: hidden;
-        }
-
-        .ad-topbar {
-            position: relative;
-            z-index: 3;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-sizing: border-box;
-            padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 4px;
-            color: #ffffff;
-            background: transparent;
-        }
-        .ad-topbar-title {
-            flex: 1;
-            min-width: 0;
-            font-size: 15.5px;
-            font-weight: 700;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .ad-topbar .ad-pill-btn { min-height: 34px; }
-        .ad-back-btn { width: 36px; height: 36px; padding: 0; justify-content: center; font-size: 15px; }
-
-        .ad-hero-full-fixed {
-            position: relative;
-            width: 100%;
-            overflow: hidden;
-            background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%);
-            padding: 8px 16px 22px;
-            text-align: center;
-            color: #ffffff;
-        }
-
-        .ad-hero-full-fixed::after {
-            content: "";
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 18px;
-            background: linear-gradient(to bottom, transparent, rgba(2, 6, 36, 0.28));
-            pointer-events: none;
-        }
-
-        /* নিচের শুধুমাত্র এই অংশটি স্মুথলি উপর-নিচে স্লাইড/স্ক্রল হবে */
-        .ad-scroll-body {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior-y: contain;
+        #drivingGuideSheetView {
             display: flex;
             flex-direction: column;
             gap: 14px;
-            padding: 18px 14px calc(env(safe-area-inset-bottom, 0px) + 48px);
-            position: relative;
-            z-index: 10;
+            padding-bottom: 24px;
+        }
+        #drivingGuideSheetView.hidden {
+            display: none !important;
         }
 
-        #adParticleCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-            opacity: 0.45;
-        }
-
-        .ad-hero-content {
-            position: relative;
-            z-index: 2;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        .ad-pill-btn {
-            background: rgba(255, 255, 255, 0.14);
-            border: 1px solid rgba(255, 255, 255, 0.24);
-            color: #ffffff;
-            padding: 5px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-family: inherit;
-        }
-
-        .ad-status-pill {
-            display: flex;
-            width: fit-content;
-            margin: 0 auto 10px;
-            align-items: center;
-            gap: 7px;
-            background: rgba(16, 185, 129, 0.16);
-            border: 1px solid rgba(16, 185, 129, 0.42);
-            color: #6ee7b7;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 600;
-        }
-
-        .ad-pulse-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #10b981;
-            border-radius: 50%;
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            animation: adPulseGreen 1.8s infinite;
-        }
-
-        @keyframes adPulseGreen {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-
-        .ad-avatar-wrapper {
-            position: relative;
-            width: 102px;
-            height: 102px;
-            margin: 0 auto 10px;
-            cursor: pointer;
-        }
-
-        .ad-avatar-ring {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            padding: 3.5px;
-            background: linear-gradient(135deg, #00d2ff, #f59e0b, #a855f7);
-            box-shadow: 0 8px 24px rgba(0, 210, 255, 0.35);
-        }
-
-        .ad-avatar-inner {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: #020624;
-            padding: 3px;
-            overflow: hidden;
-        }
-
-        .ad-avatar-img {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            overflow: hidden;
+        /* টোলবার + ইনলাইন সার্চ */
+        .dg-notebook-toolbar {
+            background: linear-gradient(135deg, #020624 0%, #0f172a 100%);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 18px;
+            padding: 10px 12px;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 8px 20px rgba(2, 6, 36, 0.16);
         }
-
-        .ad-verified-badge {
-            position: absolute;
-            bottom: 2px;
-            right: 2px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            border: 2.5px solid #020624;
+        .dg-toolbar-search-wrap {
+            flex: 1;
+            min-width: 140px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 11px;
-        }
-
-        .ad-dev-name {
-            font-size: 22px;
-            font-weight: 700;
-            margin: 0 0 2px;
-            color: #ffffff;
-        }
-
-        .ad-dev-subname {
-            font-family: "Poppins", sans-serif;
-            font-size: 11.5px;
-            color: #00d2ff;
-            font-weight: 600;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin: 0 0 9px;
-        }
-
-        .ad-typing-role {
-            display: block;
-            width: fit-content;
-            margin: 0 auto;
+            gap: 8px;
             background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 5px 15px;
-            border-radius: 22px;
-            font-size: 13px;
-            color: #f8fafc;
-            min-height: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 12px;
+            padding: 7px 11px;
         }
-
-        .ad-cursor {
-            display: inline-block;
-            width: 2px;
-            background-color: #00d2ff;
-            animation: adBlink 0.8s infinite;
-        }
-
-        @keyframes adBlink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
-        }
-
-        .ad-card {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 18px;
-            box-shadow: 0 8px 22px rgba(2, 6, 36, 0.08);
-            border: 1px solid rgba(2, 6, 36, 0.08);
-            color: #0f172a;
-        }
-
-        body.dark-mode #aboutDeveloperSheetView .ad-card {
-            background: #070d2d;
-            border-color: rgba(0, 210, 255, 0.16);
-            color: #f8fafc;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-        }
-
-        .ad-section-title {
-            font-size: 16.5px;
-            font-weight: 700;
-            margin: 0 0 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .ad-section-title i {
-            color: #00d2ff;
-            background: var(--ad-main);
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+        .dg-toolbar-search-wrap span {
             font-size: 14px;
-            flex-shrink: 0;
+            line-height: 1;
+            opacity: 0.9;
         }
-
-        .ad-bio-text {
-            font-size: 14.5px;
-            line-height: 1.7;
-            color: #475569;
-            margin: 0;
-            text-align: justify;
-        }
-
-        body.dark-mode #aboutDeveloperSheetView .ad-bio-text {
-            color: #cbd5e1;
-        }
-
-        .ad-highlight-banner {
-            margin-top: 12px;
-            background: linear-gradient(135deg, rgba(2, 6, 36, 0.05), rgba(0, 210, 255, 0.12));
-            border-left: 4px solid #f59e0b;
-            padding: 10px 13px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .ad-highlight-banner i {
-            color: #f59e0b;
-            font-size: 17px;
-            flex-shrink: 0;
-        }
-
-        .ad-skill-bars {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 14px;
-        }
-
-        .ad-skill-top {
-            display: flex;
-            justify-content: space-between;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .ad-skill-pct {
-            font-family: "Poppins", sans-serif;
-            color: var(--ad-main);
-        }
-
-        body.dark-mode #aboutDeveloperSheetView .ad-skill-pct {
-            color: #00d2ff;
-        }
-
-        .ad-progress-track {
+        .dg-toolbar-search-wrap input {
             width: 100%;
-            height: 8px;
-            background: rgba(148, 163, 184, 0.25);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .ad-progress-fill {
-            height: 100%;
-            border-radius: 10px;
-            background: linear-gradient(90deg, var(--ad-main), #00d2ff);
-        }
-
-        .ad-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
-        .ad-chip {
-            background: rgba(148, 163, 184, 0.14);
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            padding: 6px 11px;
-            border-radius: 12px;
-            font-size: 12.5px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .ad-filter-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-        }
-
-        .ad-filter-tab {
-            background: rgba(148, 163, 184, 0.15);
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            color: inherit;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-        }
-
-        .ad-filter-tab.active {
-            background: var(--ad-main);
-            color: #ffffff;
-            border-color: var(--ad-main);
-        }
-
-        .ad-project-item {
-            background: rgba(148, 163, 184, 0.1);
-            border-radius: 14px;
-            padding: 13px;
-            margin-bottom: 10px;
-            border-left: 4px solid var(--ad-main);
-        }
-
-        body.dark-mode #aboutDeveloperSheetView .ad-project-item {
-            border-left-color: #00d2ff;
-        }
-
-        .ad-project-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .ad-project-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 5px;
-        }
-
-        .ad-project-title {
-            font-weight: 700;
-            font-size: 14.5px;
-        }
-
-        .ad-project-badge {
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 8px;
-            background: var(--ad-main);
-            color: #ffffff;
-            font-family: "Poppins", sans-serif;
-            white-space: nowrap;
-        }
-
-        .ad-project-desc {
-            font-size: 13px;
-            color: #475569;
-            margin: 0 0 8px;
-        }
-
-        body.dark-mode #aboutDeveloperSheetView .ad-project-desc {
-            color: #cbd5e1;
-        }
-
-        .ad-project-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .ad-p-tag {
-            font-size: 11px;
-            font-family: "Poppins", sans-serif;
-            padding: 2px 8px;
-            border-radius: 6px;
-            border: 1px solid rgba(148, 163, 184, 0.3);
-        }
-
-        .ad-timeline {
-            padding-left: 18px;
-            border-left: 2px dashed rgba(0, 210, 255, 0.55);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .ad-timeline-step {
-            position: relative;
-        }
-
-        .ad-timeline-step::before {
-            content: "";
-            position: absolute;
-            left: -24px;
-            top: 5px;
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: #00d2ff;
-        }
-
-        .ad-timeline-title {
-            font-size: 13.5px;
-            font-weight: 700;
-        }
-
-        .ad-timeline-sub {
-            font-size: 12.5px;
-            color: #475569;
-        }
-
-        body.dark-mode #aboutDeveloperSheetView .ad-timeline-sub {
-            color: #cbd5e1;
-        }
-
-        .ad-action-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-
-        .ad-action-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            padding: 11px;
-            border-radius: 12px;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
+            min-width: 0;
             border: none;
-            cursor: pointer;
-            font-family: inherit;
-            color: #ffffff;
-        }
-
-        .ad-btn-call { background: linear-gradient(135deg, #10b981, #059669); }
-        .ad-btn-wa { background: linear-gradient(135deg, #25d366, #128c7e); }
-        .ad-btn-email { background: linear-gradient(135deg, #020624, #172554); }
-        .ad-btn-gh { background: linear-gradient(135deg, #334155, #1e293b); }
-
-        .ad-full-btn {
-            width: 100%;
-            margin-top: 10px;
-            padding: 11px;
-            border-radius: 12px;
-            font-size: 13.5px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            font-family: inherit;
-        }
-
-        .ad-feedback-btn {
+            outline: none;
             background: transparent;
-            color: inherit;
-            border: 1.5px solid var(--ad-main);
-        }
-
-        body.dark-mode #aboutDeveloperSheetView .ad-feedback-btn {
-            border-color: #00d2ff;
-        }
-
-        .ad-share-btn {
-            background: linear-gradient(90deg, var(--ad-main), #1e3a8a);
             color: #ffffff;
-            border: none;
+            font-size: 14px;
+            font-family: inherit;
         }
-
-        .ad-modal-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(2, 6, 36, 0.92);
-            z-index: 9999;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+        .dg-toolbar-search-wrap input::placeholder {
+            color: rgba(226, 232, 240, 0.72);
         }
-
-        .ad-modal-overlay.open {
-            display: flex;
-        }
-
-        .ad-modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+        .dg-toolbar-clear-btn {
             background: rgba(255, 255, 255, 0.16);
             color: #ffffff;
             border: none;
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            font-size: 18px;
+            border-radius: 8px;
+            width: 24px;
+            height: 24px;
+            font-size: 12px;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .dg-toolbar-add-btn {
+            background: #0ea5e9;
+            color: #ffffff;
+            border: none;
+            border-radius: 12px;
+            padding: 9px 13px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+            flex-shrink: 0;
         }
 
-        .ad-modal-avatar {
-            width: 220px;
-            height: 220px;
-            border-radius: 50%;
-            border: 4px solid #00d2ff;
-            overflow: hidden;
+        /* নোটবুক অধ্যায় কার্ড */
+        .dg-chapter-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
-
-        .ad-feedback-box {
+        .dg-notebook-chapter {
+            position: relative;
             background: #ffffff;
-            color: #0f172a;
-            width: 100%;
-            max-width: 400px;
-            border-radius: 20px;
-            padding: 20px;
+            border: 1px solid #e2e8f0;
+            border-left: 5px solid #020624;
+            border-radius: 16px;
+            padding: 15px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            box-shadow: 0 5px 16px rgba(2, 6, 36, 0.05);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
-
-        body.dark-mode .ad-feedback-box {
-            background: #070d2d;
+        body.dark-mode .dg-notebook-chapter {
+            background: #0f172a;
+            border-color: #1e293b;
+            border-left-color: #38bdf8;
+        }
+        .dg-notebook-chapter:active {
+            transform: scale(0.99);
+        }
+        .dg-chapter-chip {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #0284c7;
+            background: rgba(14, 165, 233, 0.12);
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-bottom: 5px;
+        }
+        body.dark-mode .dg-chapter-chip {
+            color: #38bdf8;
+        }
+        .dg-chapter-heading {
+            margin: 0;
+            font-size: 16.5px;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.35;
+        }
+        body.dark-mode .dg-chapter-heading {
             color: #f8fafc;
         }
-
-        .ad-feedback-input, .ad-feedback-textarea {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 10px 12px;
-            margin-top: 10px;
-            border-radius: 10px;
-            border: 1px solid #cbd5e1;
-            font-family: inherit;
-            font-size: 13.5px;
+        .dg-chapter-desc {
+            margin: 4px 0 0 0;
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.45;
+        }
+        body.dark-mode .dg-chapter-desc {
+            color: #94a3b8;
         }
 
-        .ad-feedback-textarea {
-            min-height: 88px;
-            resize: none;
+        /* নোটবুক ডকুমেন্ট পেজ কার্ড */
+        .dg-notebook-page {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: 0 8px 24px rgba(2, 6, 36, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        body.dark-mode .dg-notebook-page {
+            background: #0f172a;
+            border-color: #1e293b;
+        }
+        .dg-page-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+        body.dark-mode .dg-page-top {
+            border-bottom-color: #334155;
+        }
+        .dg-page-title {
+            margin: 0;
+            font-size: 17px;
+            font-weight: 700;
+            color: #020624;
+        }
+        body.dark-mode .dg-page-title {
+            color: #f8fafc;
+        }
+        .dg-page-body-text {
+            margin: 0;
+            font-size: 15.5px;
+            line-height: 1.85;
+            white-space: pre-line;
+            color: #1e293b;
+        }
+        body.dark-mode .dg-page-body-text {
+            color: #e2e8f0;
+        }
+
+        /* ইনলাইন ইমেজ ও ক্যাপশন */
+        .dg-media-figure {
+            margin: 14px 0;
+            padding: 12px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+        }
+        body.dark-mode .dg-media-figure {
+            background: #1e293b;
+            border-color: #334155;
+        }
+        .dg-media-figure img {
+            width: 100%;
+            max-height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            display: block;
+        }
+        .dg-media-caption {
+            margin: 9px 2px 0 2px;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #475569;
+            font-weight: 500;
+        }
+        body.dark-mode .dg-media-caption {
+            color: #cbd5e1;
+        }
+
+        /* ইনলাইন লিংক বাটন */
+        .dg-media-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 6px 6px 6px 0;
+            padding: 9px 14px;
+            border-radius: 12px;
+            background: rgba(2, 6, 36, 0.06);
+            border: 1px solid rgba(14, 165, 233, 0.45);
+            color: #0284c7;
+            font-size: 13.5px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        body.dark-mode .dg-media-link {
+            background: rgba(56, 189, 248, 0.12);
+            color: #38bdf8;
+        }
+
+        /* অ্যাকশন বাটন */
+        .dg-mini-btn {
+            border: none;
+            border-radius: 9px;
+            padding: 7px 11px;
+            font-size: 12.5px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dg-mini-btn.edit {
+            background: #f59e0b;
+            color: #ffffff;
+        }
+        .dg-mini-btn.del {
+            background: #ef4444;
+            color: #ffffff;
+        }
+        .dg-mini-btn.tag {
+            background: #0ea5e9;
+            color: #ffffff;
+            padding: 8px 12px;
+        }
+
+        /* বড় এডিটর বক্স */
+        .dg-editor-panel {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 18px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 8px 22px rgba(2, 6, 36, 0.08);
+        }
+        body.dark-mode .dg-editor-panel {
+            background: #0f172a;
+            border-color: #334155;
+        }
+        .dg-editor-panel input,
+        .dg-editor-panel textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 13px 14px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #0f172a;
+            font-size: 15px;
+            line-height: 1.55;
+            font-family: inherit;
+        }
+        .dg-editor-panel textarea {
+            min-height: 210px;
+        }
+        body.dark-mode .dg-editor-panel input,
+        body.dark-mode .dg-editor-panel textarea {
+            background: #1e293b;
+            color: #f8fafc;
+            border-color: #334155;
+        }
+        .dg-editor-tip {
+            font-size: 12.5px;
+            line-height: 1.6;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(14, 165, 233, 0.09);
+            border-left: 4px solid #0ea5e9;
+            color: #334155;
+        }
+        body.dark-mode .dg-editor-tip {
+            color: #cbd5e1;
         }
     `;
     document.head.appendChild(style);
 }
 
-function ensureAboutSheetContainer() {
-    let view = document.getElementById("aboutDeveloperSheetView");
+function renderRichTextWithMedia(rawText) {
+    const normalized = String(rawText || "").replace(/\r\n/g, "\n");
+    const tokenRegex = /(\[img:[^\]]+\]|\[link:[^\]]+\])/gi;
+    const parts = normalized.split(tokenRegex);
+
+    return parts.map(part => {
+        if (!part) return "";
+
+        const imgMatch = part.match(/^\[img:\s*([^|\]]+?)(?:\s*\|\s*([^\]]*))?\]$/i);
+        if (imgMatch) {
+            const url = escapeHTML(imgMatch[1].trim());
+            const caption = escapeHTML((imgMatch[2] || "").trim());
+            return `
+                <figure class="dg-media-figure">
+                    <img src="${url}" alt="${caption || "Driving Guide Image"}" onerror="this.src='${DEFAULT_GUIDE_IMG}'">
+                    ${caption ? `<figcaption class="dg-media-caption">${caption}</figcaption>` : ""}
+                </figure>
+            `;
+        }
+
+        const linkMatch = part.match(/^\[link:\s*([^|\]]+?)\s*\|\s*([^\]]+)\]$/i);
+        if (linkMatch) {
+            const label = escapeHTML(linkMatch[1].trim());
+            let href = linkMatch[2].trim();
+            if (!/^https?:\/\//i.test(href)) href = `https://${href}`;
+            return `
+                <a class="dg-media-link" href="${escapeHTML(href)}" target="_blank" rel="noopener noreferrer">
+                    🔗 ${label} ↗
+                </a>
+            `;
+        }
+
+        return `<span class="dg-page-body-text">${escapeHTML(part)}</span>`;
+    }).join("");
+}
+
+function ensureSheetContainer() {
+    const sheet = document.getElementById("mainScrollSheet");
+    if (!sheet) return null;
+
+    let view = document.getElementById("drivingGuideSheetView");
     if (!view) {
         view = document.createElement("div");
-        view.id = "aboutDeveloperSheetView";
+        view.id = "drivingGuideSheetView";
         view.className = "hidden";
-        // সরাসরি body-তে যুক্ত করায় কোনো প্যারেন্টের transform/overflow একে প্রভাবিত করবে না
-        document.body.appendChild(view);
+        const mainEl = sheet.querySelector("main.container") || sheet;
+        mainEl.appendChild(view);
     }
     return view;
 }
 
-function pushAboutState(level) {
-    let pushed = false;
-    try {
-        history.pushState({ adLevel: level }, "", location.href);
-        pushed = true;
-    } catch (e) { pushed = false; }
-    adDepth = pushed ? level : 0;
-}
-
-window.addEventListener("popstate", (e) => {
-    if (adSwallowPop > 0) {
-        adSwallowPop--;
-        e.stopImmediatePropagation();
-        return;
-    }
-    if (!isAboutActive) {
-        if (adViewSnapshot) hideMainViewsForAbout(false);
-        return;
-    }
-
-    e.stopImmediatePropagation();
-    const lvl = e.state && typeof e.state.adLevel === "number" ? e.state.adLevel : 0;
-    if (lvl >= 1) {
-        adDepth = lvl;
-        return;
-    }
-    adDepth = 0;
-    closeAboutDeveloper(true);
-}, true);
-
-window.addEventListener("pageshow", (e) => {
-    if (!e || !e.persisted) return;
-    if (isAboutActive) { enforceAboutUI(); return; }
-    if (adViewSnapshot) hideMainViewsForAbout(false);
-});
-
-function setAboutHeaderMode() {
+function setHeaderBackMode(titleText) {
     const appTitleText = document.querySelector(".app-title-text");
     const menuIcon = document.getElementById("menuIcon");
     const backIcon = document.getElementById("backIcon");
     const navBtn = document.getElementById("navToggleBtn");
 
-    aboutTitleNow = "";
-    if (appTitleText) appTitleText.textContent = "";
+    if (appTitleText) {
+        if (!isGuideActive) prevTitleText = appTitleText.textContent;
+        appTitleText.textContent = titleText;
+    }
     if (menuIcon && backIcon) {
+        if (!isGuideActive) {
+            prevMenuHidden = menuIcon.classList.contains("hidden");
+            prevBackHidden = backIcon.classList.contains("hidden");
+        }
         menuIcon.classList.add("hidden");
         backIcon.classList.remove("hidden");
     }
 
-    if (navBtn && !navBtn.dataset.adBound) {
-        navBtn.dataset.adBound = "1";
+    if (navBtn && !navBtn.dataset.dgBound) {
+        navBtn.dataset.dgBound = "1";
         navBtn.addEventListener("click", (e) => {
-            if (!isAboutActive) return;
+            if (!isGuideActive) return;
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (adDepth > 0) {
-                history.back();
+            if (activeChapterId) {
+                activeChapterId = null;
+                editingDocId = null;
+                guideSearchQuery = "";
+                renderDrivingGuideInSheet();
             } else {
-                closeAboutDeveloper();
+                closeDrivingGuide();
             }
         }, true);
     }
 }
 
-function captureAboutHeaderState() {
-    const appTitleText = document.querySelector(".app-title-text");
-    const menuIcon = document.getElementById("menuIcon");
-    const backIcon = document.getElementById("backIcon");
-    prevTitleText = appTitleText ? appTitleText.textContent : "";
-    prevMenuHidden = menuIcon ? menuIcon.classList.contains("hidden") : false;
-    prevBackHidden = backIcon ? backIcon.classList.contains("hidden") : true;
-}
-
-function restoreAboutHeaderMode() {
+function restoreHeaderMode() {
     const appTitleText = document.querySelector(".app-title-text");
     const menuIcon = document.getElementById("menuIcon");
     const backIcon = document.getElementById("backIcon");
 
-    if (appTitleText) appTitleText.textContent = prevTitleText || "RMP MT Contacts";
-    if (menuIcon) menuIcon.classList.toggle("hidden", prevMenuHidden);
-    if (backIcon) backIcon.classList.toggle("hidden", prevBackHidden);
-}
-
-function hideMainViewsForAbout(hide) {
-    if (hide) {
-        adViewSnapshot = { ids: {}, extras: [] };
-        ABOUT_HIDE_IDS.forEach(id => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            adViewSnapshot.ids[id] = { hidden: el.classList.contains("hidden"), display: el.style.display };
-            el.classList.add("hidden");
-        });
-        getExtraHeaderElements().forEach(el => {
-            adViewSnapshot.extras.push({
-                el,
-                hidden: el.classList.contains("hidden"),
-                display: el.style.display
-            });
-            el.classList.add("hidden");
-            el.style.display = "none";
-        });
-        const slider = document.getElementById("heroSlider");
-        if (slider) slider.style.display = "none";
-        return;
+    if (appTitleText) {
+        appTitleText.textContent = prevTitleText || "RMP MT Contacts";
     }
-
-    if (!adViewSnapshot) return;
-    ABOUT_HIDE_IDS.forEach(id => {
-        const el = document.getElementById(id);
-        const snap = adViewSnapshot.ids ? adViewSnapshot.ids[id] : null;
-        if (!el || !snap) return;
-        el.classList.toggle("hidden", snap.hidden);
-        el.style.display = snap.display;
-    });
-    if (Array.isArray(adViewSnapshot.extras)) {
-        adViewSnapshot.extras.forEach(item => {
-            if (!item.el) return;
-            item.el.classList.toggle("hidden", item.hidden);
-            item.el.style.display = item.display;
-        });
-    }
-    adViewSnapshot = null;
-}
-
-function restoreMainVisibilityFallback() {
-    const viewIds = ["mainDashboardView", "categoryDetailsView", "dataDetailsView"];
-    const anyVisible = viewIds.some(id => {
-        const el = document.getElementById(id);
-        return el && !el.classList.contains("hidden") && el.style.display !== "none";
-    });
-    if (anyVisible) return;
-    const dash = document.getElementById("mainDashboardView");
-    if (dash) {
-        dash.classList.remove("hidden");
-        dash.style.display = "";
+    if (menuIcon && backIcon) {
+        menuIcon.classList.remove("hidden");
+        backIcon.classList.add("hidden");
     }
 }
 
-function enforceAboutUI() {
-    if (!isAboutActive) return;
-
-    ABOUT_HIDE_IDS.forEach(id => {
+function hideMainViewsForGuide(hide) {
+    const ids = [
+        "mainDashboardView",
+        "categoryDetailsView",
+        "dataDetailsView",
+        "heroSlider",
+        "searchBox",
+        "subPageHeaderSearchWrapper",
+        "slidingNoticeContainer"
+    ];
+    ids.forEach(id => {
         const el = document.getElementById(id);
-        if (el && !el.classList.contains("hidden")) el.classList.add("hidden");
-    });
-    getExtraHeaderElements().forEach(el => {
-        if (!el.classList.contains("hidden")) el.classList.add("hidden");
-        if (el.style.display !== "none") el.style.display = "none";
+        if (el) el.classList.toggle("hidden", hide);
     });
     const slider = document.getElementById("heroSlider");
-    if (slider && slider.style.display !== "none") slider.style.display = "none";
-
-    const appTitleText = document.querySelector(".app-title-text");
-    const menuIcon = document.getElementById("menuIcon");
-    const backIcon = document.getElementById("backIcon");
-    if (appTitleText && appTitleText.textContent !== aboutTitleNow) {
-        appTitleText.textContent = aboutTitleNow;
-    }
-    if (menuIcon && !menuIcon.classList.contains("hidden")) menuIcon.classList.add("hidden");
-    if (backIcon && backIcon.classList.contains("hidden")) backIcon.classList.remove("hidden");
-
-    const view = document.getElementById("aboutDeveloperSheetView");
-    if (view && view.classList.contains("hidden")) view.classList.remove("hidden");
+    if (slider) slider.style.display = hide ? "none" : "";
 }
 
-function scheduleAboutEnforce() {
-    if (!isAboutActive || aboutEnforceTimer) return;
-    aboutEnforceTimer = setTimeout(() => {
-        aboutEnforceTimer = null;
-        enforceAboutUI();
-    }, 30);
-}
-
-function startAboutObserver() {
-    stopAboutObserver();
-    aboutObserver = new MutationObserver(scheduleAboutEnforce);
-    const attrs = { attributes: true, attributeFilter: ["class", "style"] };
-    [...ABOUT_HIDE_IDS, "menuIcon", "backIcon"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) aboutObserver.observe(el, attrs);
-    });
-    getExtraHeaderElements().forEach(el => {
-        aboutObserver.observe(el, attrs);
-    });
-}
-
-function stopAboutObserver() {
-    if (aboutObserver) { aboutObserver.disconnect(); aboutObserver = null; }
-    if (aboutEnforceTimer) { clearTimeout(aboutEnforceTimer); aboutEnforceTimer = null; }
-}
-
-function avatarSvgMarkup() {
+function buildToolbarHTML(searchPlaceholder, admin, addBtnId, addBtnLabel) {
     return `
-        <svg viewBox="0 0 200 200" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="adBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#020624"/>
-                    <stop offset="100%" stop-color="#1e3a8a"/>
-                </linearGradient>
-            </defs>
-            <rect width="200" height="200" fill="url(#adBgGrad)"/>
-            <circle cx="100" cy="76" r="36" fill="#e2e8f0"/>
-            <path d="M40 185 C40 135, 160 135, 160 185" fill="#00d2ff"/>
-            <text x="100" y="168" font-family="Poppins, sans-serif" font-size="22" font-weight="700" fill="#020624" text-anchor="middle">&lt;JR /&gt;</text>
-        </svg>`;
-}
-
-function startAboutParticles() {
-    if (aboutParticleFrame) cancelAnimationFrame(aboutParticleFrame);
-    const canvas = document.getElementById("adParticleCanvas");
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-
-    const resize = () => {
-        canvas.width = canvas.parentElement ? canvas.parentElement.offsetWidth : 360;
-        canvas.height = canvas.parentElement ? canvas.parentElement.offsetHeight : 280;
-        canvas.style.width = canvas.width + "px";
-        canvas.style.height = canvas.height + "px";
-    };
-    resize();
-
-    const particles = Array.from({ length: 20 }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 2 + 0.8,
-        dx: (Math.random() - 0.5) * 0.35,
-        dy: (Math.random() - 0.5) * 0.35
-    }));
-
-    function step() {
-        if (!isAboutActive) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "rgba(0, 210, 255, 0.48)";
-        particles.forEach(p => {
-            p.x += p.dx;
-            p.y += p.dy;
-            if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
-            if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fill();
-        });
-        aboutParticleFrame = requestAnimationFrame(step);
-    }
-    step();
-}
-
-function startAboutTyping() {
-    clearTimeout(aboutTypingTimer);
-    aboutCharIndex = 0;
-    aboutIsDeleting = false;
-
-    function typeLoop() {
-        if (!isAboutActive) return;
-        const typedSpan = document.getElementById("adTypedText");
-        if (!typedSpan) return;
-
-        const list = ABOUT_ROLES[aboutCurrentLang] || ABOUT_ROLES.bn;
-        const word = list[aboutRoleIndex % list.length];
-
-        if (aboutIsDeleting) {
-            typedSpan.textContent = word.substring(0, aboutCharIndex - 1);
-            aboutCharIndex--;
-        } else {
-            typedSpan.textContent = word.substring(0, aboutCharIndex + 1);
-            aboutCharIndex++;
-        }
-
-        let speed = aboutIsDeleting ? 40 : 80;
-        if (!aboutIsDeleting && aboutCharIndex === word.length) {
-            speed = 1800;
-            aboutIsDeleting = true;
-        } else if (aboutIsDeleting && aboutCharIndex === 0) {
-            aboutIsDeleting = false;
-            aboutRoleIndex++;
-            speed = 400;
-        }
-        aboutTypingTimer = setTimeout(typeLoop, speed);
-    }
-    typeLoop();
-}
-
-function applyAboutLanguage(view, lang) {
-    aboutCurrentLang = lang;
-    localStorage.setItem("dev_page_lang", lang);
-
-    const langText = view.querySelector("#adLangText");
-    if (langText) langText.textContent = lang === "bn" ? "EN" : "বাংলা";
-
-    setAboutHeaderMode();
-
-    view.querySelectorAll("[data-bn]").forEach(el => {
-        el.textContent = el.getAttribute(`data-${lang}`);
-    });
-
-    startAboutTyping();
-}
-
-function renderAboutDeveloperView(view) {
-    setAboutHeaderMode();
-
-    view.innerHTML = `
-        <!-- উপরের ফিক্সড অংশ (নড়বে না) -->
-        <div class="ad-header" id="adHeader">
-            <div class="ad-topbar">
-                <button type="button" class="ad-pill-btn ad-back-btn" id="adBackBtn" aria-label="Back">
-                    <i class="fas fa-arrow-left"></i>
-                </button>
-                <div class="ad-topbar-title" data-bn="ডেভেলপার পরিচিতি" data-en="About Developer">ডেভেলপার পরিচিতি</div>
-                <button type="button" class="ad-pill-btn" id="adLangBtn">
-                    <i class="fas fa-language"></i> <span id="adLangText">${aboutCurrentLang === "bn" ? "EN" : "বাংলা"}</span>
-                </button>
-                <button type="button" class="ad-pill-btn" id="adThemeBtn" title="Toggle Dark Mode">
-                    <i class="fas fa-moon" id="adThemeIcon"></i>
-                </button>
+        <div class="dg-notebook-toolbar">
+            <div class="dg-toolbar-search-wrap">
+                <span>🔍</span>
+                <input id="dgToolbarSearchInput" type="search" value="${escapeHTML(guideSearchQuery)}" placeholder="${escapeHTML(searchPlaceholder)}" autocomplete="off">
+                ${guideSearchQuery ? `<button id="dgClearSearchBtn" type="button" class="dg-toolbar-clear-btn" title="মুছুন">✕</button>` : ""}
             </div>
-
-            <section class="ad-hero-full-fixed">
-                <canvas id="adParticleCanvas"></canvas>
-                <div class="ad-hero-content">
-                    <div class="ad-status-pill">
-                        <span class="ad-pulse-dot"></span>
-                        <span data-bn="অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়" data-en="Available for App Dev & Support">অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়</span>
-                    </div>
-
-                    <div class="ad-avatar-wrapper" id="adAvatarOpen">
-                        <div class="ad-avatar-ring">
-                            <div class="ad-avatar-inner">
-                                <div class="ad-avatar-img">${avatarSvgMarkup()}</div>
-                            </div>
-                        </div>
-                        <div class="ad-verified-badge" title="Verified Developer">
-                            <i class="fas fa-check"></i>
-                        </div>
-                    </div>
-
-                    <h1 class="ad-dev-name" data-bn="মোঃ জুয়েল রানা" data-en="Md. Jewel Rana">মোঃ জুয়েল রানা</h1>
-                    <p class="ad-dev-subname">Jewel Rana • App & Web Developer</p>
-
-                    <div class="ad-typing-role">
-                        <span id="adTypedText"></span><span class="ad-cursor">&nbsp;</span>
-                    </div>
-                </div>
-            </section>
-        </div>
-
-        <!-- নিচের স্ক্রলযোগ্য অংশ (শুধুমাত্র এই অংশটি স্লাইড হবে) -->
-        <div class="ad-scroll-body">
-            <div class="ad-card">
-                <h2 class="ad-section-title">
-                    <i class="fas fa-user-tie"></i>
-                    <span data-bn="সংক্ষিপ্ত পরিচিতি" data-en="About Me">সংক্ষিপ্ত পরিচিতি</span>
-                </h2>
-                <p class="ad-bio-text" data-bn="আসসালামু আলাইকুম। আমি মোঃ জুয়েল রানা। পেশাগত দায়িত্ব পালনের পাশাপাশি প্রযুক্তির প্রতি ভালোবাসা থেকে আমি অ্যান্ড্রয়েড অ্যাপ এবং আধুনিক মোবাইল-ফ্রেন্ডলি ওয়েব অ্যাপ্লিকেশন ডেভেলপ করে থাকি। আমার তৈরি প্রতিটি অ্যাপ্লিকেশন ব্যবহারকারীদের দৈনন্দিন কাজ সহজ, দ্রুত এবং ইন্টারনেট ছাড়াও (Offline) নির্ভরযোগ্যভাবে ব্যবহার করার লক্ষ্যে ডিজাইন করা হয়।" data-en="Assalamu Alaikum. I am Md. Jewel Rana. Alongside my professional duties, my passion for technology drives me to build Android apps and modern mobile-friendly web applications. Every application I create is crafted to make daily workflows faster, simpler, and reliable even offline.">
-                    আসসালামু আলাইকুম। আমি মোঃ জুয়েল রানা। পেশাগত দায়িত্ব পালনের পাশাপাশি প্রযুক্তির প্রতি ভালোবাসা থেকে আমি অ্যান্ড্রয়েড অ্যাপ এবং আধুনিক মোবাইল-ফ্রেন্ডলি ওয়েব অ্যাপ্লিকেশন ডেভেলপ করে থাকি। আমার তৈরি প্রতিটি অ্যাপ্লিকেশন ব্যবহারকারীদের দৈনন্দিন কাজ সহজ, দ্রুত এবং ইন্টারনেট ছাড়াও (Offline) নির্ভরযোগ্যভাবে ব্যবহার করার লক্ষ্যে ডিজাইন করা হয়।
-                </p>
-                <div class="ad-highlight-banner">
-                    <i class="fas fa-mobile-screen-button"></i>
-                    <span data-bn="বিশেষ অর্জন: কোনো কম্পিউটার ছাড়াই সম্পূর্ণ কোডিং, ডিজাইন ও অ্যাপ বিল্ডিং মোবাইল ফোনের মাধ্যমে সম্পন্ন।" data-en="Unique Achievement: 100% of coding, UI design, and app building executed directly on a mobile phone.">বিশেষ অর্জন: কোনো কম্পিউটার ছাড়াই সম্পূর্ণ কোডিং, ডিজাইন ও অ্যাপ বিল্ডিং মোবাইল ফোনের মাধ্যমে সম্পন্ন।</span>
-                </div>
-            </div>
-
-            <div class="ad-card">
-                <h2 class="ad-section-title">
-                    <i class="fas fa-code"></i>
-                    <span data-bn="দক্ষতা ও প্রযুক্তিসমূহ" data-en="Skills & Technologies">দক্ষতা ও প্রযুক্তিসমূহ</span>
-                </h2>
-
-                <div class="ad-skill-bars">
-                    <div>
-                        <div class="ad-skill-top"><span>HTML5, CSS3 & Responsive Mobile UI</span><span class="ad-skill-pct">95%</span></div>
-                        <div class="ad-progress-track"><div class="ad-progress-fill" style="width:95%;"></div></div>
-                    </div>
-                    <div>
-                        <div class="ad-skill-top"><span>JavaScript & Offline LocalStorage</span><span class="ad-skill-pct">90%</span></div>
-                        <div class="ad-progress-track"><div class="ad-progress-fill" style="width:90%;"></div></div>
-                    </div>
-                    <div>
-                        <div class="ad-skill-top"><span>Firebase Realtime DB, Auth & FCM Push</span><span class="ad-skill-pct">88%</span></div>
-                        <div class="ad-progress-track"><div class="ad-progress-fill" style="width:88%;"></div></div>
-                    </div>
-                    <div>
-                        <div class="ad-skill-top"><span>Android App Dev (Sketchware Pro & GitHub)</span><span class="ad-skill-pct">92%</span></div>
-                        <div class="ad-progress-track"><div class="ad-progress-fill" style="width:92%;"></div></div>
-                    </div>
-                </div>
-
-                <div class="ad-chips">
-                    <div class="ad-chip"><i class="fab fa-html5" style="color:#e34f26;"></i> HTML5</div>
-                    <div class="ad-chip"><i class="fab fa-css3-alt" style="color:#1572b6;"></i> CSS3</div>
-                    <div class="ad-chip"><i class="fab fa-js" style="color:#eab308;"></i> JavaScript</div>
-                    <div class="ad-chip"><i class="fas fa-fire" style="color:#f59e0b;"></i> Firebase & FCM</div>
-                    <div class="ad-chip"><i class="fab fa-android" style="color:#10b981;"></i> Sketchware Pro</div>
-                    <div class="ad-chip"><i class="fab fa-github" style="color:#6366f1;"></i> GitHub Actions</div>
-                </div>
-            </div>
-
-            <div class="ad-card">
-                <h2 class="ad-section-title">
-                    <i class="fas fa-layer-group"></i>
-                    <span data-bn="উল্লেখযোগ্য প্রজেক্টসমূহ" data-en="Featured Projects">উল্লেখযোগ্য প্রজেক্টসমূহ</span>
-                </h2>
-
-                <div class="ad-filter-tabs">
-                    <button type="button" class="ad-filter-tab active" data-filter="all" data-bn="সব প্রজেক্ট (৩)" data-en="All (3)">সব প্রজেক্ট (৩)</button>
-                    <button type="button" class="ad-filter-tab" data-filter="web" data-bn="ওয়েব অ্যাপ" data-en="Web Apps">ওয়েব অ্যাপ</button>
-                    <button type="button" class="ad-filter-tab" data-filter="android" data-bn="অ্যান্ড্রয়েড" data-en="Android">অ্যান্ড্রয়েড</button>
-                </div>
-
-                <div class="ad-project-item" data-category="web android">
-                    <div class="ad-project-head">
-                        <span class="ad-project-title">RMP MT CONTACTS</span>
-                        <span class="ad-project-badge">Web & Android</span>
-                    </div>
-                    <p class="ad-project-desc" data-bn="অফলাইন ফেভারিট সিস্টেম, অ্যাডমিন ম্যানেজমেন্ট প্যানেল, কাস্টম কালার ফরম্যাটার এবং ফুল-স্ক্রিন প্রোফাইল ভিউয়ার সমৃদ্ধ ডিরেক্টরি অ্যাপ।" data-en="Directory web & mobile app featuring offline favorites, admin management panel, custom color formatter, and full-screen profile viewer.">
-                        অফলাইন ফেভারিট সিস্টেম, অ্যাডমিন ম্যানেজমেন্ট প্যানেল, কাস্টম কালার ফরম্যাটার এবং ফুল-স্ক্রিন প্রোফাইল ভিউয়ার সমৃদ্ধ ডিরেক্টরি অ্যাপ।
-                    </p>
-                    <div class="ad-project-tags">
-                        <span class="ad-p-tag">Firebase</span>
-                        <span class="ad-p-tag">Offline Cache</span>
-                        <span class="ad-p-tag">Admin Panel</span>
-                    </div>
-                </div>
-
-                <div class="ad-project-item" data-category="android">
-                    <div class="ad-project-head">
-                        <span class="ad-project-title">Tanore Thana Info App</span>
-                        <span class="ad-project-badge">Android • Java</span>
-                    </div>
-                    <p class="ad-project-desc" data-bn="জরুরি যোগাযোগ, নোটিশ বোর্ড এবং Firebase Cloud Messaging পুশ নোটিফিকেশন সুবিধাসহ তথ্যসেবা অ্যান্ড্রয়েড অ্যাপ্লিকেশন।" data-en="Information & emergency contact Android application integrated with Firebase Cloud Messaging push notifications.">
-                        জরুরি যোগাযোগ, নোটিশ বোর্ড এবং Firebase Cloud Messaging পুশ নোটিফিকেশন সুবিধাসহ তথ্যসেবা অ্যান্ড্রয়েড অ্যাপ্লিকেশন।
-                    </p>
-                    <div class="ad-project-tags">
-                        <span class="ad-p-tag">Sketchware Pro</span>
-                        <span class="ad-p-tag">FCM Push</span>
-                        <span class="ad-p-tag">Topic Alerts</span>
-                    </div>
-                </div>
-
-                <div class="ad-project-item" data-category="web">
-                    <div class="ad-project-head">
-                        <span class="ad-project-title">Smart Phone Log & Notice Portal</span>
-                        <span class="ad-project-badge">Web • Firebase</span>
-                    </div>
-                    <p class="ad-project-desc" data-bn="ক্যাটাগরি ভিত্তিক কন্টাক্ট ম্যানেজমেন্ট এবং রিয়েল-টাইম নোটিশ আপডেট সিস্টেম।" data-en="Category-based contact management and real-time notice board system hosted via GitHub.">
-                        ক্যাটাগরি ভিত্তিক কন্টাক্ট ম্যানেজমেন্ট এবং রিয়েল-টাইম নোটিশ আপডেট সিস্টেম।
-                    </p>
-                    <div class="ad-project-tags">
-                        <span class="ad-p-tag">HTML/CSS/JS</span>
-                        <span class="ad-p-tag">GitHub Pages</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="ad-card">
-                <h2 class="ad-section-title">
-                    <i class="fas fa-bolt"></i>
-                    <span data-bn="কাজের বৈশিষ্ট্য ও লক্ষ্য" data-en="Development Philosophy">কাজের বৈশিষ্ট্য ও লক্ষ্য</span>
-                </h2>
-                <div class="ad-timeline">
-                    <div class="ad-timeline-step">
-                        <div class="ad-timeline-title" data-bn="১০০% অফলাইন ফার্স্ট আর্কিটেকচার" data-en="100% Offline-First Architecture">১০০% অফলাইন ফার্স্ট আর্কিটেকচার</div>
-                        <div class="ad-timeline-sub" data-bn="ইন্টারনেট সংযোগ না থাকলেও যেন জরুরি তথ্য ও ফেভারিট লিস্ট দেখা যায়।" data-en="Ensuring critical contacts and favorites remain accessible without internet.">ইন্টারনেট সংযোগ না থাকলেও যেন জরুরি তথ্য ও ফেভারিট লিস্ট দেখা যায়।</div>
-                    </div>
-                    <div class="ad-timeline-step">
-                        <div class="ad-timeline-title" data-bn="সহজ ও দ্রুতগতির ইউজার ইন্টারফেস" data-en="Clean & Fast Mobile UI">সহজ ও দ্রুতগতির ইউজার ইন্টারফেস</div>
-                        <div class="ad-timeline-sub" data-bn="যেকোনো অ্যান্ড্রয়েড ডিভাইসে ল্যাগ-ফ্রি এবং চোখের জন্য আরামদায়ক ডিজাইন।" data-en="Lag-free, eye-friendly design optimized for all Android screen sizes.">যেকোনো অ্যান্ড্রয়েড ডিভাইসে ল্যাগ-ফ্রি এবং চোখের জন্য আরামদায়ক ডিজাইন।</div>
-                    </div>
-                    <div class="ad-timeline-step">
-                        <div class="ad-timeline-title" data-bn="রিয়েল-টাইম ক্লাউড আপডেট" data-en="Real-Time Cloud Sync">রিয়েল-টাইম ক্লাউড আপডেট</div>
-                        <div class="ad-timeline-sub" data-bn="অ্যাপ আপডেট না করেই মুহূর্তের মধ্যে নতুন তথ্য ও নোটিশ যুক্ত করার সুবিধা।" data-en="Instant data and notice updates via Firebase without reinstalling the app.">অ্যাপ আপডেট না করেই মুহূর্তের মধ্যে নতুন তথ্য ও নোটিশ যুক্ত করার সুবিধা।</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="ad-card">
-                <h2 class="ad-section-title">
-                    <i class="fas fa-headset"></i>
-                    <span data-bn="যোগাযোগ ও মতামত" data-en="Contact & Feedback">যোগাযোগ ও মতামত</span>
-                </h2>
-                <p class="ad-bio-text" style="margin-bottom:12px;" data-bn="অ্যাপ সংক্রান্ত যেকোনো পরামর্শ, নতুন ফিচারের অনুরোধ অথবা কারিগরি সহায়তার জন্য সরাসরি যোগাযোগ করুন:" data-en="For any app feedback, feature requests, or technical support, feel free to connect directly:">
-                    অ্যাপ সংক্রান্ত যেকোনো পরামর্শ, নতুন ফিচারের অনুরোধ অথবা কারিগরি সহায়তার জন্য সরাসরি যোগাযোগ করুন:
-                </p>
-
-                <div class="ad-action-grid">
-                    <a href="tel:+8801700000000" class="ad-action-btn ad-btn-call">
-                        <i class="fas fa-phone-alt"></i>
-                        <span data-bn="সরাসরি কল" data-en="Call Now">সরাসরি কল</span>
-                    </a>
-                    <a href="https://wa.me/8801700000000" target="_blank" rel="noopener noreferrer" class="ad-action-btn ad-btn-wa">
-                        <i class="fab fa-whatsapp"></i>
-                        <span>WhatsApp</span>
-                    </a>
-                    <button type="button" class="ad-action-btn ad-btn-email" id="adCopyEmailBtn">
-                        <i class="fas fa-envelope"></i>
-                        <span data-bn="ইমেইল কপি" data-en="Copy Email">ইমেইল কপি</span>
-                    </button>
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="ad-action-btn ad-btn-gh">
-                        <i class="fab fa-github"></i>
-                        <span>GitHub</span>
-                    </a>
-                </div>
-
-                <button type="button" class="ad-full-btn ad-feedback-btn" id="adOpenFeedbackBtn">
-                    <i class="fas fa-comment-dots"></i>
-                    <span data-bn="সরাসরি বার্তা / মতামত পাঠান" data-en="Send Direct Feedback">সরাসরি বার্তা / মতামত পাঠান</span>
-                </button>
-
-                <button type="button" class="ad-full-btn ad-share-btn" id="adShareBtn">
-                    <i class="fas fa-share-nodes"></i>
-                    <span data-bn="ডেভেলপার প্রোফাইল শেয়ার করুন" data-en="Share Developer Profile">ডেভেলপার প্রোফাইল শেয়ার করুন</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="ad-modal-overlay" id="adProfileModal">
-            <button type="button" class="ad-modal-close" id="adCloseProfileModal"><i class="fas fa-times"></i></button>
-            <div class="ad-modal-avatar">${avatarSvgMarkup()}</div>
-            <div style="color:#ffffff; margin-top:14px; font-size:17px; font-weight:700;">মোঃ জুয়েল রানা (Jewel Rana)</div>
-        </div>
-
-        <div class="ad-modal-overlay" id="adFeedbackModal">
-            <div class="ad-feedback-box">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="margin:0; font-size:17px;" data-bn="ডেভেলপারকে বার্তা পাঠান" data-en="Message Developer">ডেভেলপারকে বার্তা পাঠান</h3>
-                    <button type="button" id="adCloseFeedbackModal" style="background:none; border:none; color:inherit; font-size:18px; cursor:pointer;">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <input type="text" id="adSenderName" class="ad-feedback-input" placeholder="আপনার নাম / Your Name">
-                <textarea id="adSenderMsg" class="ad-feedback-textarea" placeholder="আপনার পরামর্শ বা বার্তা লিখুন... / Write your message..."></textarea>
-                <button type="button" class="ad-action-btn ad-btn-wa" style="width:100%; margin-top:12px;" id="adSendWaBtn">
-                    <i class="fab fa-whatsapp"></i>
-                    <span data-bn="WhatsApp-এ পাঠান" data-en="Send via WhatsApp">WhatsApp-এ পাঠান</span>
-                </button>
-            </div>
+            ${admin ? `<button id="${escapeHTML(addBtnId)}" type="button" class="dg-toolbar-add-btn">${escapeHTML(addBtnLabel)}</button>` : ""}
         </div>
     `;
+}
 
-    const themeIcon = view.querySelector("#adThemeIcon");
-    if (themeIcon) {
-        themeIcon.className = document.body.classList.contains("dark-mode") ? "fas fa-sun" : "fas fa-moon";
+function bindToolbarEvents() {
+    const input = document.getElementById("dgToolbarSearchInput");
+    if (input) {
+        input.addEventListener("input", () => {
+            guideSearchQuery = input.value.trim().toLowerCase();
+            renderDrivingGuideInSheet();
+            const freshInput = document.getElementById("dgToolbarSearchInput");
+            if (freshInput) {
+                freshInput.focus();
+                const end = freshInput.value.length;
+                freshInput.setSelectionRange(end, end);
+            }
+        });
     }
 
-    view.querySelector("#adBackBtn")?.addEventListener("click", () => {
-        if (adDepth > 0) history.back(); else closeAboutDeveloper();
+    document.getElementById("dgClearSearchBtn")?.addEventListener("click", () => {
+        guideSearchQuery = "";
+        renderDrivingGuideInSheet();
+    });
+}
+
+function renderChapterListView(container, admin) {
+    setHeaderBackMode("ড্রাইভিং গাইড");
+
+    let html = buildToolbarHTML("অধ্যায় খুঁজুন...", admin, "dgAddChapterBtn", "＋ অধ্যায়");
+
+    if (admin) {
+        const editingChap = editingChapterId
+            ? guideState.chapters.find(c => c.id === editingChapterId)
+            : null;
+
+        html += `
+            <div id="dgChapterEditor" class="dg-editor-panel ${editingChap ? "" : "hidden"}">
+                <input id="dgChapTitleInput" type="text" value="${escapeHTML(editingChap?.title || "")}" placeholder="অধ্যায়ের শিরোনাম (যেমন: ট্রাফিক সিগন্যাল ও আইন)">
+                <input id="dgChapDescInput" type="text" value="${escapeHTML(editingChap?.description || "")}" placeholder="সংক্ষিপ্ত পরিচিতি (ঐচ্ছিক)">
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button id="dgChapCancelBtn" type="button" class="dg-mini-btn del">বাতিল</button>
+                    <button id="dgChapSaveBtn" type="button" class="dg-mini-btn tag">সেভ করুন</button>
+                </div>
+            </div>
+        `;
+    }
+
+    const filtered = guideState.chapters.filter(chap => {
+        if (!guideSearchQuery) return true;
+        const cMatch = (chap.title || "").toLowerCase().includes(guideSearchQuery) ||
+            (chap.description || "").toLowerCase().includes(guideSearchQuery);
+        const dMatch = (chap.docs || []).some(d =>
+            (d.title || "").toLowerCase().includes(guideSearchQuery) ||
+            (d.body || "").toLowerCase().includes(guideSearchQuery)
+        );
+        return cMatch || dMatch;
     });
 
-    view.querySelector("#adLangBtn")?.addEventListener("click", () => {
-        const nextLang = aboutCurrentLang === "bn" ? "en" : "bn";
-        applyAboutLanguage(view, nextLang);
-        showAboutToast(nextLang === "bn" ? "ভাষা বাংলায় পরিবর্তন করা হয়েছে" : "Language switched to English");
+    if (!filtered.length) {
+        html += `
+            <div class="dg-notebook-page" style="text-align:center;">
+                <p class="dg-page-body-text" style="opacity:0.7;">কোনো অধ্যায় বা নোট পাওয়া যায়নি।</p>
+            </div>
+        `;
+    } else {
+        html += `<div class="dg-chapter-stack">`;
+        filtered.forEach((chap, idx) => {
+            const count = Array.isArray(chap.docs) ? chap.docs.length : 0;
+            html += `
+                <div class="dg-notebook-chapter" data-chap-id="${escapeHTML(chap.id)}">
+                    <div style="min-width:0;">
+                        <span class="dg-chapter-chip">অধ্যায় ${idx + 1} • ${count}টি নোট</span>
+                        <h3 class="dg-chapter-heading">${escapeHTML(chap.title)}</h3>
+                        ${chap.description ? `<p class="dg-chapter-desc">${escapeHTML(chap.description)}</p>` : ""}
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                        ${admin ? `<button type="button" class="dg-mini-btn edit dg-edit-chap" data-id="${escapeHTML(chap.id)}">✏️</button>` : ""}
+                        ${admin ? `<button type="button" class="dg-mini-btn del dg-del-chap" data-id="${escapeHTML(chap.id)}">🗑️</button>` : ""}
+                        <span style="font-size:20px;opacity:0.55;">›</span>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+
+    container.innerHTML = html;
+    bindToolbarEvents();
+
+    document.getElementById("dgAddChapterBtn")?.addEventListener("click", () => {
+        editingChapterId = null;
+        const panel = document.getElementById("dgChapterEditor");
+        if (panel) {
+            panel.classList.remove("hidden");
+            document.getElementById("dgChapTitleInput").value = "";
+            document.getElementById("dgChapDescInput").value = "";
+        }
     });
 
-    view.querySelector("#adThemeBtn")?.addEventListener("click", () => {
-        const isDark = document.body.classList.toggle("dark-mode");
-        localStorage.setItem("dev_page_theme", isDark ? "dark" : "light");
-        if (themeIcon) themeIcon.className = isDark ? "fas fa-sun" : "fas fa-moon";
+    document.getElementById("dgChapCancelBtn")?.addEventListener("click", () => {
+        editingChapterId = null;
+        document.getElementById("dgChapterEditor")?.classList.add("hidden");
     });
 
-    view.querySelectorAll(".ad-filter-tab").forEach(tab => {
-        tab.addEventListener("click", () => {
-            view.querySelectorAll(".ad-filter-tab").forEach(t => t.classList.remove("active"));
-            tab.classList.add("active");
-            const filter = tab.getAttribute("data-filter");
-            view.querySelectorAll(".ad-project-item").forEach(item => {
-                const cats = item.getAttribute("data-category") || "";
-                item.style.display = (filter === "all" || cats.includes(filter)) ? "block" : "none";
-            });
+    document.getElementById("dgChapSaveBtn")?.addEventListener("click", async () => {
+        const title = document.getElementById("dgChapTitleInput")?.value.trim();
+        const description = document.getElementById("dgChapDescInput")?.value.trim() || "";
+        if (!title) return showGuideToast("অধ্যায়ের শিরোনাম লিখুন");
+
+        if (editingChapterId) {
+            const found = guideState.chapters.find(c => c.id === editingChapterId);
+            if (found) {
+                found.title = title;
+                found.description = description;
+            }
+            editingChapterId = null;
+        } else {
+            const newChap = {
+                id: generateGuideId("chap"),
+                title,
+                description,
+                docs: [],
+                createdAt: Date.now()
+            };
+            guideState.chapters.push(newChap);
+            activeChapterId = newChap.id;
+        }
+        await persistGuide();
+    });
+
+    container.querySelectorAll(".dg-notebook-chapter").forEach(card => {
+        card.addEventListener("click", () => {
+            activeChapterId = card.getAttribute("data-chap-id");
+            editingDocId = null;
+            guideSearchQuery = "";
+            renderDrivingGuideInSheet();
         });
     });
 
-    const pModal = view.querySelector("#adProfileModal");
-    view.querySelector("#adAvatarOpen")?.addEventListener("click", () => pModal?.classList.add("open"));
-    view.querySelector("#adCloseProfileModal")?.addEventListener("click", () => pModal?.classList.remove("open"));
-    pModal?.addEventListener("click", (e) => { if (e.target === pModal) pModal.classList.remove("open"); });
+    container.querySelectorAll(".dg-edit-chap").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            editingChapterId = btn.getAttribute("data-id");
+            renderDrivingGuideInSheet();
+        });
+    });
 
-    const fModal = view.querySelector("#adFeedbackModal");
-    view.querySelector("#adOpenFeedbackBtn")?.addEventListener("click", () => fModal?.classList.add("open"));
-    view.querySelector("#adCloseFeedbackModal")?.addEventListener("click", () => fModal?.classList.remove("open"));
-    fModal?.addEventListener("click", (e) => { if (e.target === fModal) fModal.classList.remove("open"); });
+    container.querySelectorAll(".dg-del-chap").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute("data-id");
+            guideState.chapters = guideState.chapters.filter(c => c.id !== id);
+            if (activeChapterId === id) activeChapterId = null;
+            if (editingChapterId === id) editingChapterId = null;
+            await persistGuide();
+        });
+    });
+}
 
-    view.querySelector("#adSendWaBtn")?.addEventListener("click", () => {
-        const name = view.querySelector("#adSenderName")?.value.trim() || "User";
-        const msg = view.querySelector("#adSenderMsg")?.value.trim() || "";
-        if (!msg) {
-            showAboutToast(aboutCurrentLang === "bn" ? "অনুগ্রহ করে আপনার বার্তা লিখুন" : "Please write your message");
+function renderChapterDocsView(container, chapter, admin) {
+    setHeaderBackMode(chapter.title);
+
+    let html = buildToolbarHTML("বিষয় বা ক্যাপশন খুঁজুন...", admin, "dgAddDocBtn", "＋ নোট");
+
+    const docs = Array.isArray(chapter.docs) ? chapter.docs : [];
+    const editingDoc = editingDocId ? docs.find(d => d.id === editingDocId) : null;
+
+    if (admin) {
+        html += `
+            <div id="dgDocEditor" class="dg-editor-panel ${editingDoc ? "" : "hidden"}">
+                <input id="dgDocTitleInput" type="text" value="${escapeHTML(editingDoc?.title || "")}" placeholder="ডকুমেন্ট বা নোটের শিরোনাম (ঐচ্ছিক)">
+                <div class="dg-editor-tip">
+                    একটিমাত্র লেখার ভেতরে একাধিক ছবি ও লিংক যুক্ত করতে:<br>
+                    <strong>[img: ছবির_লিংক | ছবির_ক্যাপশন_বা_অতিরিক্ত_লেখা]</strong><br>
+                    <strong>[link: লিংকের_নাম | https://example.com]</strong>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <button id="dgAddImgTagBtn" type="button" class="dg-mini-btn tag">+ ছবি যুক্ত করুন</button>
+                    <button id="dgAddLinkTagBtn" type="button" class="dg-mini-btn tag">+ লিংক যুক্ত করুন</button>
+                </div>
+                <textarea id="dgDocBodyInput" placeholder="এখানে মূল লেখা লিখুন এবং লেখার মাঝে মাঝে যত খুশি [img: ...] ট্যাগ ব্যবহার করুন...">${escapeHTML(editingDoc?.body || "")}</textarea>
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button id="dgDocCancelBtn" type="button" class="dg-mini-btn del">বাতিল</button>
+                    <button id="dgDocSaveBtn" type="button" class="dg-mini-btn tag">সেভ করুন</button>
+                </div>
+            </div>
+        `;
+    }
+
+    const filteredDocs = docs.filter(doc => {
+        if (!guideSearchQuery) return true;
+        return (
+            (doc.title || "").toLowerCase().includes(guideSearchQuery) ||
+            (doc.body || "").toLowerCase().includes(guideSearchQuery)
+        );
+    });
+
+    if (!filteredDocs.length) {
+        html += `
+            <div class="dg-notebook-page" style="text-align:center;">
+                <p class="dg-page-body-text" style="opacity:0.7;">এই অধ্যায়ে কোনো ডকুমেন্ট পাওয়া যায়নি।</p>
+            </div>
+        `;
+    } else {
+        filteredDocs.forEach(doc => {
+            html += `
+                <article class="dg-notebook-page">
+                    ${(doc.title || admin) ? `
+                        <div class="dg-page-top">
+                            <h3 class="dg-page-title">${escapeHTML(doc.title || "ডকুমেন্ট নোট")}</h3>
+                            ${admin ? `
+                                <div style="display:flex;gap:6px;">
+                                    <button type="button" class="dg-mini-btn edit dg-edit-doc" data-id="${escapeHTML(doc.id)}">✏️</button>
+                                    <button type="button" class="dg-mini-btn del dg-del-doc" data-id="${escapeHTML(doc.id)}">🗑️</button>
+                                </div>
+                            ` : ""}
+                        </div>
+                    ` : ""}
+                    <div>${renderRichTextWithMedia(doc.body || "")}</div>
+                </article>
+            `;
+        });
+    }
+
+    container.innerHTML = html;
+    bindToolbarEvents();
+
+    const bodyInput = document.getElementById("dgDocBodyInput");
+
+    document.getElementById("dgAddDocBtn")?.addEventListener("click", () => {
+        editingDocId = null;
+        const panel = document.getElementById("dgDocEditor");
+        if (panel) {
+            panel.classList.remove("hidden");
+            document.getElementById("dgDocTitleInput").value = "";
+            document.getElementById("dgDocBodyInput").value = "";
+        }
+    });
+
+    document.getElementById("dgDocCancelBtn")?.addEventListener("click", () => {
+        editingDocId = null;
+        document.getElementById("dgDocEditor")?.classList.add("hidden");
+    });
+
+    document.getElementById("dgAddImgTagBtn")?.addEventListener("click", () => {
+        if (!bodyInput) return;
+        bodyInput.value += `\n[img: https://example.com/photo.jpg | ছবির নিচে বা পাশে অতিরিক্ত লেখা]\n`;
+        bodyInput.focus();
+    });
+
+    document.getElementById("dgAddLinkTagBtn")?.addEventListener("click", () => {
+        if (!bodyInput) return;
+        bodyInput.value += `\n[link: প্রয়োজনীয় লিংক | https://example.com]\n`;
+        bodyInput.focus();
+    });
+
+    document.getElementById("dgDocSaveBtn")?.addEventListener("click", async () => {
+        const title = document.getElementById("dgDocTitleInput")?.value.trim() || "";
+        const body = document.getElementById("dgDocBodyInput")?.value.trim() || "";
+        if (!body) return showGuideToast("ডকুমেন্টের লেখা লিখুন");
+
+        if (!Array.isArray(chapter.docs)) chapter.docs = [];
+
+        if (editingDocId) {
+            const target = chapter.docs.find(d => d.id === editingDocId);
+            if (target) {
+                target.title = title;
+                target.body = body;
+            }
+            editingDocId = null;
+        } else {
+            chapter.docs.push({
+                id: generateGuideId("doc"),
+                title,
+                body,
+                createdAt: Date.now()
+            });
+        }
+        await persistGuide();
+    });
+
+    container.querySelectorAll(".dg-edit-doc").forEach(btn => {
+        btn.addEventListener("click", () => {
+            editingDocId = btn.getAttribute("data-id");
+            renderDrivingGuideInSheet();
+        });
+    });
+
+    container.querySelectorAll(".dg-del-doc").forEach(btn => {
+        btn.addEventListener("click", async () => {
+            const docId = btn.getAttribute("data-id");
+            chapter.docs = (chapter.docs || []).filter(d => d.id !== docId);
+            if (editingDocId === docId) editingDocId = null;
+            await persistGuide();
+        });
+    });
+}
+
+export function renderDrivingGuideInSheet() {
+    const view = ensureSheetContainer();
+    if (!view) return;
+
+    const admin = isAdminUser();
+    if (activeChapterId) {
+        const chapter = guideState.chapters.find(c => c.id === activeChapterId);
+        if (chapter) {
+            renderChapterDocsView(view, chapter, admin);
             return;
         }
-        const text = encodeURIComponent(`Assalamu Alaikum Jewel Rana,\nName: ${name}\nMessage: ${msg}`);
-        window.open(`https://wa.me/8801700000000?text=${text}`, "_blank");
-        fModal?.classList.remove("open");
-    });
-
-    view.querySelector("#adCopyEmailBtn")?.addEventListener("click", () => {
-        const email = "jewelrana.dev@example.com";
-        navigator.clipboard?.writeText(email).then(() => {
-            showAboutToast(aboutCurrentLang === "bn" ? "ইমেইল কপি করা হয়েছে: " + email : "Copied: " + email);
-        });
-    });
-
-    view.querySelector("#adShareBtn")?.addEventListener("click", () => {
-        const shareData = {
-            title: "মোঃ জুয়েল রানা (Jewel Rana) - Developer",
-            text: "অ্যান্ড্রয়েড ও ওয়েব অ্যাপ ডেভেলপার মোঃ জুয়েল রানার প্রোফাইল দেখুন।",
-            url: window.location.href
-        };
-        if (navigator.share) {
-            navigator.share(shareData).catch(() => {});
-        } else {
-            navigator.clipboard?.writeText(window.location.href);
-            showAboutToast(aboutCurrentLang === "bn" ? "লিংক কপি করা হয়েছে" : "Link copied");
-        }
-    });
-
-    applyAboutLanguage(view, aboutCurrentLang);
-    startAboutParticles();
-}
-
-export function openAboutDeveloper() {
-    injectAboutDeveloperStyles();
-
-    if (!isAboutActive) {
-        captureAboutHeaderState();
-        hideMainViewsForAbout(true);
-        pushAboutState(1);
+        activeChapterId = null;
     }
 
-    isAboutActive = true;
-    document.body.classList.add("ad-about-active");
-    const view = ensureAboutSheetContainer();
+    renderChapterListView(view, admin);
+}
+
+export async function openDrivingGuide() {
+    injectModernNotebookStyles();
+    startRealtimeSync();
+
+    if (navigator.onLine) {
+        try {
+            const snap = await get(ref(db, DB_PATH));
+            if (snap.exists() && Array.isArray(snap.val()?.chapters)) {
+                guideState = snap.val();
+                saveLocalGuide();
+            }
+        } catch (err) {
+            console.warn("Driving guide fetch warning:", err);
+        }
+    }
+
+    isGuideActive = true;
+    guideSearchQuery = "";
+    editingChapterId = null;
+    editingDocId = null;
+    hideMainViewsForGuide(true);
+
+    const view = ensureSheetContainer();
     if (view) {
         view.classList.remove("hidden");
-        renderAboutDeveloperView(view);
+        renderDrivingGuideInSheet();
     }
-    startAboutObserver();
 }
 
-export function closeAboutDeveloper(fromPop = false) {
-    if (!isAboutActive) return;
+export function closeDrivingGuide() {
+    isGuideActive = false;
+    activeChapterId = null;
+    editingChapterId = null;
+    editingDocId = null;
+    guideSearchQuery = "";
 
-    if (fromPop !== true && adDepth > 0) {
-        adSwallowPop++;
-        try { history.go(-adDepth); } catch (e) { adSwallowPop = 0; }
-        setTimeout(() => { adSwallowPop = 0; }, 800);
-    }
-    adDepth = 0;
-
-    clearTimeout(aboutTypingTimer);
-    if (aboutParticleFrame) cancelAnimationFrame(aboutParticleFrame);
-    stopAboutObserver();
-    isAboutActive = false;
-    document.body.classList.remove("ad-about-active");
-
-    const view = document.getElementById("aboutDeveloperSheetView");
+    const view = document.getElementById("drivingGuideSheetView");
     if (view) {
         view.classList.add("hidden");
         view.innerHTML = "";
     }
 
-    restoreAboutHeaderMode();
-    hideMainViewsForAbout(false);
-    restoreMainVisibilityFallback();
+    restoreHeaderMode();
+    hideMainViewsForGuide(false);
+
+    if (typeof window.showMainDashboardView === "function") {
+        window.showMainDashboardView(false);
+    } else if (typeof window.refreshCurrentView === "function") {
+        window.refreshCurrentView();
+    }
 }
 
-window.openAboutDeveloper = openAboutDeveloper;
-window.closeAboutDeveloper = () => closeAboutDeveloper();
+window.openDrivingGuide = openDrivingGuide;
+window.closeDrivingGuide = closeDrivingGuide;
