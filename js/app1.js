@@ -1,4 +1,4 @@
-const APP_LANGUAGE_KEY = "selected_app_language";
+const APP_LANGUAGE_KEY = "selected_app_language";[span_1](start_span)[span_1](end_span)
 
 const OFFLINE_TRANSLATIONS = {
     "RMP MT Contacts": "RMP MT Contacts",
@@ -126,7 +126,7 @@ const OFFLINE_TRANSLATIONS = {
     "ভেরিফাইড": "Verified",
     "অ্যাডমিন": "Admin",
     "নাম": "Name"
-};
+};[span_2](start_span)[span_2](end_span)
 
 const OFFLINE_SEARCH_ALIASES = {
     "constable": ["কনস্টেবল"],
@@ -163,7 +163,7 @@ const OFFLINE_SEARCH_ALIASES = {
     "admin": ["অ্যাডমিন", "এডমিন"],
     "verified": ["ভেরিফাইড", "অনুমোদিত"],
     "verification": ["ভেরিফিকেশন", "যাচাই"]
-};
+};[span_3](start_span)[span_3](end_span)
 
 const BENGALI_LATIN_ALIASES = {
     "জুয়েল": "jewel", "জুয়েল": "jewel", "রানা": "rana",
@@ -171,11 +171,11 @@ const BENGALI_LATIN_ALIASES = {
     "আহমেদ": "ahmed", "আলী": "ali", "আলম": "alam", "ইসলাম": "islam",
     "খান": "khan", "মিয়া": "mia", "মিয়া": "mia", "চৌধুরী": "chowdhury",
     "সাহা": "saha", "দাস": "das", "সরকার": "sarkar"
-};
+};[span_4](start_span)[span_4](end_span)
 
 export function getCurrentLanguage() {
     return localStorage.getItem(APP_LANGUAGE_KEY) === "en" ? "en" : "bn";
-}
+}[span_5](start_span)[span_5](end_span)
 
 function setLanguageCookie(lang) {
     const value = `/bn/${lang}`;
@@ -183,7 +183,7 @@ function setLanguageCookie(lang) {
     try {
         document.cookie = `googtrans=${value};domain=${document.domain};path=/;max-age=31536000`;
     } catch (_) {}
-}
+}[span_6](start_span)[span_6](end_span)
 
 export function setLanguage(lang) {
     lang = lang === "en" ? "en" : "bn";
@@ -195,7 +195,7 @@ export function setLanguage(lang) {
     } catch (_) {}
 
     location.reload();
-}
+}[span_7](start_span)[span_7](end_span)
 
 function replaceKnownTranslations(text) {
     let result = String(text ?? "");
@@ -207,7 +207,7 @@ function replaceKnownTranslations(text) {
         result = result.split(key).join(OFFLINE_TRANSLATIONS[key]);
     }
     return result;
-}
+}[span_8](start_span)[span_8](end_span)
 
 export function applyOfflineLanguage(root = document.body) {
     if (!root || getCurrentLanguage() !== "en") return;
@@ -246,7 +246,7 @@ export function applyOfflineLanguage(root = document.body) {
             if (newValue !== oldValue) el.setAttribute(attr, newValue);
         });
     });
-}
+}[span_9](start_span)[span_9](end_span)
 
 function getSearchVariants(query) {
     const q = String(query || "").trim().toLowerCase();
@@ -272,7 +272,7 @@ function getSearchVariants(query) {
     });
 
     return [...variants];
-}
+}[span_10](start_span)[span_10](end_span)
 
 function bengaliToSearchLatin(text) {
     let result = String(text || "").toLowerCase();
@@ -282,7 +282,7 @@ function bengaliToSearchLatin(text) {
             result = result.split(bn).join(en);
         });
     return result;
-}
+}[span_11](start_span)[span_11](end_span)
 
 export function isMatch(sourceText, query) {
     if (sourceText === null || sourceText === undefined || query === null || query === undefined) {
@@ -310,7 +310,7 @@ export function isMatch(sourceText, query) {
     }
 
     return false;
-}
+}[span_12](start_span)[span_12](end_span)
 
 function getDataSearchText(item, categories = [], headers = []) {
     if (!item) return "";
@@ -323,12 +323,12 @@ function getDataSearchText(item, categories = [], headers = []) {
         item.enName, item.enDesignation, item.enCurrentOffice,
         item.enPermanentAddress, category?.name, header?.title
     ].filter(v => v !== null && v !== undefined && String(v).trim() !== "").join(" ");
-}
+}[span_13](start_span)[span_13](end_span)
 
 export function isDataMatch(item, query, categories = [], headers = []) {
     if (!query) return true;
     return isMatch(getDataSearchText(item, categories, headers), query);
-}
+}[span_14](start_span)[span_14](end_span)
 
 export function initOfflineLanguageSystem() {
     const savedLang = getCurrentLanguage();
@@ -366,7 +366,7 @@ export function initOfflineLanguageSystem() {
             });
         }
     }
-}
+}[span_15](start_span)[span_15](end_span)
 
 /* ==========================================
    FULL-SCREEN PROFILE IMAGE ZOOM VIEWER
@@ -532,7 +532,7 @@ export function openProfileImageViewer(photoUrl, personName) {
         closeViewer();
         window.removeEventListener("popstate", popStateListener);
     };
-}
+}[span_16](start_span)[span_16](end_span)
 
 export function setupSmartCallAndWhatsApp(element, rawNumber, typeName, showToast) {
     if (!element) return;
@@ -594,7 +594,7 @@ export function setupSmartCallAndWhatsApp(element, rawNumber, typeName, showToas
         }
         isLongPress = false;
     });
-}
+}[span_17](start_span)[span_17](end_span)
 
 export function setupEmailAction(element, rawEmail, showToast) {
     if (!element) return;
@@ -611,76 +611,152 @@ export function setupEmailAction(element, rawEmail, showToast) {
         e.preventDefault();
         window.location.href = `mailto:${rawEmail}`;
     });
+}[span_18](start_span)[span_18](end_span)
+
+/* ==========================================
+   IMGBB IMAGE PICKER & UPLOAD (MAX 300 KB)
+========================================== */
+const MAX_IMAGE_UPLOAD_BYTES = 300 * 1024;
+
+function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("ফাইল পড়া যায়নি"));
+        reader.readAsDataURL(file);
+    });
+}
+
+function loadImageElement(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("ছবি লোড করা যায়নি"));
+        img.src = src;
+    });
+}
+
+function canvasToBlob(canvas, type, quality) {
+    return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), type, quality);
+    });
+}
+
+async function prepareImageUnderLimit(file, maxBytes = MAX_IMAGE_UPLOAD_BYTES) {
+    if (file.size <= maxBytes) {
+        return file;
+    }
+
+    const dataUrl = await readFileAsDataURL(file);
+    const img = await loadImageElement(dataUrl);
+
+    let width = img.naturalWidth || img.width;
+    let height = img.naturalHeight || img.height;
+    const maxDimension = 1280;
+
+    if (width > maxDimension || height > maxDimension) {
+        if (width >= height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+        } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+        }
+    }
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const outputType = file.type === "image/png" ? "image/png" : "image/jpeg";
+
+    for (let scaleStep = 0; scaleStep < 5; scaleStep++) {
+        canvas.width = Math.max(1, Math.round(width));
+        canvas.height = Math.max(1, Math.round(height));
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        if (outputType === "image/jpeg") {
+            let quality = 0.85;
+            while (quality >= 0.35) {
+                const blob = await canvasToBlob(canvas, "image/jpeg", quality);
+                if (blob && blob.size <= maxBytes) {
+                    return new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+                }
+                quality -= 0.1;
+            }
+        } else {
+            const pngBlob = await canvasToBlob(canvas, "image/png");
+            if (pngBlob && pngBlob.size <= maxBytes) {
+                return new File([pngBlob], file.name, { type: "image/png" });
+            }
+            let quality = 0.85;
+            while (quality >= 0.4) {
+                const jpgBlob = await canvasToBlob(canvas, "image/jpeg", quality);
+                if (jpgBlob && jpgBlob.size <= maxBytes) {
+                    return new File([jpgBlob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" });
+                }
+                quality -= 0.15;
+            }
+        }
+
+        width *= 0.8;
+        height *= 0.8;
+    }
+
+    return null;
 }
 
 export async function uploadImageToImgBB(file, apiKey, onLoadingChange, showToast) {
-    const MAX_IMAGE_BYTES = 300 * 1024;
+    const toast = typeof showToast === "function" ? showToast : () => {};
+    const setLoading = typeof onLoadingChange === "function" ? onLoadingChange : () => {};
 
-    if (!file) {
-        return null;
-    }
+    if (!file) return null;
 
     if (!file.type || !file.type.startsWith("image/")) {
-        if (typeof showToast === "function") {
-            showToast("⚠️ অনুগ্রহ করে একটি বৈধ ছবি নির্বাচন করুন!");
-        }
+        toast("⚠️ অনুগ্রহ করে একটি বৈধ ছবি নির্বাচন করুন!");
         return null;
     }
 
-    if (file.size > MAX_IMAGE_BYTES) {
-        const sizeKb = (file.size / 1024).toFixed(1);
-        if (typeof showToast === "function") {
-            showToast(`❌ ছবির সাইজ ${sizeKb} KB (৩০০ KB-এর বেশি)! রিজেক্ট করা হয়েছে।`);
-        }
-        return null;
-    }
-
-    if (!apiKey || !String(apiKey).trim()) {
-        if (typeof showToast === "function") {
-            showToast("⚠️ API Key সেট করা নেই!");
-        }
+    if (!apiKey || apiKey === "YOUR_IMGBB_API_KEY") {
+        toast("⚠️ ImgBB API Key সেট করা নেই!");
         return null;
     }
 
     if (!navigator.onLine) {
-        if (typeof showToast === "function") {
-            showToast("⚠️ ছবি আপলোড করার জন্য ইন্টারনেট সংযোগ প্রয়োজন!");
-        }
+        toast("⚠️ ছবি আপলোড করার জন্য ইন্টারনেট সংযোগ আবশ্যক!");
         return null;
     }
 
+    setLoading(true);
     try {
-        if (typeof onLoadingChange === "function") onLoadingChange(true);
+        toast("⏳ ছবি যাচাই ও আপলোড হচ্ছে...");
+
+        const readyFile = await prepareImageUnderLimit(file, MAX_IMAGE_UPLOAD_BYTES);
+        if (!readyFile || readyFile.size > MAX_IMAGE_UPLOAD_BYTES) {
+            toast("⚠️ ছবির সাইজ ৩০০ KB-এর বেশি! অনুগ্রহ করে ৩০০ KB বা তার কম সাইজের ছবি নির্বাচন করুন।");
+            return null;
+        }
 
         const formData = new FormData();
-        formData.append("image", file);
+        formData.append("image", readyFile);
 
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey.trim())}`, {
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, {
             method: "POST",
             body: formData
         });
 
         const result = await response.json();
+        if (response.ok && result?.success && result?.data?.url) {
+            toast("✅ ছবি সফলভাবে আপলোড হয়েছে!");
+            return result.data.display_url || result.data.url;
+        }
 
-        if (response.ok && result?.success && result?.data) {
-            const directUrl = result.data.url || result.data.display_url || "";
-            if (typeof showToast === "function") {
-                showToast("✅ ছবি আপলোড হয়ে লিংক তৈরি হয়েছে!");
-            }
-            return directUrl;
-        } else {
-            if (typeof showToast === "function") {
-                showToast("❌ লিংক তৈরি করা যায়নি!");
-            }
-            return null;
-        }
-    } catch (err) {
-        console.error("ImgBB upload error:", err);
-        if (typeof showToast === "function") {
-            showToast("❌ ছবি আপলোড করতে সমস্যা হয়েছে!");
-        }
+        toast("❌ ছবি আপলোড ব্যর্থ হয়েছে!");
+        return null;
+    } catch (error) {
+        console.error("ImgBB upload error:", error);
+        toast("❌ ছবি আপলোড করতে সমস্যা হয়েছে!");
         return null;
     } finally {
-        if (typeof onLoadingChange === "function") onLoadingChange(false);
+        setLoading(false);
     }
 }
