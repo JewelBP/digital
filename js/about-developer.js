@@ -44,6 +44,26 @@ const ABOUT_ROLES = {
     ]
 };
 
+function backIconSvg() {
+    return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`;
+}
+
+function moonIconSvg() {
+    return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+}
+
+function sunIconSvg() {
+    return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+}
+
+function langIconSvg() {
+    return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>`;
+}
+
+function checkIconSvg() {
+    return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+}
+
 function showAboutToast(msg) {
     const toast = document.getElementById("toast");
     if (toast) {
@@ -94,7 +114,6 @@ function injectAboutDeveloperStyles() {
     const style = document.createElement("style");
     style.id = "aboutDeveloperModuleStyles";
     style.textContent = `
-        /* মূল html ও body-এর স্ক্রল সম্পূর্ণ লক করা হয়েছে */
         html.ad-about-lock,
         body.ad-about-active {
             overflow: hidden !important;
@@ -106,7 +125,6 @@ function injectAboutDeveloperStyles() {
             overscroll-behavior: none !important;
         }
 
-        /* মেইন ভিউপোর্ট কন্টেইনার যা স্ক্রিনের ঠিক সমান উঁচু হবে */
         #aboutDeveloperSheetView {
             --ad-main: var(--app-main-color, var(--primary-color, #020624));
             position: fixed !important;
@@ -132,14 +150,14 @@ function injectAboutDeveloperStyles() {
             display: none !important;
         }
 
-        /* উপরের কালো অংশ — শতভাগ ফিক্সড, কখনোই স্ক্রল বা নড়াচড়া করবে না */
+        /* উপরের কালো অংশ — সম্পূর্ণ ফিক্সড ও ক্লিন */
         #aboutDeveloperSheetView .ad-header {
             flex: 0 0 auto !important;
             flex-shrink: 0 !important;
             position: relative !important;
             width: 100% !important;
             z-index: 20 !important;
-            background: #07103a !important;
+            background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%) !important;
             box-shadow: 0 10px 26px rgba(2, 6, 36, 0.38) !important;
             border-radius: 0 0 32px 32px !important;
             overflow: hidden !important;
@@ -153,45 +171,63 @@ function injectAboutDeveloperStyles() {
             align-items: center !important;
             gap: 8px !important;
             box-sizing: border-box !important;
-            padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 4px !important;
+            padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 6px !important;
             color: #ffffff !important;
             background: transparent !important;
         }
         #aboutDeveloperSheetView .ad-topbar-title {
             flex: 1 !important;
             min-width: 0 !important;
-            font-size: 15.5px !important;
+            font-size: 16px !important;
             font-weight: 700 !important;
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
+            color: #ffffff !important;
         }
-        #aboutDeveloperSheetView .ad-topbar .ad-pill-btn { min-height: 34px !important; }
-        #aboutDeveloperSheetView .ad-back-btn { width: 36px !important; height: 36px !important; padding: 0 !important; justify-content: center !important; font-size: 15px !important; }
+        #aboutDeveloperSheetView .ad-pill-btn {
+            background: rgba(255, 255, 255, 0.14) !important;
+            border: 1px solid rgba(255, 255, 255, 0.24) !important;
+            color: #ffffff !important;
+            padding: 5px 11px !important;
+            border-radius: 999px !important;
+            font-size: 12px !important;
+            font-weight: 700 !important;
+            cursor: pointer !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 5px !important;
+            font-family: inherit !important;
+            min-height: 36px !important;
+            box-sizing: border-box !important;
+        }
+        #aboutDeveloperSheetView .ad-back-btn {
+            width: 36px !important;
+            height: 36px !important;
+            padding: 0 !important;
+            flex-shrink: 0 !important;
+        }
+        #aboutDeveloperSheetView .ad-theme-btn {
+            width: 36px !important;
+            height: 36px !important;
+            padding: 0 !important;
+            flex-shrink: 0 !important;
+        }
 
+        /* লাল মার্কিং অংশ রিমুভ করার জন্য বাড়তি মার্জিন/স্পেস ছাড়াই কম্প্যাক্ট হিরো রাখা হয়েছে */
         #aboutDeveloperSheetView .ad-hero-full-fixed {
             position: relative !important;
             width: 100% !important;
             overflow: hidden !important;
-            background: radial-gradient(circle at top right, #13277a 0%, #07103a 52%, #020624 100%) !important;
-            padding: 8px 16px 22px !important;
+            background: transparent !important;
+            padding: 4px 16px 20px !important;
+            margin: 0 !important;
             text-align: center !important;
             color: #ffffff !important;
             box-sizing: border-box !important;
         }
 
-        #aboutDeveloperSheetView .ad-hero-full-fixed::after {
-            content: "" !important;
-            position: absolute !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            height: 18px !important;
-            background: linear-gradient(to bottom, transparent, rgba(2, 6, 36, 0.28)) !important;
-            pointer-events: none !important;
-        }
-
-        /* শুধুমাত্র নিচের এই কার্ড কন্টেইনারটি আলাদাভাবে স্ক্রল/স্লাইড হবে */
         #aboutDeveloperSheetView .ad-scroll-body {
             flex: 1 1 auto !important;
             min-height: 0 !important;
@@ -204,7 +240,7 @@ function injectAboutDeveloperStyles() {
             display: flex !important;
             flex-direction: column !important;
             gap: 14px !important;
-            padding: 18px 14px calc(env(safe-area-inset-bottom, 0px) + 60px) !important;
+            padding: 16px 14px calc(env(safe-area-inset-bottom, 0px) + 60px) !important;
             position: relative !important;
             z-index: 10 !important;
             box-sizing: border-box !important;
@@ -223,21 +259,6 @@ function injectAboutDeveloperStyles() {
             z-index: 2;
             max-width: 600px;
             margin: 0 auto;
-        }
-
-        .ad-pill-btn {
-            background: rgba(255, 255, 255, 0.14);
-            border: 1px solid rgba(255, 255, 255, 0.24);
-            color: #ffffff;
-            padding: 5px 12px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            font-family: inherit;
         }
 
         .ad-status-pill {
@@ -390,11 +411,11 @@ function injectAboutDeveloperStyles() {
             gap: 10px;
         }
 
-        .ad-section-title i {
+        .ad-section-title .ad-sec-icon {
             color: #00d2ff;
             background: var(--ad-main);
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             border-radius: 10px;
             display: inline-flex;
             align-items: center;
@@ -428,7 +449,8 @@ function injectAboutDeveloperStyles() {
             font-weight: 600;
         }
 
-        .ad-highlight-banner i {
+        .ad-highlight-banner i,
+        .ad-highlight-banner svg {
             color: #f59e0b;
             font-size: 17px;
             flex-shrink: 0;
@@ -744,7 +766,6 @@ function injectAboutDeveloperStyles() {
     document.head.appendChild(style);
 }
 
-// স্ক্রিনের আসল পিক্সেল উচ্চতা নির্ণয় করে লক করার ফাংশন (WebView-এর জন্য সবচেয়ে নির্ভরযোগ্য)
 function syncAboutViewportHeight() {
     const view = document.getElementById("aboutDeveloperSheetView");
     if (!view || !isAboutActive) return;
@@ -760,7 +781,6 @@ function ensureAboutSheetContainer() {
         view.id = "aboutDeveloperSheetView";
         view.className = "hidden";
     }
-    // যদি ভুলবশত অন্য কোনো কন্টেইনারের ভেতরে থাকে, তবে সরাসরি document.body-তে নিয়ে আসবে
     if (view.parentElement !== document.body) {
         document.body.appendChild(view);
     }
@@ -983,7 +1003,7 @@ function startAboutParticles() {
 
     const resize = () => {
         canvas.width = canvas.parentElement ? canvas.parentElement.offsetWidth : 360;
-        canvas.height = canvas.parentElement ? canvas.parentElement.offsetHeight : 280;
+        canvas.height = canvas.parentElement ? canvas.parentElement.offsetHeight : 260;
         canvas.style.width = canvas.width + "px";
         canvas.style.height = canvas.height + "px";
     };
@@ -1069,24 +1089,30 @@ function applyAboutLanguage(view, lang) {
 
 function renderAboutDeveloperView(view) {
     setAboutHeaderMode();
+    const isDarkNow = document.body.classList.contains("dark-mode");
 
     view.innerHTML = `
-        <!-- উপরের ফিক্সড অংশ (কখনোই নড়বে না) -->
         <div class="ad-header" id="adHeader">
+            <canvas id="adParticleCanvas"></canvas>
             <div class="ad-topbar">
                 <button type="button" class="ad-pill-btn ad-back-btn" id="adBackBtn" aria-label="Back">
-                    <i class="fas fa-arrow-left"></i>
+                    ${backIconSvg()}
                 </button>
                 <div class="ad-topbar-title" data-bn="ডেভেলপার পরিচিতি" data-en="About Developer">ডেভেলপার পরিচিতি</div>
                 <button type="button" class="ad-pill-btn" id="adLangBtn">
-                    <i class="fas fa-language"></i> <span id="adLangText">${aboutCurrentLang === "bn" ? "EN" : "বাংলা"}</span>
+                    ${langIconSvg()} <span id="adLangText">${aboutCurrentLang === "bn" ? "EN" : "বাংলা"}</span>
                 </button>
-                <button type="button" class="ad-pill-btn" id="adThemeBtn" title="Toggle Dark Mode">
-                    <i class="fas fa-moon" id="adThemeIcon"></i>
+                <button type="button" class="ad-pill-btn ad-theme-btn" id="adThemeBtn" title="Toggle Dark Mode" aria-label="Toggle Theme">
+                    <span id="adThemeIconWrap">${isDarkNow ? sunIconSvg() : moonIconSvg()}</span>
                 </button>
             </div>
 
-
+            <section class="ad-hero-full-fixed">
+                <div class="ad-hero-content">
+                    <div class="ad-status-pill">
+                        <span class="ad-pulse-dot"></span>
+                        <span data-bn="অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়" data-en="Available for App Dev & Support">অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়</span>
+                    </div>
 
                     <div class="ad-avatar-wrapper" id="adAvatarOpen">
                         <div class="ad-avatar-ring">
@@ -1095,7 +1121,7 @@ function renderAboutDeveloperView(view) {
                             </div>
                         </div>
                         <div class="ad-verified-badge" title="Verified Developer">
-                            <i class="fas fa-check"></i>
+                            ${checkIconSvg()}
                         </div>
                     </div>
 
@@ -1109,11 +1135,10 @@ function renderAboutDeveloperView(view) {
             </section>
         </div>
 
-        <!-- নিচের স্ক্রলযোগ্য অংশ (শুধুমাত্র এই অংশটি স্লাইড হবে) -->
         <div class="ad-scroll-body">
             <div class="ad-card">
                 <h2 class="ad-section-title">
-                    <i class="fas fa-user-tie"></i>
+                    <span class="ad-sec-icon"><i class="fas fa-user-tie"></i></span>
                     <span data-bn="সংক্ষিপ্ত পরিচিতি" data-en="About Me">সংক্ষিপ্ত পরিচিতি</span>
                 </h2>
                 <p class="ad-bio-text" data-bn="আসসালামু আলাইকুম। আমি মোঃ জুয়েল রানা। পেশাগত দায়িত্ব পালনের পাশাপাশি প্রযুক্তির প্রতি ভালোবাসা থেকে আমি অ্যান্ড্রয়েড অ্যাপ এবং আধুনিক মোবাইল-ফ্রেন্ডলি ওয়েব অ্যাপ্লিকেশন ডেভেলপ করে থাকি। আমার তৈরি প্রতিটি অ্যাপ্লিকেশন ব্যবহারকারীদের দৈনন্দিন কাজ সহজ, দ্রুত এবং ইন্টারনেট ছাড়াও (Offline) নির্ভরযোগ্যভাবে ব্যবহার করার লক্ষ্যে ডিজাইন করা হয়।" data-en="Assalamu Alaikum. I am Md. Jewel Rana. Alongside my professional duties, my passion for technology drives me to build Android apps and modern mobile-friendly web applications. Every application I create is crafted to make daily workflows faster, simpler, and reliable even offline.">
@@ -1127,7 +1152,7 @@ function renderAboutDeveloperView(view) {
 
             <div class="ad-card">
                 <h2 class="ad-section-title">
-                    <i class="fas fa-code"></i>
+                    <span class="ad-sec-icon"><i class="fas fa-code"></i></span>
                     <span data-bn="দক্ষতা ও প্রযুক্তিসমূহ" data-en="Skills & Technologies">দক্ষতা ও প্রযুক্তিসমূহ</span>
                 </h2>
 
@@ -1162,7 +1187,7 @@ function renderAboutDeveloperView(view) {
 
             <div class="ad-card">
                 <h2 class="ad-section-title">
-                    <i class="fas fa-layer-group"></i>
+                    <span class="ad-sec-icon"><i class="fas fa-layer-group"></i></span>
                     <span data-bn="উল্লেখযোগ্য প্রজেক্টসমূহ" data-en="Featured Projects">উল্লেখযোগ্য প্রজেক্টসমূহ</span>
                 </h2>
 
@@ -1219,7 +1244,7 @@ function renderAboutDeveloperView(view) {
 
             <div class="ad-card">
                 <h2 class="ad-section-title">
-                    <i class="fas fa-bolt"></i>
+                    <span class="ad-sec-icon"><i class="fas fa-bolt"></i></span>
                     <span data-bn="কাজের বৈশিষ্ট্য ও লক্ষ্য" data-en="Development Philosophy">কাজের বৈশিষ্ট্য ও লক্ষ্য</span>
                 </h2>
                 <div class="ad-timeline">
@@ -1240,7 +1265,7 @@ function renderAboutDeveloperView(view) {
 
             <div class="ad-card">
                 <h2 class="ad-section-title">
-                    <i class="fas fa-headset"></i>
+                    <span class="ad-sec-icon"><i class="fas fa-headset"></i></span>
                     <span data-bn="যোগাযোগ ও মতামত" data-en="Contact & Feedback">যোগাযোগ ও মতামত</span>
                 </h2>
                 <p class="ad-bio-text" style="margin-bottom:12px;" data-bn="অ্যাপ সংক্রান্ত যেকোনো পরামর্শ, নতুন ফিচারের অনুরোধ অথবা কারিগরি সহায়তার জন্য সরাসরি যোগাযোগ করুন:" data-en="For any app feedback, feature requests, or technical support, feel free to connect directly:">
@@ -1279,7 +1304,7 @@ function renderAboutDeveloperView(view) {
         </div>
 
         <div class="ad-modal-overlay" id="adProfileModal">
-            <button type="button" class="ad-modal-close" id="adCloseProfileModal"><i class="fas fa-times"></i></button>
+            <button type="button" class="ad-modal-close" id="adCloseProfileModal">&times;</button>
             <div class="ad-modal-avatar">${avatarSvgMarkup()}</div>
             <div style="color:#ffffff; margin-top:14px; font-size:17px; font-weight:700;">মোঃ জুয়েল রানা (Jewel Rana)</div>
         </div>
@@ -1288,9 +1313,7 @@ function renderAboutDeveloperView(view) {
             <div class="ad-feedback-box">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h3 style="margin:0; font-size:17px;" data-bn="ডেভেলপারকে বার্তা পাঠান" data-en="Message Developer">ডেভেলপারকে বার্তা পাঠান</h3>
-                    <button type="button" id="adCloseFeedbackModal" style="background:none; border:none; color:inherit; font-size:18px; cursor:pointer;">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button type="button" id="adCloseFeedbackModal" style="background:none; border:none; color:inherit; font-size:20px; cursor:pointer;">&times;</button>
                 </div>
                 <input type="text" id="adSenderName" class="ad-feedback-input" placeholder="আপনার নাম / Your Name">
                 <textarea id="adSenderMsg" class="ad-feedback-textarea" placeholder="আপনার পরামর্শ বা বার্তা লিখুন... / Write your message..."></textarea>
@@ -1301,11 +1324,6 @@ function renderAboutDeveloperView(view) {
             </div>
         </div>
     `;
-
-    const themeIcon = view.querySelector("#adThemeIcon");
-    if (themeIcon) {
-        themeIcon.className = document.body.classList.contains("dark-mode") ? "fas fa-sun" : "fas fa-moon";
-    }
 
     view.querySelector("#adBackBtn")?.addEventListener("click", () => {
         if (adDepth > 0) history.back(); else closeAboutDeveloper();
@@ -1320,7 +1338,8 @@ function renderAboutDeveloperView(view) {
     view.querySelector("#adThemeBtn")?.addEventListener("click", () => {
         const isDark = document.body.classList.toggle("dark-mode");
         localStorage.setItem("dev_page_theme", isDark ? "dark" : "light");
-        if (themeIcon) themeIcon.className = isDark ? "fas fa-sun" : "fas fa-moon";
+        const iconWrap = view.querySelector("#adThemeIconWrap");
+        if (iconWrap) iconWrap.innerHTML = isDark ? sunIconSvg() : moonIconSvg();
     });
 
     view.querySelectorAll(".ad-filter-tab").forEach(tab => {
