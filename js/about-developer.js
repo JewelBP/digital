@@ -150,7 +150,6 @@ function injectAboutDeveloperStyles() {
             display: none !important;
         }
 
-        /* উপরের কালো অংশ — সম্পূর্ণ ফিক্সড ও ক্লিন */
         #aboutDeveloperSheetView .ad-header {
             flex: 0 0 auto !important;
             flex-shrink: 0 !important;
@@ -202,12 +201,7 @@ function injectAboutDeveloperStyles() {
             min-height: 36px !important;
             box-sizing: border-box !important;
         }
-        #aboutDeveloperSheetView .ad-back-btn {
-            width: 36px !important;
-            height: 36px !important;
-            padding: 0 !important;
-            flex-shrink: 0 !important;
-        }
+        #aboutDeveloperSheetView .ad-back-btn,
         #aboutDeveloperSheetView .ad-theme-btn {
             width: 36px !important;
             height: 36px !important;
@@ -215,17 +209,27 @@ function injectAboutDeveloperStyles() {
             flex-shrink: 0 !important;
         }
 
-        /* লাল মার্কিং অংশ রিমুভ করার জন্য বাড়তি মার্জিন/স্পেস ছাড়াই কম্প্যাক্ট হিরো রাখা হয়েছে */
         #aboutDeveloperSheetView .ad-hero-full-fixed {
             position: relative !important;
             width: 100% !important;
             overflow: hidden !important;
             background: transparent !important;
-            padding: 4px 16px 20px !important;
+            padding: 8px 16px 20px !important;
             margin: 0 !important;
             text-align: center !important;
             color: #ffffff !important;
             box-sizing: border-box !important;
+        }
+
+        #aboutDeveloperSheetView .ad-hero-full-fixed::after {
+            content: "" !important;
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            height: 18px !important;
+            background: linear-gradient(to bottom, transparent, rgba(2, 6, 36, 0.28)) !important;
+            pointer-events: none !important;
         }
 
         #aboutDeveloperSheetView .ad-scroll-body {
@@ -261,40 +265,10 @@ function injectAboutDeveloperStyles() {
             margin: 0 auto;
         }
 
-        .ad-status-pill {
-            display: flex;
-            width: fit-content;
-            margin: 0 auto 10px;
-            align-items: center;
-            gap: 7px;
-            background: rgba(16, 185, 129, 0.16);
-            border: 1px solid rgba(16, 185, 129, 0.42);
-            color: #6ee7b7;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11.5px;
-            font-weight: 600;
-        }
-
-        .ad-pulse-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #10b981;
-            border-radius: 50%;
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            animation: adPulseGreen 1.8s infinite;
-        }
-
-        @keyframes adPulseGreen {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-
         .ad-avatar-wrapper {
             position: relative;
-            width: 102px;
-            height: 102px;
+            width: 104px;
+            height: 104px;
             margin: 0 auto 10px;
             cursor: pointer;
         }
@@ -1003,7 +977,7 @@ function startAboutParticles() {
 
     const resize = () => {
         canvas.width = canvas.parentElement ? canvas.parentElement.offsetWidth : 360;
-        canvas.height = canvas.parentElement ? canvas.parentElement.offsetHeight : 260;
+        canvas.height = canvas.parentElement ? canvas.parentElement.offsetHeight : 240;
         canvas.style.width = canvas.width + "px";
         canvas.style.height = canvas.height + "px";
     };
@@ -1109,11 +1083,6 @@ function renderAboutDeveloperView(view) {
 
             <section class="ad-hero-full-fixed">
                 <div class="ad-hero-content">
-                    <div class="ad-status-pill">
-                        <span class="ad-pulse-dot"></span>
-                        <span data-bn="অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়" data-en="Available for App Dev & Support">অ্যাপ ডেভেলপমেন্ট ও সাপোর্টের জন্য সক্রিয়</span>
-                    </div>
-
                     <div class="ad-avatar-wrapper" id="adAvatarOpen">
                         <div class="ad-avatar-ring">
                             <div class="ad-avatar-inner">
