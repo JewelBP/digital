@@ -7,6 +7,131 @@ import { ref, push, set, update, remove, onValue, get } from "https://www.gstati
 
 let sliderInterval = null;
 
+/* ==========================================
+   SLIDER OFFLINE CACHE
+   - স্লাইডের ডাটা: localStorage
+   - স্লাইডের ছবি: IndexedDB (Blob)
+========================================== */
+const SLIDER_DATA_KEY = "police_pb_slider_cache";
+const SLIDER_DB_NAME = "rmp_slider_images";
+const SLIDER_STORE = "kv";
+const SLIDER_MAX_IMG_BYTES = 2 * 1024 * 1024;
+let sliderCacheQueue = Promise.resolve();
+
+function sliderOpenDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(SLIDER_DB_NAME, 1);
+        req.onupgradeneeded = () => req.result.createObjectStore(SLIDER_STORE);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function sliderIdbGet(key) {
+    const dbi = await sliderOpenDB();
+    return new Promise((resolve, reject) => {
+        const req = dbi.transaction(SLIDER_STORE, "readonly").objectStore(SLIDER_STORE).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function sliderIdbSet(key, value) {
+    const dbi = await sliderOpenDB();
+    return new Promise((resolve, reject) => {
+        const tx = dbi.transaction(SLIDER_STORE, "readwrite");
+        tx.objectStore(SLIDER_STORE).put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+function saveSliderDataCache(items) {
+    try {
+        localStorage.setItem(SLIDER_DATA_KEY, JSON.stringify(items));
+    } catch (e) {
+        console.error("Slider data cache error:", e);
+    }
+}
+
+function loadSliderDataCache() {
+    try {
+        const raw = localStorage.getItem(SLIDER_DATA_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function cacheSliderImages(urls) {
+    if (!navigator.onLine || !("indexedDB" in window)) return;
+    const list = urls.filter(u => /^https?:/i.test(u));
+
+    sliderCacheQueue = sliderCacheQueue.then(async () => {
+        try {
+            const store = (await sliderIdbGet("images")) || {};
+            let changed = false;
+
+            for (const url of list) {
+                if (store[url]) continue;
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) continue;
+                    const blob = await res.blob();
+                    if (blob.size > 0 && blob.size <= SLIDER_MAX_IMG_BYTES) {
+                        store[url] = blob;
+                        changed = true;
+                    }
+                } catch (e) {
+                    /* CORS/নেটওয়ার্ক সমস্যা: এই ছবি ক্যাশ হবে না */
+                }
+            }
+
+            // বাদ পড়া স্লাইডের পুরনো ছবি মুছে ফেলা
+            Object.keys(store).forEach(url => {
+                if (!list.includes(url)) {
+                    delete store[url];
+                    changed = true;
+                }
+            });
+
+            if (changed) await sliderIdbSet("images", store);
+        } catch (e) {
+            console.error("Slider image cache error:", e);
+        }
+    });
+}
+
+async function swapWithCachedImage(img) {
+    if (!img || img.dataset.cachedSwap) return;
+    const original = img.dataset.origSrc || img.getAttribute("src");
+    if (!original) return;
+    try {
+        const store = await sliderIdbGet("images");
+        const blob = store && store[original];
+        if (blob) {
+            img.dataset.cachedSwap = "1";
+            img.src = URL.createObjectURL(blob);
+        }
+    } catch (e) { /* ignore */ }
+}
+
+function enableSliderImageFallback(track) {
+    if (!track.dataset.fallbackReady) {
+        track.dataset.fallbackReady = "1";
+        // ছবি লোড ব্যর্থ হলে ক্যাশ করা ছবি বসানো
+        track.addEventListener("error", (e) => {
+            if (e.target && e.target.tagName === "IMG") swapWithCachedImage(e.target);
+        }, true);
+    }
+    // অফলাইনে শুরুতেই ক্যাশ করা ছবি বসানো (ভাঙা ছবির ঝলক এড়াতে)
+    if (!navigator.onLine) {
+        track.querySelectorAll("img").forEach(img => swapWithCachedImage(img));
+    }
+}
+
 export function initNotificationSystem() {
     createNotificationUI();
     setupNotificationEvents();
@@ -418,6 +543,10 @@ async function saveOrUpdateToFirebase(type) {
 }
 
 function loadAllFirebaseListsAndListen() {
+    // অফলাইনে/ধীর নেটে Firebase থেকে ডাটা আসার আগেই ক্যাশ করা স্লাইডার দেখানো
+    const cachedSlides = loadSliderDataCache();
+    if (cachedSlides) renderHeroSlider(cachedSlides);
+
     const noticesRef = ref(db, 'webapp/notices');
     onValue(noticesRef, (snapshot) => {
         const data = snapshot.val();
@@ -532,6 +661,7 @@ function loadAllFirebaseListsAndListen() {
             sliderNotices.map(n => renderCard(n)).join('');
         }
 
+        saveSliderDataCache(sliderNotices);
         renderHeroSlider(sliderNotices);
         attachCardActions();
     });
@@ -551,7 +681,7 @@ function renderHeroSlider(slidesData) {
 
     track.innerHTML = items.map(item => `
         <div class="slide-item">
-            <img src="${item.img}" alt="${item.title}">
+            <img src="${item.img}" data-orig-src="${item.img}" alt="${item.title}">
             <div class="slide-overlay">
                 <div class="slide-info">
                     <span class="slide-badge">📢</span>
@@ -561,6 +691,9 @@ function renderHeroSlider(slidesData) {
             </div>
         </div>
     `).join('');
+
+    enableSliderImageFallback(track);
+    cacheSliderImages(items.map(item => item.img).filter(Boolean));
 
     dotsContainer.innerHTML = '';
     let currentIndex = 0;
