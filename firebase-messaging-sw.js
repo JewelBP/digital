@@ -1,28 +1,6 @@
-/* Firebase Cloud Messaging — ব্যাকগ্রাউন্ড নোটিফিকেশন (service worker)
-   এই ফাইল index.html এর পাশেই (সাইটের মূল ফোল্ডারে) থাকতে হবে। */
-
-// নোটিফিকেশনে ট্যাপ করলে সাইট/অ্যাপ খোলা (Firebase এর হ্যান্ডলারের আগে বসাতে হয়)
-self.addEventListener("notificationclick", (event) => {
-    event.stopImmediatePropagation();
-    event.notification.close();
-
-    const data = event.notification.data || {};
-    const fcm = data.FCM_MSG || {};
-    const link = (fcm.fcmOptions && fcm.fcmOptions.link) || data.link || self.registration.scope;
-    const target = new URL(link, self.registration.scope).href;
-
-    event.waitUntil(
-        clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-            for (const client of list) {
-                if (client.url.startsWith(self.registration.scope) && "focus" in client) {
-                    return client.focus();
-                }
-            }
-            return clients.openWindow(target);
-        })
-    );
-});
-
+/* =========================
+   BACKGROUND PUSH NOTIFICATION (FCM + Web Push)
+========================= */
 importScripts("https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.1.0/firebase-messaging-compat.js");
 
@@ -37,17 +15,47 @@ firebase.initializeApp({
     measurementId: "G-BKNYLRYSGS"
 });
 
-// Console থেকে পাঠানো "notification" মেসেজ ব্রাউজার নিজেই দেখায়।
-// শুধু data মেসেজ এলে এখানে দেখানো হয়।
 const messaging = firebase.messaging();
-messaging.onBackgroundMessage((payload) => {
-    if (payload.notification) return; // ডুপ্লিকেট এড়াতে
-    const data = payload.data || {};
-    if (!data.title && !data.body) return;
 
-    self.registration.showNotification(data.title || "নোটিফিকেশন", {
-        body: data.body || "",
-        icon: "icons/icon-192.png",
-        data: { link: data.link || "" }
-    });
+// Background message handler when app is in background or closed
+messaging.onBackgroundMessage(function (payload) {
+    console.log("[sw.js] Background message received:", payload);
+
+    const notificationTitle =
+        payload.notification?.title ||
+        payload.data?.title ||
+        "RMP MT Contacts";
+
+    const notificationOptions = {
+        body: payload.notification?.body || payload.data?.body || "নতুন জরুরি বার্তা এসেছে",
+        icon: "./icon/icon-192.png",
+        badge: "./icon/icon-192.png",
+        vibrate: [200, 100, 200],
+        tag: payload.data?.tag || "rmp-mt-notification",
+        renotify: true,
+        data: {
+            url: payload.data?.url || "https://rmpmt.github.io/digital/index.html"
+        }
+    };
+
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Open the app when the user taps the notification
+self.addEventListener("notificationclick", function (event) {
+    event.notification.close();
+    const targetUrl = event.notification.data?.url || "https://rmpmt.github.io/digital/index.html";
+
+    event.waitUntil(
+        clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+            for (const client of clientList) {
+                if (client.url.includes("/digital/") && "focus" in client) {
+                    return client.focus();
+                }
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(targetUrl);
+            }
+        })
+    );
 });
