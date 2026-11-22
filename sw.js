@@ -3,6 +3,7 @@ const CACHE_NAME = "RMP MT Contacts-v1.1";
 const APP_SHELL = [
     "./",
     "./index.html",
+    "./splash.html",
     "./manifest.json",
     "./css/style.css?v=3",
     "./js/app.js",
@@ -88,7 +89,7 @@ self.addEventListener("fetch", function (event) {
                 })
                 .catch(function () {
                     if (request.mode === "navigate") {
-                        return caches.match("./index.html");
+                        return caches.match("./splash.html");
                     }
                 });
         })
