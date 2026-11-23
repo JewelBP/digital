@@ -18,7 +18,7 @@
 }
 
 body.dark-mode {
-    --bg-color: #1E293B;
+    --bg-color: #020624;
     --card-bg: #1e293b;
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
@@ -29,11 +29,23 @@ body.dark-mode {
     --shadow-md: 0 10px 20px -3px rgba(0, 0, 0, 0.5);
 }
 
+html {
+    min-height: 100%;
+    background-color: var(--bg-color);
+    margin-top: 0;
+    top: 0;
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--text-main);
     transition: background-color 0.3s ease, color 0.3s ease;
-    padding-bottom: 40px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: 90px;
+    margin-top: 0;
+    top: 0;
+    box-sizing: border-box;
 }
 
 .hidden {
@@ -582,7 +594,6 @@ body:not(.dark-mode) .drawer-footer {
     color: var(--text-main);
 }
 
-
 .data-card-item {
     height: 100px;
     display: flex;
@@ -602,7 +613,6 @@ body:not(.dark-mode) .drawer-footer {
     box-shadow: var(--shadow-md);
 }
 
-/* Fix for oversized notification or user avatars */
 .data-card-avatar {
     width: 60px !important;
     height: 60px !important;
@@ -670,7 +680,6 @@ body:not(.dark-mode) .drawer-footer {
     box-shadow: var(--shadow-md);
 }
 
-
 /* ==========================================
    DYNAMIC CARD BACKGROUND (IMAGE VS COLOR)
 ========================================== */
@@ -686,10 +695,20 @@ body.has-bg-image .category-card,
 body.has-bg-image .subcategory-card,
 body.has-bg-image .data-card-item,
 body.has-bg-image .details-container-card {
-    background-color: rgba(255, 255, 255, 0.62) !important;
+    background-color: rgba(255, 255, 255, 0.72) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+body.dark-mode.has-bg-image .category-card,
+body.dark-mode.has-bg-image .subcategory-card,
+body.dark-mode.has-bg-image .data-card-item,
+body.dark-mode.has-bg-image .details-container-card {
+    background-color: rgba(2, 6, 36, 0.72) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .details-header-section {
@@ -805,7 +824,6 @@ body.has-bg-image .details-container-card {
     display: none !important;
 }
 
-/* ডিফল্টভাবে (ইউজার মোডে) হেডার ব্যানার একদম মাঝখানে (Center) থাকবে */
 .header-banner > span {
     position: absolute;
     left: 50%;
@@ -819,7 +837,6 @@ body.has-bg-image .details-container-card {
     width: max-content;
 }
 
-/* অ্যাডমিন লগইন থাকলে (অর্থাৎ যখন এডিট/ডিলিট বাটন দৃশ্যমান থাকবে) তখন বামদিকে (Left) থাকবে */
 .header-banner:has(> div:not(.hidden)) > span,
 .topbar.admin-header ~ .container .header-banner > span,
 body.is-admin .header-banner > span {
@@ -861,11 +878,11 @@ body.is-admin .header-banner > span {
 .modal {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7) !important; /* পেছনের ব্যাকগ্রাউন্ড আবছা অন্ধকার */
+    background: rgba(0, 0, 0, 0.7) !important;
     display: flex;
     justify-content: center;
-    align-items: center !important;     /* একদম স্ক্রিনের সেন্টারে রাখবে */
-    padding: 15px 15px 70px 15px !important; /* নিচের নচ বা নেভিগেশন বারের জন্য জায়গা রেখে প্যাডিং */
+    align-items: center !important;
+    padding: 15px 15px 70px 15px !important;
     z-index: 10000 !important;
     box-sizing: border-box !important;
 }
@@ -874,15 +891,14 @@ body.is-admin .header-banner > span {
     display: none !important;
 }
 
-/* পপআপ কন্টেন্ট বক্স (স্বচ্ছতা দূর করে স্পষ্ট ব্যাকগ্রাউন্ড দেওয়া হলো) */
 .modal-content {
-    background-color: #ffffff !important; /* লাইট মোডে স্পষ্ট সাদা ব্যাকগ্রাউন্ড */
-    color: #0f172a !important;            /* স্পষ্ট গাঢ় লেখা */
+    background-color: #ffffff !important;
+    color: #0f172a !important;
     border-radius: 18px !important;
     padding: 22px !important;
     width: 92% !important;
     max-width: 440px !important;
-    max-height: calc(100dvh - 120px) !important; /* নচ এড়াতে সর্বোচ্চ উচ্চতা */
+    max-height: calc(100dvh - 120px) !important;
     overflow-y: auto !important;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
     margin: auto !important;
@@ -890,14 +906,11 @@ body.is-admin .header-banner > span {
     position: relative !important;
 }
 
-/* ডার্ক মোডের জন্য পপআপ কন্টেন্ট বক্স */
 body.dark-mode .modal-content {
     background-color: #1e293b !important;
     color: #f8fafc !important;
     border: 1px solid #334155 !important;
 }
-
-
 
 .modal-header {
     display: flex;
@@ -962,11 +975,22 @@ body.has-bg-image .sub-toolbar,
 body.has-bg-image .search-box,
 body.has-bg-image .header-search-box,
 body.has-bg-image .header-banner {
-    background-color: rgba(255, 255, 255, 0.62) !important;
+    background-color: rgba(255, 255, 255, 0.72) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border-color: rgba(255, 255, 255, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+body.dark-mode.has-bg-image .topbar,
+body.dark-mode.has-bg-image .sub-toolbar,
+body.dark-mode.has-bg-image .search-box,
+body.dark-mode.has-bg-image .header-search-box,
+body.dark-mode.has-bg-image .header-banner {
+    background-color: rgba(2, 6, 36, 0.78) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-color: rgba(255, 255, 255, 0.12) !important;
 }
 
 /* ==========================================
@@ -986,16 +1010,7 @@ iframe.goog-te-banner-frame,
     pointer-events: none !important;
 }
 
-html, body {
-    top: 0px !important;
-    position: static !important;
-    margin-top: 0px !important;
-}
-
-.goog-tooltip {
-    display: none !important;
-}
-
+.goog-tooltip,
 .goog-tooltip:hover {
     display: none !important;
 }
@@ -1032,19 +1047,6 @@ html, body {
     margin-bottom: 20px;
 }
 
-/* ===== PAGE HEIGHT FIX ===== */
-
-html {
-    min-height: 100%;
-}
-
-body {
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding-bottom: 90px !important; /* নিচের ফিক্সড বারের জন্য পর্যাপ্ত জায়গা */
-    box-sizing: border-box;
-}
-
 /* ===== FIXED BOTTOM NAVIGATION ===== */
 
 .custom-bottom-nav {
@@ -1052,19 +1054,13 @@ body {
     left: 0 !important;
     bottom: 0 !important;
     right: 0 !important;
-
     width: 100% !important;
     height: 50px !important;
-
     margin: 0 !important;
     padding: 0 !important;
-
     z-index: 99999 !important;
-
     background: transparent !important;
-
     overflow: visible !important;
-
     pointer-events: none !important;
 }
 
@@ -1072,17 +1068,12 @@ body {
 
 .bottom-nav-svg {
     position: absolute !important;
-
     left: 0 !important;
     bottom: 0 !important;
-
     width: 100% !important;
     height: 50px !important;
-
     display: block !important;
-
     overflow: visible !important;
-
     pointer-events: none !important;
 }
 
@@ -1114,7 +1105,7 @@ body {
 #dataDetailsView {
     min-height: calc(100vh - 220px);
     min-height: calc(100dvh - 220px);
-    padding-bottom: 90px !important; /* কন্টাক্ট ডিটেইলস পেজের Get VIP বাটন যেন ফিক্সড নেভিগেশনের নিচে ঢাকা না পড়ে */
+    padding-bottom: 90px !important;
     box-sizing: border-box;
 }
 
@@ -1157,7 +1148,6 @@ body {
     .data-card-name { font-size: 16px; }
     .data-card-detail { font-size: 12px; }
 }
-
 
 /* ===== DARK MODE CARD SUPPORT (ADMIN + USER) ===== */
 body.dark-mode .category-card,
