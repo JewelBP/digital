@@ -1177,3 +1177,41 @@ body.dark-mode .data-card-name {
 body.dark-mode .data-card-detail {
     color: var(--text-muted, #94a3b8) !important;
 }
+
+
+/* ==========================================
+   NAV BAR / THEME FIX (white line + theme sync)
+========================================== */
+:root {
+    --nav-bg: #020624;          /* লাইট থিমে নিচের বারের রঙ */
+}
+body.dark-mode {
+    --nav-bg: #020624;          /* ডার্ক থিমে নিচের বারের রঙ (চাইলে বদলান) */
+}
+
+/* html এর নিজস্ব ব্যাকগ্রাউন্ড, যাতে নিচে সাদা ফাঁক না দেখা যায় */
+html {
+    background-color: #f8fafc;
+}
+html:has(body.dark-mode) {
+    background-color: #1e293b;
+}
+
+/* নচ SVG এর রঙ থিম ভেরিয়েবল থেকে আসবে, সাদা stroke বাদ */
+.bottom-nav-svg path,
+.bottom-nav-svg rect {
+    fill: var(--nav-bg) !important;
+    stroke: none !important;
+}
+
+/* নিচের প্রান্ত পর্যন্ত সলিড স্ট্রিপ, যাতে কোনো দাগ/ফাঁক না থাকে */
+.custom-bottom-nav::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: calc(6px + env(safe-area-inset-bottom, 0px));
+    background: var(--nav-bg);
+    pointer-events: none;
+}
