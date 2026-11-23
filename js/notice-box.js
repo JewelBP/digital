@@ -184,38 +184,110 @@ function renderNoticeList() {
     const notices = readNotices();
     if (!notices.length) {
         listEl.innerHTML = `
-            <div style="text-align:center;padding:36px 16px;color:#64748b;">
-                <div style="font-size:34px;margin-bottom:8px;">📭</div>
-                <div style="font-size:15px;font-weight:600;">কোনো নোটিফিকেশন জমা নেই</div>
-                <div style="font-size:13px;margin-top:4px;">নতুন নোটিফিকেশন এলে এখানে দেখা যাবে।</div>
+            <div class="subcategory-card" style="
+                background: var(--app-main-color, var(--primary-color, #020624));
+                color: #ffffff;
+                border-radius: 20px;
+                padding: 28px 16px;
+                text-align: center;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            ">
+                <div style="font-size: 32px; margin-bottom: 8px;">📭</div>
+                <div style="font-size: 15.5px; font-weight: 700; color: #ffffff;">কোনো নোটিফিকেশন জমা নেই</div>
+                <div style="font-size: 12.5px; color: rgba(255,255,255,0.78); margin-top: 4px;">নতুন নোটিফিকেশন এলে এখানে দেখা যাবে।</div>
             </div>
         `;
         return;
     }
 
     listEl.innerHTML = notices.map(item => `
-        <div class="notice-box-item" data-id="${escapeHtml(item.id)}" style="
-            background: ${item.read ? "#f8fafc" : "#eff6ff"};
-            border: 1px solid ${item.read ? "#e2e8f0" : "#bfdbfe"};
-            border-radius: 12px;
+        <div class="data-card-item subcategory-card" data-id="${escapeHtml(item.id)}" style="
+            background: var(--app-main-color, var(--primary-color, #020624));
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
             padding: 12px 14px;
-            margin-bottom: 10px;
-            position: relative;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            box-sizing: border-box;
         ">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                <div style="font-size:15px;font-weight:700;color:#0f172a;">
-                    ${!item.read ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#2563eb;margin-right:6px;"></span>' : ""}
-                    ${escapeHtml(item.title)}
+            <div style="
+                width: 48px;
+                height: 48px;
+                min-width: 48px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.14);
+                border: 1.5px solid rgba(255, 255, 255, 0.25);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                position: relative;
+                flex-shrink: 0;
+            ">
+                <span>📢</span>
+                ${!item.read ? `<span style="
+                    position: absolute;
+                    top: 1px;
+                    right: 1px;
+                    width: 11px;
+                    height: 11px;
+                    border-radius: 50%;
+                    background: #38bdf8;
+                    border: 2px solid var(--app-main-color, #020624);
+                "></span>` : ""}
+            </div>
+
+            <div style="flex: 1 1 auto; min-width: 0;">
+                <div style="
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: #ffffff;
+                    margin-bottom: 3px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                ">${escapeHtml(item.title)}</div>
+
+                ${item.body ? `<div style="
+                    font-size: 12.5px;
+                    color: rgba(255, 255, 255, 0.85);
+                    line-height: 1.4;
+                    margin-bottom: 4px;
+                    white-space: pre-line;
+                    word-break: break-word;
+                ">${escapeHtml(item.body)}</div>` : ""}
+
+                <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    font-size: 11.5px;
+                    color: rgba(255, 255, 255, 0.68);
+                ">
+                    <span>${escapeHtml(formatNoticeTime(item.timestamp))}</span>
+                    ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" style="color: #7dd3fc; font-weight: 600; text-decoration: none;">বিস্তারিত →</a>` : ""}
                 </div>
-                <button type="button" class="delete-single-notice-btn" data-id="${escapeHtml(item.id)}" title="মুছুন" style="
-                    background:none;border:none;color:#94a3b8;font-size:15px;cursor:pointer;padding:0 2px;line-height:1;
-                ">✕</button>
             </div>
-            ${item.body ? `<p style="margin:6px 0 8px 0;font-size:13.5px;line-height:1.5;color:#334155;white-space:pre-line;word-break:break-word;">${escapeHtml(item.body)}</p>` : ""}
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:#64748b;">
-                <span>${escapeHtml(formatNoticeTime(item.timestamp))}</span>
-                ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;font-weight:600;text-decoration:none;">বিস্তারিত →</a>` : ""}
-            </div>
+
+            <button type="button" class="delete-single-notice-btn" data-id="${escapeHtml(item.id)}" title="মুছুন" style="
+                background: rgba(255, 255, 255, 0.12);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+                color: #fca5a5;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                font-size: 14px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+            ">✕</button>
         </div>
     `).join("");
 
@@ -240,27 +312,27 @@ function ensureNoticeModal() {
     modal.style.cssText = `
         position: fixed;
         inset: 0;
-        background: rgba(0, 0, 0, 0.58);
+        background: rgba(2, 6, 36, 0.65);
         display: none;
         align-items: center;
         justify-content: center;
         z-index: 1000000;
         padding: 16px;
-        backdrop-filter: blur(2px);
+        backdrop-filter: blur(3px);
     `;
 
     modal.innerHTML = `
         <div style="
-            background: #ffffff;
-            color: #0f172a;
+            background: var(--bg-color, #f8fafc);
+            color: var(--text-main, #0f172a);
             width: 100%;
             max-width: 440px;
             max-height: 82vh;
-            border-radius: 18px;
+            border-radius: 22px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            box-shadow: 0 18px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
             font-family: inherit;
         ">
             <div style="
@@ -268,18 +340,17 @@ function ensureNoticeModal() {
                 align-items: center;
                 justify-content: space-between;
                 padding: 14px 16px;
-                border-bottom: 1px solid #e2e8f0;
-                background: #020624;
+                background: var(--app-main-color, var(--primary-color, #020624));
                 color: #ffffff;
             ">
-                <h3 style="margin: 0; font-size: 17px; font-weight: 700;">📢 Notice Box</h3>
+                <h3 style="margin: 0; font-size: 17px; font-weight: 700; color: #ffffff;">📢 Notice Box</h3>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <button type="button" id="clearAllNoticesBtn" style="
-                        background: rgba(239, 68, 68, 0.2);
-                        color: #fca5a5;
-                        border: 1px solid rgba(248, 113, 113, 0.35);
-                        border-radius: 8px;
-                        padding: 4px 10px;
+                        background: rgba(239, 68, 68, 0.25);
+                        color: #fecaca;
+                        border: 1px solid rgba(248, 113, 113, 0.4);
+                        border-radius: 10px;
+                        padding: 5px 10px;
                         font-size: 12px;
                         font-weight: 600;
                         cursor: pointer;
@@ -288,11 +359,14 @@ function ensureNoticeModal() {
                         background: rgba(255,255,255,0.14);
                         color: #ffffff;
                         border: none;
-                        width: 30px;
-                        height: 30px;
+                        width: 32px;
+                        height: 32px;
                         border-radius: 50%;
                         font-size: 16px;
                         cursor: pointer;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
                     ">✕</button>
                 </div>
             </div>
