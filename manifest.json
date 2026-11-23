@@ -1,10 +1,13 @@
 {
+  "id": "./splash.html",
   "name": "RMP MT Contacts",
   "short_name": "RMP MT Contacts",
   "start_url": "./splash.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#030712",
-  "theme_color": "#030712",
+  "orientation": "portrait",
+  "background_color": "#020624",
+  "theme_color": "#020624",
   "icons": [
     {
       "src": "icons/icon-192.png",
