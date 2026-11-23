@@ -1,4 +1,4 @@
-// js/settings.js
+// js/settings.js 
 
 export function initSettingsModal() {
     // যদি আগে থেকেই মোডাল থেকে থাকে তবে রিমুভ করে দেব 
