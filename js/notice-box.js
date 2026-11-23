@@ -50,7 +50,6 @@ function formatNoticeTime(timestamp) {
 function extractPayload(input) {
     if (!input) return null;
 
-    // FCM payload shape: { notification: { title, body }, data: { title, body, url } }
     if (input.notification || input.data) {
         const notif = input.notification || {};
         const data = input.data || {};
@@ -66,7 +65,6 @@ function extractPayload(input) {
         };
     }
 
-    // Direct object or string
     if (typeof input === "string") {
         const text = input.trim();
         if (!text) return null;
@@ -137,7 +135,6 @@ export function addNoticeToBox(rawPayload) {
     const current = readNotices();
     const top = current[0];
 
-    // ২ সেকেন্ডের মধ্যে হুবহু একই নোটিফিকেশন ডুপ্লিকেট আসা ঠেকানো
     if (
         top &&
         top.title === normalized.title &&
@@ -337,12 +334,10 @@ export function initNoticeBox() {
     if (isInitialized) return;
     isInitialized = true;
 
-    // 1. কাস্টম ইভেন্ট দিয়ে নোটিফিকেশন ধরার লিসেনার
     window.addEventListener("app:notification", event => {
         addNoticeToBox(event.detail);
     });
 
-    // 2. Service Worker / iframe postMessage থেকে আসা পুশ নোটিফিকেশন ধরার লিসেনার
     window.addEventListener("message", event => {
         const data = event?.data;
         if (!data) return;
@@ -361,13 +356,11 @@ export function initNoticeBox() {
         });
     }
 
-    // 3. ড্রয়ার DOM তৈরি বা পুনরায় রেন্ডার হলে ব্যাজ আপডেট রাখা
     const observer = new MutationObserver(() => {
         updateNoticeBadge();
     });
     observer.observe(document.body, { childList: true, subtree: true });
 
-    // গ্লোবাল হেল্পার (অন্য ফাইল থেকে সহজে কল করার জন্য)
     window.openNoticeBox = openNoticeBox;
     window.addNoticeToBox = addNoticeToBox;
 }
