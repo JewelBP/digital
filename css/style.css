@@ -613,6 +613,7 @@ body:not(.dark-mode) .drawer-footer {
     box-shadow: var(--shadow-md);
 }
 
+/* Fix for oversized notification or user avatars */
 .data-card-avatar {
     width: 60px !important;
     height: 60px !important;
@@ -824,6 +825,7 @@ body.dark-mode.has-bg-image .details-container-card {
     display: none !important;
 }
 
+/* ডিফল্টভাবে (ইউজার মোডে) হেডার ব্যানার একদম মাঝখানে (Center) থাকবে */
 .header-banner > span {
     position: absolute;
     left: 50%;
@@ -837,6 +839,7 @@ body.dark-mode.has-bg-image .details-container-card {
     width: max-content;
 }
 
+/* অ্যাডমিন লগইন থাকলে (অর্থাৎ যখন এডিট/ডিলিট বাটন দৃশ্যমান থাকবে) তখন বামদিকে (Left) থাকবে */
 .header-banner:has(> div:not(.hidden)) > span,
 .topbar.admin-header ~ .container .header-banner > span,
 body.is-admin .header-banner > span {
@@ -878,11 +881,11 @@ body.is-admin .header-banner > span {
 .modal {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7) !important;
+    background: rgba(0, 0, 0, 0.7) !important; /* পেছনের ব্যাকগ্রাউন্ড আবছা অন্ধকার */
     display: flex;
     justify-content: center;
-    align-items: center !important;
-    padding: 15px 15px 70px 15px !important;
+    align-items: center !important;     /* একদম স্ক্রিনের সেন্টারে রাখবে */
+    padding: 15px 15px 70px 15px !important; /* নিচের নচ বা নেভিগেশন বারের জন্য জায়গা রেখে প্যাডিং */
     z-index: 10000 !important;
     box-sizing: border-box !important;
 }
@@ -891,14 +894,15 @@ body.is-admin .header-banner > span {
     display: none !important;
 }
 
+/* পপআপ কন্টেন্ট বক্স (স্বচ্ছতা দূর করে স্পষ্ট ব্যাকগ্রাউন্ড দেওয়া হলো) */
 .modal-content {
-    background-color: #ffffff !important;
-    color: #0f172a !important;
+    background-color: #ffffff !important; /* লাইট মোডে স্পষ্ট সাদা ব্যাকগ্রাউন্ড */
+    color: #0f172a !important;            /* স্পষ্ট গাঢ় লেখা */
     border-radius: 18px !important;
     padding: 22px !important;
     width: 92% !important;
     max-width: 440px !important;
-    max-height: calc(100dvh - 120px) !important;
+    max-height: calc(100dvh - 120px) !important; /* নচ এড়াতে সর্বোচ্চ উচ্চতা */
     overflow-y: auto !important;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
     margin: auto !important;
@@ -906,6 +910,7 @@ body.is-admin .header-banner > span {
     position: relative !important;
 }
 
+/* ডার্ক মোডের জন্য পপআপ কন্টেন্ট বক্স */
 body.dark-mode .modal-content {
     background-color: #1e293b !important;
     color: #f8fafc !important;
@@ -1105,7 +1110,7 @@ iframe.goog-te-banner-frame,
 #dataDetailsView {
     min-height: calc(100vh - 220px);
     min-height: calc(100dvh - 220px);
-    padding-bottom: 90px !important;
+    padding-bottom: 90px !important; /* কন্টাক্ট ডিটেইলস পেজের Get VIP বাটন যেন ফিক্সড নেভিগেশনের নিচে ঢাকা না পড়ে */
     box-sizing: border-box;
 }
 
