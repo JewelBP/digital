@@ -244,6 +244,13 @@ export function initDrawer() {
     });
 
     applySavedThemeStyles();
+
+    import("./notice-box.js").then(mod => {
+        mod.initNoticeBox();
+        mod.updateNoticeBadge();
+    }).catch(err => {
+        console.error("Notice Box badge sync error:", err);
+    });
 }
 
 
@@ -342,6 +349,7 @@ function applySavedTextColor() {
             el.closest("#settingsModal") ||
             el.closest("#customDeleteModal") ||
             el.closest("#drawerCustomDialog") ||
+            el.closest("#drawerNoticeBoxModal") ||
             el.classList.contains("firebase-formatted-text") ||
             el.querySelector(".firebase-formatted-text")
         ) {
@@ -655,7 +663,16 @@ function handleDrawerAction(action) {
             });
             break;
         case "notice-box":
-            console.log("Notice Box clicked");
+            if (typeof window.openNoticeBox === "function") {
+                window.openNoticeBox();
+            } else {
+                import("./notice-box.js").then(mod => {
+                    mod.initNoticeBox();
+                    mod.openNoticeBox();
+                }).catch(err => {
+                    console.error("Notice Box load error:", err);
+                });
+            }
             break;
         case "share":
             if (navigator.share) {
@@ -708,3 +725,9 @@ document.addEventListener("DOMContentLoaded", bootSavedTheme);
         document.cookie = `googtrans=${value};domain=${document.domain};path=/;max-age=31536000`;
     }
 })();
+
+import("./notice-box.js").then(mod => {
+    mod.initNoticeBox();
+}).catch(err => {
+    console.error("Notice Box auto-init error:", err);
+});
