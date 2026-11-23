@@ -1,6 +1,3 @@
-/* =========================
-   BACKGROUND PUSH NOTIFICATION (FCM + Web Push)
-========================= */
 importScripts("https://www.gstatic.com/firebasejs/12.1.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/12.1.0/firebase-messaging-compat.js");
 
@@ -17,39 +14,26 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Background message handler when app is in background or closed
-messaging.onBackgroundMessage(function (payload) {
-    console.log("[sw.js] Background message received:", payload);
-
-    const notificationTitle =
-        payload.notification?.title ||
-        payload.data?.title ||
-        "RMP MT Contacts";
-
-    const notificationOptions = {
-        body: payload.notification?.body || payload.data?.body || "নতুন জরুরি বার্তা এসেছে",
-        icon: "./icon/icon-192.png",
-        badge: "./icon/icon-192.png",
-        vibrate: [200, 100, 200],
-        tag: payload.data?.tag || "rmp-mt-notification",
-        renotify: true,
-        data: {
-            url: payload.data?.url || "https://rmpmt.github.io/digital/index.html"
-        }
+messaging.onBackgroundMessage((payload) => {
+    const title = payload.notification?.title || payload.data?.title || "নতুন নোটিফিকেশন";
+    const options = {
+        body: payload.notification?.body || payload.data?.body || "",
+        icon: payload.notification?.icon || payload.data?.icon || "/icons/icon-192.png",
+        badge: "/icons/icon-192.png",
+        data: payload.data || {}
     };
 
-    return self.registration.showNotification(notificationTitle, notificationOptions);
+    self.registration.showNotification(title, options);
 });
 
-// Open the app when the user taps the notification
-self.addEventListener("notificationclick", function (event) {
+self.addEventListener("notificationclick", (event) => {
     event.notification.close();
-    const targetUrl = event.notification.data?.url || "https://rmpmt.github.io/digital/index.html";
+    const targetUrl = event.notification.data?.url || "/";
 
     event.waitUntil(
-        clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
+        clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
             for (const client of clientList) {
-                if (client.url.includes("/digital/") && "focus" in client) {
+                if ("focus" in client) {
                     return client.focus();
                 }
             }
