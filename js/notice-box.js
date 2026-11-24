@@ -203,7 +203,7 @@ function injectStyles() {
             font-family: inherit;
         }
 
-        /* ডার্ক নেভি হেডার (index.html-এর মত) */
+        /* ডার্ক নেভি হেডার */
         .nb-top-wrap {
             background: var(--app-main-color, var(--primary-color, #020624));
             color: #ffffff;
@@ -215,7 +215,7 @@ function injectStyles() {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 14px 16px 8px;
+            padding: 12px 16px 6px;
             gap: 10px;
         }
 
@@ -273,44 +273,41 @@ function injectStyles() {
             flex-shrink: 0;
         }
 
-        /* index.html-এর .header-search-inline ও .subpage-search-field এর সাথে হুবহু সামঞ্জস্যপূর্ণ */
-        .nb-search-inline {
-            display: block;
-            padding: 2px 16px 6px;
-            width: 70%;
-            box-sizing: border-box;
-            margin: 0 auto;
+        /* ছোট কম্প্যাক্ট সার্চ উইজেট (অন্যান্য সার্চ ফিল্ডের সাথে সামঞ্জস্যপূর্ণ) */
+        .nb-search-mini-wrap {
+            padding: 2px 16px 4px;
+            display: flex;
+            justify-content: center;
         }
 
-        @media (max-width: 600px) {
-            .nb-search-inline {
-                width: 86%;
-            }
-        }
-
-        .nb-search-field {
+        .nb-search-mini-field {
             width: 100%;
-            height: 40px;
+            max-width: 240px;
+            height: 34px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 9px;
-            box-sizing: border-box;
-            padding: 0 13px;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 40px;
+            gap: 6px;
+            padding: 0 10px;
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            border-radius: 50px;
             background: rgba(255, 255, 255, 0.11);
-            margin: 0 auto;
+            box-sizing: border-box;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
         }
 
-        .nb-search-icon {
-            flex: 0 0 auto;
+        .nb-search-mini-field:focus-within {
+            border-color: rgba(255, 255, 255, 0.55);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        .nb-search-mini-icon {
             color: #cbd5e1;
-            font-size: 23px;
+            font-size: 14px;
             line-height: 1;
+            flex-shrink: 0;
         }
 
-        .nb-search-input {
+        .nb-search-mini-input {
             flex: 1 1 auto;
             min-width: 0;
             height: 100% !important;
@@ -319,33 +316,35 @@ function injectStyles() {
             outline: 0 !important;
             background: transparent !important;
             color: #ffffff !important;
-            font-size: 14px;
+            font-size: 12.5px;
             box-shadow: none !important;
-            text-align: left;
         }
 
-        .nb-search-input::placeholder {
+        .nb-search-mini-input::placeholder {
             color: #cbd5e1 !important;
             opacity: 1;
+            font-size: 12px;
         }
 
-        .nb-search-clear {
+        .nb-search-mini-clear {
             display: none;
-            flex: 0 0 25px;
-            width: 25px;
-            height: 25px;
+            width: 18px;
+            height: 18px;
             padding: 0;
             border: 0;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.16);
-            color: #fff;
-            font-size: 20px;
-            line-height: 22px;
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            font-size: 13px;
+            line-height: 16px;
             cursor: pointer;
+            flex-shrink: 0;
         }
 
-        .nb-search-field.has-value .nb-search-clear {
-            display: block;
+        .nb-search-mini-field.has-value .nb-search-mini-clear {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* সাদা রাউন্ডেড শিট */
@@ -363,54 +362,65 @@ function injectStyles() {
             box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.12);
         }
 
-        .nb-strip {
+        /* ক্যাটাগরি/সাব-ক্যাটাগরির মতো টেক্সট স্ক্রল বার */
+        .nb-ticker-bar {
             background: var(--card-bg, #ffffff);
             border: 1px solid var(--border-color, #e2e8f0);
-            border-radius: 14px;
-            padding: 6px 12px 6px 6px;
-            margin-bottom: 14px;
+            border-radius: 12px;
+            padding: 5px 10px 5px 6px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 10px;
+            gap: 8px;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
         }
 
-        .nb-strip-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-        }
-
-        .nb-badge {
+        .nb-ticker-badge {
             background: #dc2626;
             color: #ffffff;
-            font-size: 12.5px;
+            font-size: 12px;
             font-weight: 700;
-            padding: 6px 11px;
-            border-radius: 10px;
+            padding: 5px 10px;
+            border-radius: 8px;
             white-space: nowrap;
             flex-shrink: 0;
         }
 
-        .nb-count-text {
-            font-size: 12.5px;
-            color: var(--text-muted, #64748b);
-            font-weight: 600;
-            white-space: nowrap;
+        .nb-ticker-viewport {
+            flex: 1;
+            min-width: 0;
             overflow: hidden;
-            text-overflow: ellipsis;
+            position: relative;
+        }
+
+        .nb-ticker-track {
+            display: inline-block;
+            white-space: nowrap;
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-main, #0f172a);
+            padding-left: 100%;
+            animation: nbScrollText 14s linear infinite;
+        }
+
+        .nb-ticker-bar:hover .nb-ticker-track {
+            animation-play-state: paused;
+        }
+
+        @keyframes nbScrollText {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-100%); }
         }
 
         .nb-clear-btn {
             border: none;
             background: #ef4444;
             color: #ffffff;
-            font-size: 12px;
+            font-size: 11.5px;
             font-weight: 700;
-            padding: 6px 11px;
-            border-radius: 9px;
+            padding: 5px 10px;
+            border-radius: 8px;
             cursor: pointer;
             white-space: nowrap;
             flex-shrink: 0;
@@ -548,20 +558,20 @@ export function openNoticeInbox() {
                 <img class="nb-logo" src="${escapeHTML(LOGO_SRC)}" alt="Logo" onerror="this.style.display='none'">
             </header>
 
-            <div class="nb-search-inline">
-                <div id="nbSearchField" class="nb-search-field">
-                    <span class="nb-search-icon" aria-hidden="true">⌕</span>
-                    <input id="nbSearchInput" type="search" class="nb-search-input" placeholder="Search notices..." autocomplete="off">
-                    <button id="nbSearchClear" type="button" class="nb-search-clear" aria-label="Clear search" title="Clear search">×</button>
+            <div class="nb-search-mini-wrap">
+                <div id="nbSearchField" class="nb-search-mini-field">
+                    <span class="nb-search-mini-icon" aria-hidden="true">⌕</span>
+                    <input id="nbSearchInput" type="search" class="nb-search-mini-input" placeholder="Search..." autocomplete="off">
+                    <button id="nbSearchClear" type="button" class="nb-search-mini-clear" aria-label="Clear search" title="Clear search">×</button>
                 </div>
             </div>
         </div>
 
         <div class="nb-sheet">
-            <div class="nb-strip">
-                <div class="nb-strip-left">
-                    <span class="nb-badge">📢 বিজ্ঞপ্তি</span>
-                    <span id="nbCountLabel" class="nb-count-text">লোড হচ্ছে...</span>
+            <div class="nb-ticker-bar">
+                <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
+                <div class="nb-ticker-viewport">
+                    <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
                 </div>
                 <button type="button" id="noticeClearBtn" class="nb-clear-btn">সব মুছুন</button>
             </div>
@@ -570,10 +580,24 @@ export function openNoticeInbox() {
     `;
 
     const cardsListEl = panel.querySelector("#nbCardsList");
-    const countLabelEl = panel.querySelector("#nbCountLabel");
+    const tickerTrackEl = panel.querySelector("#nbTickerTrack");
     const searchInput = panel.querySelector("#nbSearchInput");
     const searchField = panel.querySelector("#nbSearchField");
     const searchClear = panel.querySelector("#nbSearchClear");
+
+    function updateTicker(all, filtered, q) {
+        if (!all.length) {
+            tickerTrackEl.textContent = "কোনো নোটিশ সংরক্ষিত নেই — নতুন নোটিশ আসলে এখানে স্ক্রল করে দেখা যাবে।";
+            return;
+        }
+        const summary = q
+            ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
+            : `মোট ${all.length}টি নোটিশ • `;
+        const headlines = (filtered.length ? filtered : all)
+            .map(n => `${n.title}: ${n.body || ""}`.trim())
+            .join("   ★   ");
+        tickerTrackEl.textContent = `${summary}   •   ${headlines}`;
+    }
 
     function renderList() {
         const all = loadNotices();
@@ -586,10 +610,7 @@ export function openNoticeInbox() {
             )
             : all;
 
-        const unreadCount = all.filter(n => !n.read).length;
-        countLabelEl.textContent = q
-            ? `${filtered.length}টি মিলেছে (মোট ${all.length}টি)`
-            : `মোট ${all.length}টি${unreadCount ? ` • ${unreadCount}টি নতুন` : ""}`;
+        updateTicker(all, filtered, q);
 
         if (!filtered.length) {
             cardsListEl.innerHTML = `
