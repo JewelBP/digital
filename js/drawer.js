@@ -655,7 +655,16 @@ function handleDrawerAction(action) {
             });
             break;
         case "notice-box":
-            console.log("Notice Box clicked");
+            if (typeof window.openNoticeInbox === "function") {
+                window.openNoticeInbox();
+            } else {
+                import("./notice-box.js").then(mod => {
+                    mod.openNoticeInbox();
+                }).catch(err => {
+                    console.error("Notice Box load error:", err);
+                    showDrawerDialog("Notice Box ফাইলটি লোড করা যাচ্ছে না।", "ত্রুটি");
+                });
+            }
             break;
         case "share":
             if (navigator.share) {
