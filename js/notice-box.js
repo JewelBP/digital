@@ -4,7 +4,7 @@
 const PRIMARY_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
 const LOGO_SRC = "icons/icon-192.png";
-const ADMIN_SECRET = "admin@jr";
+const ADMIN_CODE = "admin@jr";
 
 let memoryNotices = [];
 let noticeQuery = "";
@@ -116,29 +116,12 @@ function escapeHTML(str) {
     );
 }
 
-// সার্চ ফিল্ডে Admin@jr লিখলে হেডারের #adminLoginBtn শো করবে
-let prevAdminBtnHidden = null;
-
-function revealAdminLoginIfMatched(rawValue) {
-    const btn = document.getElementById("adminLoginBtn");
-    if (!btn) return false;
-
-    const clean = String(rawValue ?? "").trim().toLowerCase();
-    if (clean === ADMIN_SECRET) {
-        if (prevAdminBtnHidden === null) {
-            prevAdminBtnHidden = btn.classList.contains("hidden");
+function showAdminButtonIfTyped(value) {
+    if (String(value ?? "").trim().toLowerCase() === ADMIN_CODE) {
+        const adminBtn = document.getElementById("adminLoginBtn");
+        if (adminBtn) {
+            adminBtn.classList.remove("hidden");
         }
-        btn.classList.remove("hidden");
-        return true;
-    }
-    return false;
-}
-
-function restoreAdminLoginButton() {
-    const btn = document.getElementById("adminLoginBtn");
-    if (btn && prevAdminBtnHidden !== null) {
-        btn.classList.toggle("hidden", prevAdminBtnHidden);
-        prevAdminBtnHidden = null;
     }
 }
 
@@ -203,7 +186,6 @@ function injectStyles() {
             font-family: inherit;
         }
 
-        /* ডার্ক নেভি হেডার */
         .nb-top-wrap {
             background: var(--app-main-color, var(--primary-color, #020624));
             color: #ffffff;
@@ -273,7 +255,7 @@ function injectStyles() {
             flex-shrink: 0;
         }
 
-        /* ছোট কম্প্যাক্ট সার্চ উইজেট (অন্যান্য সার্চ ফিল্ডের সাথে সামঞ্জস্যপূর্ণ) */
+        /* ছোট কম্প্যাক্ট সার্চ উইজেট */
         .nb-search-mini-wrap {
             padding: 2px 16px 4px;
             display: flex;
@@ -347,7 +329,6 @@ function injectStyles() {
             justify-content: center;
         }
 
-        /* সাদা রাউন্ডেড শিট */
         .nb-sheet {
             flex: 1;
             overflow-y: auto;
@@ -362,7 +343,6 @@ function injectStyles() {
             box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.12);
         }
 
-        /* ক্যাটাগরি/সাব-ক্যাটাগরির মতো টেক্সট স্ক্রল বার */
         .nb-ticker-bar {
             background: var(--card-bg, #ffffff);
             border: 1px solid var(--border-color, #e2e8f0);
@@ -411,19 +391,6 @@ function injectStyles() {
         @keyframes nbScrollText {
             0% { transform: translateX(0%); }
             100% { transform: translateX(-100%); }
-        }
-
-        .nb-clear-btn {
-            border: none;
-            background: #ef4444;
-            color: #ffffff;
-            font-size: 11.5px;
-            font-weight: 700;
-            padding: 5px 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            white-space: nowrap;
-            flex-shrink: 0;
         }
 
         .nb-card {
@@ -502,23 +469,8 @@ function injectStyles() {
         }
 
         .nb-card-foot {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
             font-size: 11.5px;
             color: var(--text-muted, #64748b);
-        }
-
-        .nb-del-btn {
-            border: none;
-            background: rgba(239, 68, 68, 0.12);
-            color: #dc2626;
-            font-size: 11.5px;
-            font-weight: 700;
-            padding: 3px 9px;
-            border-radius: 8px;
-            cursor: pointer;
         }
 
         .nb-empty {
@@ -573,7 +525,6 @@ export function openNoticeInbox() {
                 <div class="nb-ticker-viewport">
                     <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
                 </div>
-                <button type="button" id="noticeClearBtn" class="nb-clear-btn">সব মুছুন</button>
             </div>
             <div id="nbCardsList"></div>
         </div>
@@ -637,7 +588,6 @@ export function openNoticeInbox() {
                     <p class="nb-card-body">${escapeHTML(n.body)}</p>
                     <div class="nb-card-foot">
                         <span>🕒 ${escapeHTML(n.time || "")}</span>
-                        <button type="button" class="nb-del-btn" data-del="${escapeHTML(n.id)}">মুছুন</button>
                     </div>
                 </div>
             </article>
@@ -653,16 +603,6 @@ export function openNoticeInbox() {
                 renderList();
             });
         });
-
-        cardsListEl.querySelectorAll(".nb-del-btn").forEach(btn => {
-            btn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                const delId = btn.getAttribute("data-del");
-                const next = loadNotices().filter(item => item.id !== delId);
-                saveNotices(next);
-                renderList();
-            });
-        });
     }
 
     panel._rerenderList = renderList;
@@ -670,7 +610,7 @@ export function openNoticeInbox() {
     searchInput.addEventListener("input", () => {
         noticeQuery = searchInput.value;
         searchField.classList.toggle("has-value", searchInput.value.length > 0);
-        revealAdminLoginIfMatched(searchInput.value);
+        showAdminButtonIfTyped(searchInput.value);
         renderList();
     });
 
@@ -684,12 +624,6 @@ export function openNoticeInbox() {
 
     panel.querySelector("#noticeCloseBtn").onclick = () => closePanel(true);
 
-    panel.querySelector("#noticeClearBtn").onclick = () => {
-        if (!loadNotices().length) return;
-        saveNotices([]);
-        renderList();
-    };
-
     const navLogo = document.querySelector(".bottom-nav-logo-circle");
     const onNavLogoClick = () => {
         if (document.getElementById("noticeInboxPanel")) {
@@ -702,7 +636,6 @@ export function openNoticeInbox() {
         if (!document.getElementById("noticeInboxPanel")) return;
         window.removeEventListener("popstate", onPop);
         navLogo?.removeEventListener("click", onNavLogoClick);
-        restoreAdminLoginButton();
         panel.remove();
 
         if (fromButton && window.history.state && window.history.state.page === "notice-box") {
