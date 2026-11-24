@@ -41,18 +41,21 @@ export async function initWebPushNotifications() {
             };
             if (d.image && /^https?:/i.test(d.image)) options.image = d.image;
 
-            const noticePayload = {
-                id: payload.messageId || payload.fcmMessageId || d.id || "",
-                title,
-                body: options.body || "",
-                read: false,
-                createdAt: Date.now()
-            };
-
-            if (typeof window.saveNoticeToUserStorage === "function") {
-                window.saveNoticeToUserStorage(noticePayload);
-            } else {
-                window.dispatchEvent(new CustomEvent("app:notice", { detail: noticePayload }));
+            try {
+                const noticePayload = {
+                    id: payload.messageId || payload.fcmMessageId || d.id || "",
+                    title,
+                    body: options.body || "",
+                    read: false,
+                    createdAt: Date.now()
+                };
+                if (typeof window.saveNoticeToUserStorage === "function") {
+                    window.saveNoticeToUserStorage(noticePayload);
+                } else {
+                    window.dispatchEvent(new CustomEvent("app:notice", { detail: noticePayload }));
+                }
+            } catch (e) {
+                console.warn("Notice storage sync skipped:", e);
             }
 
             if (Notification.permission === "granted") {
