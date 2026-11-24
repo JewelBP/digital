@@ -550,6 +550,7 @@ async function saveOrUpdateToFirebase(type) {
         } else {
             const noticesRef = ref(db, 'webapp/notices');
             const newNoticeRef = push(noticesRef);
+            const noticeTime = new Date().toLocaleString('bn-BD');
             await set(newNoticeRef, {
                 id: newNoticeRef.key,
                 type,
@@ -558,8 +559,30 @@ async function saveOrUpdateToFirebase(type) {
                 img,
                 Video: video,
                 keys,
-                time: new Date().toLocaleString('bn-BD')
+                time: noticeTime
             });
+            if (type !== 'slider') {
+                if (typeof window.saveNoticeToUserStorage === "function") {
+                    window.saveNoticeToUserStorage({
+                        id: newNoticeRef.key,
+                        title,
+                        body: message,
+                        time: noticeTime,
+                        read: false,
+                        createdAt: Date.now()
+                    });
+                } else {
+                    window.dispatchEvent(new CustomEvent("app:notice", {
+                        detail: {
+                            id: newNoticeRef.key,
+                            title,
+                            body: message,
+                            time: noticeTime,
+                            createdAt: Date.now()
+                        }
+                    }));
+                }
+            }
             if (type === 'push') {
                 if (!hasServiceAccount()) {
                     await showCustomDialog("Notice saved, but Service Account is not set, so push was NOT sent.", "Warning");
@@ -707,6 +730,14 @@ function loadAllFirebaseListsAndListen() {
         saveSliderDataCache(sliderNotices);
         renderHeroSlider(sliderNotices);
         attachCardActions();
+
+        if (typeof window.syncFirebaseNoticesToUserStorage === "function") {
+            window.syncFirebaseNoticesToUserStorage(notices);
+        } else {
+            window.dispatchEvent(new CustomEvent("rmp:firebase-notices-sync", {
+                detail: { notices }
+            }));
+        }
     });
 }
 
