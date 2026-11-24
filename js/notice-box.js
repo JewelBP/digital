@@ -818,7 +818,7 @@ function fillNoticeList(admin) {
     });
 }
 
-/* ============================== Incoming Notice Sync to User Storage ============================== */
+/* ============================== User Storage Sync Helpers ============================== */
 
 function upsertNoticeToUserStorage(rawNotice) {
     if (!rawNotice || typeof rawNotice !== "object") return null;
@@ -972,14 +972,24 @@ export function closeNoticeBox(fromPop = false) {
 }
 
 export function addNotice(title, body) {
-    return upsertNoticeToUserStorage({
+    const cleanTitle = String(title ?? "").trim();
+    const cleanBody = String(body ?? "").trim();
+    if (!cleanTitle && !cleanBody) return null;
+
+    loadLocalNotices();
+    const entry = {
         id: generateNoticeId(),
-        title,
-        body,
+        title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
+        body: cleanBody,
         time: formatNow(new Date()),
         read: false,
         createdAt: Date.now()
-    });
+    };
+
+    noticeState.notices.unshift(entry);
+    saveLocalNotices();
+    if (isNoticeActive) renderNoticeBoxInSheet();
+    return entry;
 }
 
 window.addEventListener("app:notice", (e) => {
@@ -1025,6 +1035,10 @@ window.addEventListener("storage", (e) => {
         loadLocalNotices();
         if (isNoticeActive) renderNoticeBoxInSheet();
     }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadLocalNotices();
 });
 
 window.openNoticeInbox = openNoticeInbox;
