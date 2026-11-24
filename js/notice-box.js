@@ -4,7 +4,7 @@
 const PRIMARY_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
 const LOGO_SRC = "icons/icon-192.png";
-const ADMIN_SECRET = "admin@jr";
+const ADMIN_CODE = "admin@jr";
 
 let memoryNotices = [];
 let noticeQuery = "";
@@ -116,29 +116,25 @@ function escapeHTML(str) {
     );
 }
 
-/* ================= Admin@jr বাটন শো করার লজিক ================= */
-function checkAdminSecret(rawText) {
-    const typed = String(rawText ?? "").trim().toLowerCase();
-    if (typed !== ADMIN_SECRET) return;
-
-    // ১) মূল অ্যাপের #adminLoginBtn থাকলে সেটিকে লুকানো অবস্থা থেকে দেখানো
-    const appAdminBtn = document.getElementById("adminLoginBtn");
-    if (appAdminBtn) {
-        appAdminBtn.classList.remove("hidden");
-        appAdminBtn.style.display = "inline-flex";
-        appAdminBtn.style.alignItems = "center";
-        appAdminBtn.style.gap = "4px";
-        appAdminBtn.style.position = "relative";
-        appAdminBtn.style.zIndex = "100000";
-        if (!appAdminBtn.textContent.includes("Admin")) {
-            appAdminBtn.innerHTML = `🔑 Admin`;
+function showAdminButtonIfTyped(value) {
+    if (String(value ?? "").trim().toLowerCase() === ADMIN_CODE) {
+        const adminBtn = document.getElementById("adminLoginBtn");
+        if (adminBtn) {
+            adminBtn.classList.remove("hidden");
+            adminBtn.style.display = "inline-flex";
+            adminBtn.style.alignItems = "center";
+            adminBtn.style.gap = "4px";
+            adminBtn.style.position = "relative";
+            adminBtn.style.zIndex = "100000";
+            if (!adminBtn.textContent.includes("Admin")) {
+                adminBtn.innerHTML = `🔑 Admin`;
+            }
         }
-    }
 
-    // ২) নোটিশ বক্স হেডারের ভেতরেও দ্রুত অ্যাক্সেসের জন্য বাটন দেখানো
-    const nbAdminBtn = document.getElementById("nbAdminTriggerBtn");
-    if (nbAdminBtn) {
-        nbAdminBtn.classList.remove("hidden");
+        const nbAdminBtn = document.getElementById("nbAdminTriggerBtn");
+        if (nbAdminBtn) {
+            nbAdminBtn.classList.remove("hidden");
+        }
     }
 }
 
@@ -201,6 +197,25 @@ function injectStyles() {
             flex-direction: column;
             overflow: hidden;
             font-family: inherit;
+        }
+
+        /* নিচের নচ লোগোর নিচে সাদা অংশ ফিক্স */
+        .custom-bottom-nav .bottom-nav-logo-circle {
+            bottom: 12px !important;
+            top: auto !important;
+            width: 52px !important;
+            height: 52px !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-logo-circle img {
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+            background: transparent !important;
         }
 
         .nb-top-wrap {
@@ -661,7 +676,7 @@ export function openNoticeInbox() {
     searchInput.addEventListener("input", () => {
         noticeQuery = searchInput.value;
         searchField.classList.toggle("has-value", searchInput.value.length > 0);
-        checkAdminSecret(searchInput.value);
+        showAdminButtonIfTyped(searchInput.value);
         renderList();
     });
 
