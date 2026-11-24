@@ -1,4 +1,4 @@
-// js/drawer.js[span_2](start_span)[span_2](end_span)
+// js/drawer.js
 
 function showDrawerDialog(message, title = "বার্তা") {
     return new Promise((resolve) => {
@@ -238,18 +238,14 @@ export function initDrawer() {
 
     drawer.querySelectorAll(".drawer-menu-list li").forEach(item => {
         item.addEventListener("click", () => {
-            handleDrawerAction(item.getAttribute("data-action"));
+            const action = item.getAttribute("data-action");
             closeDrawer();
+            handleDrawerAction(action);
         });
     });
 
     applySavedThemeStyles();
 }
-
-
-/* ============================================================
-   PERSISTENT THEME / SPLASH
-============================================================ */
 
 function applySavedThemeStyles() {
     const bgColor = localStorage.getItem("app_bg_color");
@@ -279,11 +275,6 @@ function applySavedThemeStyles() {
     setTimeout(applySavedTextColor, 500);
 }
 
-
-/* ============================================================
-   BACKGROUND HELPER
-============================================================ */
-
 function applyBackgroundToElement(element, color, image) {
     if (!element) return;
 
@@ -300,11 +291,6 @@ function applyBackgroundToElement(element, color, image) {
         element.style.removeProperty("background-image");
     }
 }
-
-
-/* ============================================================
-   SAVED TEXT COLOR
-============================================================ */
 
 function applySavedTextColor() {
     const color = localStorage.getItem("app_text_color");
@@ -352,11 +338,6 @@ function applySavedTextColor() {
     });
 }
 
-
-/* ============================================================
-   CUSTOM DELETE MODAL
-============================================================ */
-
 async function showCustomDeleteModal(onConfirm) {
     const confirmed = await showDrawerConfirm(
         "আপনি কি নিশ্চিত সমস্ত ডাটা ও লগইন তথ্য মুছে ফেলতে চান? (এর ফলে অ্যাপটি একদম প্রথম ইন্সটলের অবস্থার মতো হয়ে যাবে এবং পুনরায় পাসওয়ার্ড দিয়ে প্রবেশ করতে হবে।)",
@@ -366,11 +347,6 @@ async function showCustomDeleteModal(onConfirm) {
         onConfirm();
     }
 }
-
-
-/* ============================================================
-   SETTINGS MODAL
-============================================================ */
 
 function initSettingsModal() {
     const existing = document.getElementById("settingsModal");
@@ -603,11 +579,6 @@ function initSettingsModal() {
     }
 }
 
-
-/* ============================================================
-   DRAWER ACTIONS
-============================================================ */
-
 function handleDrawerAction(action) {
     switch (action) {
         case "home":
@@ -636,11 +607,14 @@ function handleDrawerAction(action) {
             if (typeof window.openDrivingGuide === "function") {
                 window.openDrivingGuide();
             } else {
-                import("./driving-guide.js").then(mod => {
-                    mod.openDrivingGuide();
-                }).catch(err => {
-                    console.error("Driving Guide load error:", err);
-                });
+                import("./js/driving-guide.js")
+                    .catch(() => import("./driving-guide.js"))
+                    .then(mod => {
+                        mod.openDrivingGuide();
+                    })
+                    .catch(err => {
+                        console.error("Driving Guide load error:", err);
+                    });
             }
             break;
 
@@ -654,7 +628,7 @@ function handleDrawerAction(action) {
                 window.location.reload();
             });
             break;
-                case "notice-box":
+        case "notice-box":
             if (typeof window.openNoticeInbox === "function") {
                 window.openNoticeInbox();
             } else {
@@ -671,7 +645,6 @@ function handleDrawerAction(action) {
                     });
             }
             break;
-
         case "share":
             if (navigator.share) {
                 navigator.share({
@@ -686,22 +659,20 @@ function handleDrawerAction(action) {
             if (typeof window.openAboutDeveloper === "function") {
                 window.openAboutDeveloper();
             } else {
-                import("./about-developer.js").then(mod => {
-                    mod.openAboutDeveloper();
-                }).catch(err => {
-                    console.error("About Developer load error:", err);
-                });
+                import("./js/about-developer.js")
+                    .catch(() => import("./about-developer.js"))
+                    .then(mod => {
+                        mod.openAboutDeveloper();
+                    })
+                    .catch(err => {
+                        console.error("About Developer load error:", err);
+                    });
             }
             break;
         default:
             console.log(action + " clicked");
     }
 }
-
-
-/* ============================================================
-   APPLY THEME VERY EARLY + AFTER DOM
-============================================================ */
 
 function bootSavedTheme() {
     applySavedThemeStyles();
