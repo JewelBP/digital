@@ -1,14 +1,16 @@
 // js/notice-box.js
 // ড্রয়ারের "Notice Box" ক্লিক করলে drawer.js এই ফাইলটি লোড করে openNoticeInbox() চালায়।
 
-const STORAGE_KEY = "rmp_app_notices_v1";
-const EMBLEM_URL = "https://rmpmt.github.io/digital/emblem.png";
+const PRIMARY_KEY = "rmp_app_notices_v1";
+const LEGACY_KEY = "app_notices";
+const LOGO_SRC = "icons/icon-192.png";
 
 let memoryNotices = [];
+let noticeQuery = "";
 
 function canUseStorage() {
     try {
-        const k = "__rmp_notice_test__";
+        const k = "__rmp_nb_test__";
         window.localStorage.setItem(k, "1");
         window.localStorage.removeItem(k);
         return true;
@@ -17,77 +19,88 @@ function canUseStorage() {
     }
 }
 
-const HAS_LOCAL_STORAGE = canUseStorage();
+const HAS_STORAGE = canUseStorage();
 
-function loadNotices() {
-    if (HAS_LOCAL_STORAGE) {
-        try {
-            const raw = window.localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed)) {
-                    memoryNotices = parsed;
-                    return parsed;
-                }
-            }
-        } catch (e) {
-            console.warn("Notice load error:", e);
-        }
-    }
-    return Array.isArray(memoryNotices) ? memoryNotices : [];
+function normalizeNotice(raw, index = 0) {
+    if (!raw || typeof raw !== "object") return null;
+    const title = String(raw.title ?? raw.subject ?? raw.heading ?? "জরুরি বিজ্ঞপ্তি").trim();
+    const body = String(raw.body ?? raw.message ?? raw.text ?? raw.description ?? "").trim();
+    if (!title && !body) return null;
+
+    return {
+        id: String(raw.id ?? `notice_${Date.now()}_${index}`),
+        title: title || "জরুরি বিজ্ঞপ্তি",
+        body,
+        time: String(raw.time ?? raw.timestamp ?? formatNow()),
+        read: Boolean(raw.read)
+    };
 }
 
-function saveNotices(list) {
-    const safeList = Array.isArray(list) ? list : [];
-    memoryNotices = safeList;
-
-    if (HAS_LOCAL_STORAGE) {
-        try {
-            window.localStorage.setItem(STORAGE_KEY, JSON.stringify(safeList));
-        } catch (e) {
-            console.warn("Notice save error:", e);
-        }
-    }
-}
-
-function formatDateTime(date = new Date()) {
+function formatNow(date = new Date()) {
     const pad = n => String(n).padStart(2, "0");
     const dd = pad(date.getDate());
     const mm = pad(date.getMonth() + 1);
     const yyyy = date.getFullYear();
 
-    let hours = date.getHours();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
+    let h = date.getHours();
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
 
-    const min = pad(date.getMinutes());
-    const sec = pad(date.getSeconds());
-    return `${dd}/${mm}/${yyyy} ${pad(hours)}:${min}:${sec} ${ampm}`;
+    return `${dd}/${mm}/${yyyy} ${pad(h)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
 }
 
-// অন্য কোড থেকে নোটিশ যোগ করার জন্য: addNotice("শিরোনাম", "বার্তা")
-export function addNotice(title, body) {
-    const cleanTitle = String(title ?? "").trim();
-    const cleanBody = String(body ?? "").trim();
-    if (!cleanTitle && !cleanBody) return null;
-
-    const list = loadNotices();
-    const item = {
-        id: `notice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
-        body: cleanBody,
-        time: formatDateTime(new Date()),
-        read: false
-    };
-
-    list.unshift(item);
-    saveNotices(list);
-
-    const panel = document.getElementById("noticeInboxPanel");
-    if (panel && typeof panel._rerender === "function") {
-        panel._rerender();
+function readFromKey(key) {
+    if (!HAS_STORAGE) return null;
+    try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return null;
+        return parsed.map((item, idx) => normalizeNotice(item, idx)).filter(Boolean);
+    } catch (e) {
+        console.warn("Notice read error:", key, e);
+        return null;
     }
-    return item;
+}
+
+function loadNotices() {
+    const fromPrimary = readFromKey(PRIMARY_KEY);
+    if (fromPrimary && fromPrimary.length > 0) {
+        memoryNotices = fromPrimary;
+        return fromPrimary;
+    }
+
+    // পুরনো বা অন্য কোড app_notices কি-তে সেভ করলে সেটিও পড়ে নেবে
+    const fromLegacy = readFromKey(LEGACY_KEY);
+    if (fromLegacy && fromLegacy.length > 0) {
+        memoryNotices = fromLegacy;
+        saveNotices(fromLegacy);
+        return fromLegacy;
+    }
+
+    if (Array.isArray(memoryNotices) && memoryNotices.length > 0) {
+        return memoryNotices;
+    }
+
+    return fromPrimary || fromLegacy || [];
+}
+
+function saveNotices(list) {
+    const safe = (Array.isArray(list) ? list : [])
+        .map((item, idx) => normalizeNotice(item, idx))
+        .filter(Boolean);
+
+    memoryNotices = safe;
+
+    if (HAS_STORAGE) {
+        try {
+            const serialized = JSON.stringify(safe);
+            window.localStorage.setItem(PRIMARY_KEY, serialized);
+            window.localStorage.setItem(LEGACY_KEY, serialized);
+        } catch (e) {
+            console.warn("Notice save error:", e);
+        }
+    }
 }
 
 function escapeHTML(str) {
@@ -103,146 +116,282 @@ function escapeHTML(str) {
     );
 }
 
-function injectNoticeStyles() {
-    if (document.getElementById("rmpNoticeBoxMatchedStyles")) return;
+// অন্য কোড থেকে নোটিশ যোগ করার জন্য: addNotice("শিরোনাম", "বার্তা")
+export function addNotice(title, body) {
+    const cleanTitle = String(title ?? "").trim();
+    const cleanBody = String(body ?? "").trim();
+    if (!cleanTitle && !cleanBody) return null;
+
+    const list = loadNotices();
+    const entry = {
+        id: `notice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
+        body: cleanBody,
+        time: formatNow(new Date()),
+        read: false
+    };
+
+    list.unshift(entry);
+    saveNotices(list);
+
+    const panel = document.getElementById("noticeInboxPanel");
+    if (panel && typeof panel._rerenderList === "function") {
+        panel._rerenderList();
+    }
+    return entry;
+}
+
+// অন্য সিস্টেম থেকে ইভেন্ট বা storage পরিবর্তনে নোটিশ ধরার জন্য
+window.addEventListener("app:notice", (e) => {
+    const d = e?.detail || {};
+    if (d.title || d.body) addNotice(d.title, d.body);
+});
+
+window.addEventListener("storage", (e) => {
+    if (e.key === PRIMARY_KEY || e.key === LEGACY_KEY) {
+        loadNotices();
+        const panel = document.getElementById("noticeInboxPanel");
+        if (panel && typeof panel._rerenderList === "function") {
+            panel._rerenderList();
+        }
+    }
+});
+
+function injectStyles() {
+    if (document.getElementById("rmpNoticeInboxMatchedCSS")) return;
 
     const style = document.createElement("style");
-    style.id = "rmpNoticeBoxMatchedStyles";
+    style.id = "rmpNoticeInboxMatchedCSS";
     style.textContent = `
         #noticeInboxPanel {
             position: fixed;
-            inset: 0;
-            z-index: 999999;
-            background: #e9edf2;
-            color: #0f172a;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 48px;
+            z-index: 9990;
+            background: var(--bg-color, #f8fafc);
+            color: var(--text-main, #0f172a);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
             font-family: inherit;
         }
 
-        /* ডার্ক নেভি হেডার (ছবির মতো) */
-        .nb-top-header {
-            background: var(--app-main-color, #020624);
+        /* ডার্ক নেভি হেডার (index.html-এর মত) */
+        .nb-top-wrap {
+            background: var(--app-main-color, var(--primary-color, #020624));
             color: #ffffff;
-            padding: 14px 16px 26px;
+            padding-bottom: 22px;
+            flex-shrink: 0;
+        }
+
+        .nb-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            padding: 12px 16px 8px;
+            gap: 10px;
         }
 
-        .nb-header-main {
+        .nb-header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             min-width: 0;
         }
 
-        .nb-back-circle {
-            width: 38px;
-            height: 38px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.14);
-            background: rgba(255, 255, 255, 0.06);
+        .nb-back-btn {
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             color: #ffffff;
-            font-size: 17px;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            font-size: 16px;
             flex-shrink: 0;
         }
 
-        .nb-header-titles {
+        .nb-title-area {
             min-width: 0;
         }
 
-        .nb-header-title {
+        .nb-title {
             margin: 0;
-            font-size: 20px;
+            font-size: 19px;
             font-weight: 700;
-            line-height: 1.2;
             color: #ffffff;
+            line-height: 1.25;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .nb-header-clock {
-            margin-top: 4px;
-            font-size: 12px;
+        .nb-clock {
+            font-size: 11.5px;
+            color: #cbd5e1;
+            margin-top: 2px;
             letter-spacing: 0.4px;
-            color: rgba(255, 255, 255, 0.72);
+            font-family: monospace;
         }
 
-        .nb-header-emblem {
-            width: 48px;
-            height: 48px;
+        .nb-logo {
+            width: 52px;
+            height: 52px;
             border-radius: 50%;
             object-fit: cover;
-            background: #ffffff;
-            border: 2px solid #eab308;
             flex-shrink: 0;
         }
 
-        /* সাদা রাউন্ডেড কনটেন্ট শিট */
+        /* index.html-এর সার্চ ফিল্ড ডিজাইন */
+        .nb-search-wrap {
+            padding: 4px 16px 4px;
+            width: 78%;
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .nb-search-field {
+            width: 100%;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 12px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 40px;
+            background: rgba(255, 255, 255, 0.11);
+            box-sizing: border-box;
+        }
+
+        .nb-search-icon {
+            color: #cbd5e1;
+            font-size: 20px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .nb-search-input {
+            flex: 1 1 auto;
+            min-width: 0;
+            height: 100%;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: #ffffff;
+            font-size: 13.5px;
+        }
+
+        .nb-search-input::placeholder {
+            color: #cbd5e1;
+            opacity: 1;
+        }
+
+        .nb-search-clear {
+            display: none;
+            width: 22px;
+            height: 22px;
+            border: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            font-size: 16px;
+            line-height: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .nb-search-field.has-value .nb-search-clear {
+            display: inline-block;
+        }
+
+        /* সাদা রাউন্ডেড শিট */
         .nb-sheet {
             flex: 1;
             overflow-y: auto;
-            background: #f1f3f6;
-            border-top-left-radius: 26px;
-            border-top-right-radius: 26px;
+            -webkit-overflow-scrolling: touch;
+            background: var(--bg-color, #f8fafc);
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
             margin-top: -14px;
-            padding: 16px 14px 24px;
+            padding: 16px 14px 28px;
         }
 
-        /* "জরুরি বিজ্ঞপ্তি:" স্ট্রিপ */
-        .nb-notice-strip {
-            background: #ffffff;
+        .nb-strip {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
             border-radius: 14px;
             padding: 6px 12px 6px 6px;
             margin-bottom: 14px;
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 10px;
-            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
         }
 
-        .nb-strip-badge {
+        .nb-strip-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .nb-badge {
             background: #dc2626;
             color: #ffffff;
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 700;
-            padding: 7px 12px;
+            padding: 6px 11px;
             border-radius: 10px;
             white-space: nowrap;
             flex-shrink: 0;
         }
 
-        .nb-strip-sub {
-            font-size: 13px;
-            color: #475569;
-            font-weight: 500;
+        .nb-count-text {
+            font-size: 12.5px;
+            color: var(--text-muted, #64748b);
+            font-weight: 600;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
-        /* ছবির ডেপুটি কমান্ড্যান্ট কার্ডের মতো নোটিশ কার্ড */
-        .nb-item-card {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 16px;
+        .nb-clear-btn {
+            border: none;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 11px;
+            border-radius: 9px;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .nb-card {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 18px;
+            padding: 14px;
             margin-bottom: 12px;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
             display: flex;
             align-items: flex-start;
-            gap: 14px;
-            position: relative;
+            gap: 12px;
+            cursor: pointer;
         }
 
-        .nb-item-card.unread {
-            outline: 1.5px solid rgba(2, 6, 36, 0.16);
+        .nb-card.unread {
+            border-left: 4px solid var(--app-main-color, #020624);
         }
 
-        .nb-item-avatar {
+        .nb-avatar {
             width: 50px;
             height: 50px;
             border-radius: 50%;
@@ -256,27 +405,32 @@ function injectNoticeStyles() {
             margin-top: 2px;
         }
 
-        .nb-item-body-wrap {
+        body.dark-mode .nb-avatar {
+            background: rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+        }
+
+        .nb-content {
             flex: 1;
             min-width: 0;
         }
 
-        .nb-item-head {
+        .nb-card-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
         }
 
-        .nb-item-title {
+        .nb-card-title {
             margin: 0;
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 700;
-            color: #0f172a;
+            color: var(--text-main, #0f172a);
             line-height: 1.3;
         }
 
-        .nb-unread-dot {
+        .nb-new-tag {
             background: #dc2626;
             color: #ffffff;
             font-size: 10.5px;
@@ -286,67 +440,50 @@ function injectNoticeStyles() {
             flex-shrink: 0;
         }
 
-        .nb-item-text {
-            margin: 7px 0 8px;
+        .nb-card-body {
+            margin: 6px 0 8px;
             font-size: 13.5px;
             line-height: 1.55;
-            color: #334155;
+            color: var(--text-muted, #475569);
             white-space: pre-wrap;
             word-break: break-word;
         }
 
-        .nb-item-footer {
+        .nb-card-foot {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
-            font-size: 12px;
-            color: #64748b;
+            font-size: 11.5px;
+            color: var(--text-muted, #64748b);
         }
 
-        .nb-item-del {
+        .nb-del-btn {
             border: none;
-            background: #f1f5f9;
-            color: #64748b;
-            font-size: 12px;
+            background: rgba(239, 68, 68, 0.12);
+            color: #dc2626;
+            font-size: 11.5px;
             font-weight: 700;
-            padding: 4px 9px;
+            padding: 3px 9px;
             border-radius: 8px;
             cursor: pointer;
         }
 
-        .nb-empty-card {
-            background: #ffffff;
-            border-radius: 20px;
-            padding: 36px 18px;
+        .nb-empty {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 18px;
+            padding: 34px 18px;
             text-align: center;
-            color: #64748b;
-            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
-        }
-
-        .nb-bottom-bar {
-            background: #ffffff;
-            border-top: 1px solid #e2e8f0;
-            padding: 10px 16px;
-        }
-
-        .nb-clear-all {
-            width: 100%;
-            padding: 10px 14px;
-            border: none;
-            border-radius: 12px;
-            background: #dc2626;
-            color: #ffffff;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
+            color: var(--text-muted, #64748b);
         }
     `;
     document.head.appendChild(style);
 }
 
 export function openNoticeInbox() {
-    injectNoticeStyles();
+    injectStyles();
+    noticeQuery = "";
 
     let panel = document.getElementById("noticeInboxPanel");
     if (panel) panel.remove();
@@ -356,88 +493,152 @@ export function openNoticeInbox() {
 
     let closedByButton = false;
 
-    function render() {
-        const list = loadNotices();
-        const unreadCount = list.filter(n => !n.read).length;
-
-        const cardsHTML = list.length
-            ? list.map(n => `
-                <article class="nb-item-card ${n.read ? "" : "unread"}" data-id="${escapeHTML(n.id)}">
-                    <div class="nb-item-avatar">📢</div>
-                    <div class="nb-item-body-wrap">
-                        <div class="nb-item-head">
-                            <h3 class="nb-item-title">${escapeHTML(n.title)}</h3>
-                            ${n.read ? "" : `<span class="nb-unread-dot">নতুন</span>`}
-                        </div>
-                        <p class="nb-item-text">${escapeHTML(n.body)}</p>
-                        <div class="nb-item-footer">
-                            <span>🕒 ${escapeHTML(n.time || "")}</span>
-                            <button type="button" class="nb-item-del" data-del="${escapeHTML(n.id)}">মুছুন</button>
-                        </div>
-                    </div>
-                </article>`).join("")
-            : `<div class="nb-empty-card">
-                <div style="font-size:28px;margin-bottom:6px;">📢</div>
-                <div style="font-size:15px;font-weight:700;color:#1e293b;">কোনো নোটিশ নেই</div>
-                <div style="font-size:12.5px;margin-top:4px;">নতুন নোটিশ যুক্ত হলে এখানে কার্ড আকারে দেখাবে।</div>
-            </div>`;
-
-        panel.innerHTML = `
-            <header class="nb-top-header">
-                <div class="nb-header-main">
-                    <button type="button" id="noticeCloseBtn" class="nb-back-circle" aria-label="Back">←</button>
-                    <div class="nb-header-titles">
-                        <h2 class="nb-header-title">নোটিশ বক্স</h2>
-                        <div class="nb-header-clock">${formatDateTime(new Date())}</div>
+    panel.innerHTML = `
+        <div class="nb-top-wrap">
+            <header class="nb-header">
+                <div class="nb-header-left">
+                    <button type="button" id="noticeCloseBtn" class="nb-back-btn" aria-label="Back">←</button>
+                    <div class="nb-title-area">
+                        <h2 class="nb-title">Notice Box</h2>
+                        <div class="nb-clock">${formatNow(new Date())}</div>
                     </div>
                 </div>
-                <img class="nb-header-emblem" src="${escapeHTML(EMBLEM_URL)}" alt="Emblem" onerror="this.style.display='none'">
+                <img class="nb-logo" src="${escapeHTML(LOGO_SRC)}" alt="Logo" onerror="this.style.display='none'">
             </header>
 
-            <div class="nb-sheet">
-                <div class="nb-notice-strip">
-                    <span class="nb-strip-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
-                    <span class="nb-strip-sub">মোট ${list.length}টি নোটিশ${unreadCount ? ` • ${unreadCount}টি নতুন` : ""}</span>
+            <div class="nb-search-wrap">
+                <div id="nbSearchField" class="nb-search-field">
+                    <span class="nb-search-icon" aria-hidden="true">⌕</span>
+                    <input id="nbSearchInput" type="search" class="nb-search-input" placeholder="Search notices..." autocomplete="off">
+                    <button id="nbSearchClear" type="button" class="nb-search-clear" aria-label="Clear">×</button>
                 </div>
-                <div>${cardsHTML}</div>
             </div>
+        </div>
 
-            <div class="nb-bottom-bar">
-                <button type="button" id="noticeClearBtn" class="nb-clear-all">সব নোটিশ মুছুন</button>
+        <div class="nb-sheet">
+            <div class="nb-strip">
+                <div class="nb-strip-left">
+                    <span class="nb-badge">📢 বিজ্ঞপ্তি</span>
+                    <span id="nbCountLabel" class="nb-count-text">লোড হচ্ছে...</span>
+                </div>
+                <button type="button" id="noticeClearBtn" class="nb-clear-btn">সব মুছুন</button>
             </div>
-        `;
+            <div id="nbCardsList"></div>
+        </div>
+    `;
 
-        panel.querySelector("#noticeCloseBtn").onclick = () => closePanel(true);
+    const cardsListEl = panel.querySelector("#nbCardsList");
+    const countLabelEl = panel.querySelector("#nbCountLabel");
+    const searchInput = panel.querySelector("#nbSearchInput");
+    const searchField = panel.querySelector("#nbSearchField");
+    const searchClear = panel.querySelector("#nbSearchClear");
 
-        panel.querySelector("#noticeClearBtn").onclick = () => {
-            if (!loadNotices().length) return;
-            saveNotices([]);
-            render();
-        };
+    function renderList() {
+        const all = loadNotices();
+        const q = noticeQuery.trim().toLowerCase();
+        const filtered = q
+            ? all.filter(n =>
+                (n.title || "").toLowerCase().includes(q) ||
+                (n.body || "").toLowerCase().includes(q) ||
+                (n.time || "").toLowerCase().includes(q)
+            )
+            : all;
 
-        panel.querySelectorAll(".nb-item-card").forEach(card => {
+        const unreadCount = all.filter(n => !n.read).length;
+        countLabelEl.textContent = q
+            ? `${filtered.length}টি মিলেছে (মোট ${all.length}টি)`
+            : `মোট ${all.length}টি${unreadCount ? ` • ${unreadCount}টি নতুন` : ""}`;
+
+        if (!filtered.length) {
+            cardsListEl.innerHTML = `
+                <div class="nb-empty">
+                    <div style="font-size:28px;margin-bottom:6px;">📢</div>
+                    <div style="font-size:15px;font-weight:700;color:var(--text-main,#0f172a);">
+                        ${q ? "কোনো নোটিশ খুঁজে পাওয়া যায়নি" : "কোনো নোটিশ সংরক্ষিত নেই"}
+                    </div>
+                    <div style="font-size:12.5px;margin-top:4px;">
+                        ${q ? "অন্য শব্দ দিয়ে সার্চ করে দেখুন।" : "নতুন নোটিশ যুক্ত হলে এখানে দেখা যাবে।"}
+                    </div>
+                </div>`;
+            return;
+        }
+
+        cardsListEl.innerHTML = filtered.map(n => `
+            <article class="nb-card ${n.read ? "" : "unread"}" data-id="${escapeHTML(n.id)}">
+                <div class="nb-avatar">📢</div>
+                <div class="nb-content">
+                    <div class="nb-card-top">
+                        <h3 class="nb-card-title">${escapeHTML(n.title)}</h3>
+                        ${n.read ? "" : `<span class="nb-new-tag">নতুন</span>`}
+                    </div>
+                    <p class="nb-card-body">${escapeHTML(n.body)}</p>
+                    <div class="nb-card-foot">
+                        <span>🕒 ${escapeHTML(n.time || "")}</span>
+                        <button type="button" class="nb-del-btn" data-del="${escapeHTML(n.id)}">মুছুন</button>
+                    </div>
+                </div>
+            </article>
+        `).join("");
+
+        cardsListEl.querySelectorAll(".nb-card").forEach(card => {
             card.addEventListener("click", () => {
                 const id = card.getAttribute("data-id");
-                saveNotices(loadNotices().map(n => (n.id === id ? { ...n, read: true } : n)));
-                render();
+                const next = loadNotices().map(item =>
+                    item.id === id ? { ...item, read: true } : item
+                );
+                saveNotices(next);
+                renderList();
             });
         });
 
-        panel.querySelectorAll(".nb-item-del").forEach(btn => {
+        cardsListEl.querySelectorAll(".nb-del-btn").forEach(btn => {
             btn.addEventListener("click", (e) => {
                 e.stopPropagation();
                 const delId = btn.getAttribute("data-del");
-                saveNotices(loadNotices().filter(n => n.id !== delId));
-                render();
+                const next = loadNotices().filter(item => item.id !== delId);
+                saveNotices(next);
+                renderList();
             });
         });
     }
 
-    panel._rerender = render;
+    panel._rerenderList = renderList;
+
+    searchInput.addEventListener("input", () => {
+        noticeQuery = searchInput.value;
+        searchField.classList.toggle("has-value", searchInput.value.length > 0);
+        renderList();
+    });
+
+    searchClear.addEventListener("click", () => {
+        noticeQuery = "";
+        searchInput.value = "";
+        searchField.classList.remove("has-value");
+        searchInput.focus();
+        renderList();
+    });
+
+    panel.querySelector("#noticeCloseBtn").onclick = () => closePanel(true);
+
+    panel.querySelector("#noticeClearBtn").onclick = () => {
+        if (!loadNotices().length) return;
+        saveNotices([]);
+        renderList();
+    };
+
+    // নিচের নেভিগেশনের মাঝখানের লোগোতে ক্লিক করলে নোটিশ বক্স বন্ধ হবে
+    const navLogo = document.querySelector(".bottom-nav-logo-circle");
+    const onNavLogoClick = () => {
+        if (document.getElementById("noticeInboxPanel")) {
+            closePanel(true);
+        }
+    };
+    navLogo?.addEventListener("click", onNavLogoClick);
 
     function closePanel(fromButton = false) {
         if (!document.getElementById("noticeInboxPanel")) return;
         window.removeEventListener("popstate", onPop);
+        navLogo?.removeEventListener("click", onNavLogoClick);
         panel.remove();
 
         if (fromButton && window.history.state && window.history.state.page === "notice-box") {
@@ -455,7 +656,7 @@ export function openNoticeInbox() {
     };
 
     document.body.appendChild(panel);
-    render();
+    renderList();
 
     try {
         window.history.pushState({ page: "notice-box" }, "");
