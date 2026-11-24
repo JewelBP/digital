@@ -199,15 +199,30 @@ function injectStyles() {
             font-family: inherit;
         }
 
-        /* নিচের নচ লোগোর নিচে সাদা অংশ ফিক্স */
+        /* নিচের নচ লোগোর কালো/সাদা ওভারল্যাপ ফিক্স */
+        .custom-bottom-nav {
+            z-index: 100000 !important;
+            height: 48px !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-svg {
+            height: 48px !important;
+            filter: none !important;
+            z-index: 1 !important;
+        }
+
         .custom-bottom-nav .bottom-nav-logo-circle {
-            bottom: 12px !important;
             top: auto !important;
-            width: 52px !important;
-            height: 52px !important;
+            bottom: 10px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 54px !important;
+            height: 54px !important;
+            padding: 0 !important;
             background: transparent !important;
             box-shadow: none !important;
-            padding: 0 !important;
+            overflow: hidden !important;
+            z-index: 2 !important;
         }
 
         .custom-bottom-nav .bottom-nav-logo-circle img {
@@ -216,6 +231,7 @@ function injectStyles() {
             border-radius: 50% !important;
             object-fit: cover !important;
             background: transparent !important;
+            display: block !important;
         }
 
         .nb-top-wrap {
