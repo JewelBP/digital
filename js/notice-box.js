@@ -1,13 +1,19 @@
-// js/notice-box.js
-// Notice Box + Bottom Navigation Notch Clean Fix
+// js/notice-box.js  (Clean Notice Box Edition — Based on driving-guide.js structure)
 
-const PRIMARY_KEY = "rmp_app_notices_v1";
+const STORAGE_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
-const LOGO_SRC = "icons/icon-192.png";
+const DEFAULT_NOTICE_IMG = "https://cdn-icons-png.flaticon.com/512/1827/1827301.png";
 const ADMIN_CODE = "admin@jr";
 
+let noticeState = { notices: [] };
 let memoryNotices = [];
-let noticeQuery = "";
+let noticeSearchQuery = "";
+let isNoticeActive = false;
+let prevTitleText = "";
+let prevBackHidden = true;
+let prevMenuHidden = false;
+
+/* ============================== Helpers ============================== */
 
 function canUseStorage() {
     try {
@@ -21,6 +27,53 @@ function canUseStorage() {
 }
 
 const HAS_STORAGE = canUseStorage();
+
+function escapeHTML(str) {
+    return String(str ?? "").replace(
+        /[&<>"']/g,
+        m => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[m])
+    );
+}
+
+function escapeRegExp(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isAdminUser() {
+    return window.currentUserRole === "admin";
+}
+
+function showNoticeToast(msg) {
+    const toast = document.getElementById("toast");
+    if (toast) {
+        toast.textContent = msg;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2400);
+    }
+}
+
+function generateNoticeId() {
+    return `notice_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+}
+
+function formatNow(date = new Date()) {
+    const pad = n => String(n).padStart(2, "0");
+    const dd = pad(date.getDate());
+    const mm = pad(date.getMonth() + 1);
+    const yyyy = date.getFullYear();
+
+    let h = date.getHours();
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+
+    return `${dd}/${mm}/${yyyy} ${pad(h)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
+}
 
 function normalizeNotice(raw, index = 0) {
     if (!raw || typeof raw !== "object") return null;
@@ -40,193 +93,86 @@ function normalizeNotice(raw, index = 0) {
         title: title || "জরুরি বিজ্ঞপ্তি",
         body,
         time: String(raw.time ?? raw.timestamp ?? formatNow()),
-        read: Boolean(raw.read)
+        read: Boolean(raw.read),
+        createdAt: Number(raw.createdAt) || Date.now()
     };
 }
 
-function formatNow(date = new Date()) {
-    const pad = n => String(n).padStart(2, "0");
-
-    const dd = pad(date.getDate());
-    const mm = pad(date.getMonth() + 1);
-    const yyyy = date.getFullYear();
-
-    let h = date.getHours();
-    const ampm = h >= 12 ? "PM" : "AM";
-
-    h = h % 12 || 12;
-
-    return `${dd}/${mm}/${yyyy} ${pad(h)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
-}
+/* ============================== Storage ============================== */
 
 function readFromKey(key) {
     if (!HAS_STORAGE) return null;
-
     try {
         const raw = window.localStorage.getItem(key);
         if (!raw) return null;
-
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return null;
-
-        return parsed
-            .map((item, idx) => normalizeNotice(item, idx))
-            .filter(Boolean);
+        return parsed.map((item, idx) => normalizeNotice(item, idx)).filter(Boolean);
     } catch (e) {
         console.warn("Notice read error:", key, e);
         return null;
     }
 }
 
-function loadNotices() {
-    const fromPrimary = readFromKey(PRIMARY_KEY);
+function loadLocalNotices() {
+    const fromPrimary = readFromKey(STORAGE_KEY);
     if (fromPrimary && fromPrimary.length > 0) {
         memoryNotices = fromPrimary;
+        noticeState = { notices: fromPrimary };
         return fromPrimary;
     }
 
     const fromLegacy = readFromKey(LEGACY_KEY);
     if (fromLegacy && fromLegacy.length > 0) {
         memoryNotices = fromLegacy;
-        saveNotices(fromLegacy);
+        noticeState = { notices: fromLegacy };
+        saveLocalNotices();
         return fromLegacy;
     }
 
     if (Array.isArray(memoryNotices) && memoryNotices.length > 0) {
+        noticeState = { notices: memoryNotices };
         return memoryNotices;
     }
 
-    return fromPrimary || fromLegacy || [];
+    noticeState = { notices: [] };
+    return [];
 }
 
-function saveNotices(list) {
-    const safe = (Array.isArray(list) ? list : [])
+function saveLocalNotices() {
+    const safe = (Array.isArray(noticeState.notices) ? noticeState.notices : [])
         .map((item, idx) => normalizeNotice(item, idx))
         .filter(Boolean);
 
+    noticeState.notices = safe;
     memoryNotices = safe;
 
     if (HAS_STORAGE) {
         try {
             const serialized = JSON.stringify(safe);
-            window.localStorage.setItem(PRIMARY_KEY, serialized);
+            window.localStorage.setItem(STORAGE_KEY, serialized);
             window.localStorage.setItem(LEGACY_KEY, serialized);
         } catch (e) {
-            console.warn("Notice save error:", e);
+            console.error("Notice local save error:", e);
         }
     }
 }
 
-function escapeHTML(str) {
-    return String(str ?? "").replace(
-        /[&<>"']/g,
-        m => ({
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#039;"
-        }[m])
-    );
+async function persistNotices() {
+    saveLocalNotices();
+    renderNoticeBoxInSheet();
+    showNoticeToast("নোটিশ সেভ হয়েছে");
 }
 
-function showAdminButtonIfTyped(value) {
-    if (String(value ?? "").trim().toLowerCase() === ADMIN_CODE) {
-        const adminBtn = document.getElementById("adminLoginBtn");
-        if (adminBtn) {
-            adminBtn.classList.remove("hidden");
-            adminBtn.style.display = "inline-flex";
-            adminBtn.style.alignItems = "center";
-            adminBtn.style.gap = "4px";
-            adminBtn.style.position = "relative";
-            adminBtn.style.zIndex = "100000";
+/* ============================== Styles & Notch Clean Fix ============================== */
 
-            if (!adminBtn.textContent.includes("Admin")) {
-                adminBtn.innerHTML = `🔑 Admin`;
-            }
-        }
-
-        const nbAdminBtn = document.getElementById("nbAdminTriggerBtn");
-        if (nbAdminBtn) {
-            nbAdminBtn.classList.remove("hidden");
-        }
-    }
-}
-
-// অন্য কোড থেকে নোটিশ যোগ করার জন্য
-export function addNotice(title, body) {
-    const cleanTitle = String(title ?? "").trim();
-    const cleanBody = String(body ?? "").trim();
-
-    if (!cleanTitle && !cleanBody) return null;
-
-    const list = loadNotices();
-
-    const entry = {
-        id: `notice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
-        body: cleanBody,
-        time: formatNow(new Date()),
-        read: false
-    };
-
-    list.unshift(entry);
-    saveNotices(list);
-
-    const panel = document.getElementById("noticeInboxPanel");
-    if (panel && typeof panel._rerenderList === "function") {
-        panel._rerenderList();
-    }
-
-    return entry;
-}
-
-window.addEventListener("app:notice", (e) => {
-    const d = e?.detail || {};
-    if (d.title || d.body) {
-        addNotice(d.title, d.body);
-    }
-});
-
-window.addEventListener("storage", (e) => {
-    if (e.key === PRIMARY_KEY || e.key === LEGACY_KEY) {
-        loadNotices();
-        const panel = document.getElementById("noticeInboxPanel");
-        if (panel && typeof panel._rerenderList === "function") {
-            panel._rerenderList();
-        }
-    }
-});
-
-// ======================================
-// STYLE INJECTION
-// ======================================
-
-function injectStyles() {
-    if (document.getElementById("rmpNoticeInboxMatchedCSS")) return;
+function injectNoticeStyles() {
+    if (document.getElementById("noticeBoxModernStyles")) return;
 
     const style = document.createElement("style");
-    style.id = "rmpNoticeInboxMatchedCSS";
-
+    style.id = "noticeBoxModernStyles";
     style.textContent = `
-        #noticeInboxPanel {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 48px;
-            z-index: 9990;
-            background: var(--bg-color, #f8fafc);
-            color: var(--text-main, #0f172a);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            font-family: inherit;
-            isolation: isolate;
-        }
-
-        /* ===== BOTTOM NAV NOTCH CLEAN FIX (NO BLACK ARTIFACTS) ===== */
-
+        /* ===== নেভিগেশন বার নচ ও লোগোর দুপাশের কালো অংশ রিমুভ ===== */
         .custom-bottom-nav {
             position: fixed !important;
             left: 0 !important;
@@ -243,13 +189,11 @@ function injectStyles() {
             isolation: isolate !important;
             -webkit-tap-highlight-color: transparent !important;
         }
-
         .custom-bottom-nav::before,
         .custom-bottom-nav::after {
             display: none !important;
             content: none !important;
         }
-
         .custom-bottom-nav .bottom-nav-svg {
             position: absolute !important;
             inset: 0 !important;
@@ -266,7 +210,6 @@ function injectStyles() {
             -webkit-filter: none !important;
             overflow: visible !important;
         }
-
         .custom-bottom-nav .bottom-nav-svg path,
         .custom-bottom-nav .bottom-nav-svg circle,
         .custom-bottom-nav .bottom-nav-svg rect,
@@ -276,7 +219,6 @@ function injectStyles() {
             stroke: none !important;
             outline: none !important;
         }
-
         .custom-bottom-nav .bottom-nav-logo-circle {
             position: absolute !important;
             top: auto !important;
@@ -308,13 +250,11 @@ function injectStyles() {
             backface-visibility: hidden !important;
             -webkit-backface-visibility: hidden !important;
         }
-
         .custom-bottom-nav .bottom-nav-logo-circle::before,
         .custom-bottom-nav .bottom-nav-logo-circle::after {
             display: none !important;
             content: none !important;
         }
-
         .custom-bottom-nav .bottom-nav-logo-circle img,
         .custom-bottom-nav .bottom-nav-logo-circle svg {
             display: block !important;
@@ -338,285 +278,154 @@ function injectStyles() {
             backface-visibility: hidden !important;
             -webkit-backface-visibility: hidden !important;
         }
-
         .custom-bottom-nav * {
             -webkit-tap-highlight-color: transparent !important;
         }
 
-        /* ===== NOTICE HEADER ===== */
-
-        .nb-top-wrap {
-            background: var(--app-main-color, var(--primary-color, #020624));
-            color: #ffffff;
-            padding-bottom: 24px;
-            flex-shrink: 0;
-        }
-
-        .nb-header {
+        /* ===== NOTICE BOX VIEW ===== */
+        #noticeBoxSheetView {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px 6px;
-            gap: 10px;
+            flex-direction: column;
+            gap: 14px;
+            padding-bottom: 28px;
         }
-
-        .nb-header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
+        #noticeBoxSheetView.hidden {
+            display: none !important;
         }
-
-        .nb-back-btn {
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.18);
-            color: #ffffff;
-            width: 34px;
-            height: 34px;
-            border-radius: 10px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 16px;
-            flex-shrink: 0;
-        }
-
-        .nb-title-area {
-            min-width: 0;
-        }
-
-        .nb-title {
-            margin: 0;
-            font-size: 19px;
-            font-weight: 700;
-            color: #ffffff;
-            line-height: 1.25;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .nb-clock {
-            font-size: 11.5px;
-            color: #cbd5e1;
-            margin-top: 2px;
-            letter-spacing: 0.4px;
-            font-family: monospace;
-        }
-
-        .nb-header-right {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            flex-shrink: 0;
-        }
-
-        .nb-admin-btn {
-            background: rgba(255,255,255,0.14);
-            border: 1px solid rgba(255,255,255,0.25);
-            color: #ffffff;
-            padding: 6px 10px;
-            border-radius: 9px;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .nb-admin-btn.hidden {
+        #noticeBoxSheetView .hidden {
             display: none !important;
         }
 
-        .nb-logo {
-            width: 65px;
-            height: 65px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-left: 4px;
-            flex-shrink: 0;
-        }
-
-        /* ===== SEARCH ===== */
-
-        .nb-search-mini-wrap {
-            padding: 2px 16px 4px;
-            display: flex;
-            justify-content: center;
-        }
-
-        .nb-search-mini-field {
-            width: 100%;
-            max-width: 240px;
-            height: 34px;
+        .nb-action-row {
             display: flex;
             align-items: center;
-            gap: 6px;
-            padding: 0 10px;
-            border: 1px solid rgba(255,255,255,0.24);
-            border-radius: 50px;
-            background: rgba(255,255,255,0.11);
-            box-sizing: border-box;
-            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+            justify-content: space-between;
+            gap: 8px;
         }
-
-        .nb-search-mini-field:focus-within {
-            border-color: rgba(255,255,255,0.55);
-            box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
-        }
-
-        .nb-search-mini-icon {
-            color: #cbd5e1;
-            font-size: 14px;
-            line-height: 1;
-            flex-shrink: 0;
-        }
-
-        .nb-search-mini-input {
-            flex: 1 1 auto;
-            min-width: 0;
-            height: 100% !important;
-            padding: 0 !important;
-            border: 0 !important;
-            outline: 0 !important;
-            background: transparent !important;
-            color: #ffffff !important;
-            font-size: 12.5px;
-            box-shadow: none !important;
-        }
-
-        .nb-search-mini-input::placeholder {
-            color: #cbd5e1 !important;
-            opacity: 1;
+        .nb-result-count {
             font-size: 12px;
-        }
-
-        .nb-search-mini-clear {
-            display: none;
-            width: 18px;
-            height: 18px;
-            padding: 0;
-            border: 0;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.18);
-            color: #ffffff;
-            font-size: 13px;
-            line-height: 16px;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-
-        .nb-search-mini-field.has-value .nb-search-mini-clear {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ===== NOTICE SHEET ===== */
-
-        .nb-sheet {
+            color: #64748b;
+            margin: 0 4px;
             flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            background: var(--bg-color, #f8fafc);
-            border-top-left-radius: 24px;
-            border-top-right-radius: 24px;
-            margin-top: -16px;
-            padding: 16px 14px 28px;
-            position: relative;
-            z-index: 20;
-            box-shadow: 0 -6px 20px rgba(0,0,0,0.12);
+        }
+        body.dark-mode .nb-result-count {
+            color: #94a3b8;
         }
 
-        /* ===== TICKER ===== */
+        .nb-add-btn {
+            background: linear-gradient(135deg, #0ea5e9, #2563eb);
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            padding: 11px 15px;
+            font-size: 13.5px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            box-shadow: 0 6px 16px rgba(14, 165, 233, .38);
+        }
 
         .nb-ticker-bar {
-            background: var(--card-bg, #ffffff);
-            border: 1px solid var(--border-color, #e2e8f0);
-            border-radius: 12px;
-            padding: 5px 10px 5px 6px;
-            margin-bottom: 12px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 6px 10px 6px 6px;
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(2, 6, 36, .06);
             overflow: hidden;
         }
-
+        body.dark-mode .nb-ticker-bar {
+            background: #0f172a;
+            border-color: #1e293b;
+        }
         .nb-ticker-badge {
             background: #dc2626;
             color: #ffffff;
             font-size: 12px;
             font-weight: 700;
             padding: 5px 10px;
-            border-radius: 8px;
+            border-radius: 9px;
             white-space: nowrap;
             flex-shrink: 0;
         }
-
         .nb-ticker-viewport {
             flex: 1;
             min-width: 0;
             overflow: hidden;
             position: relative;
         }
-
         .nb-ticker-track {
             display: inline-block;
             white-space: nowrap;
             font-size: 12.5px;
             font-weight: 600;
-            color: var(--text-main, #0f172a);
+            color: #0f172a;
             padding-left: 100%;
             animation: nbScrollText 14s linear infinite;
         }
-
+        body.dark-mode .nb-ticker-track {
+            color: #f8fafc;
+        }
         .nb-ticker-bar:hover .nb-ticker-track {
             animation-play-state: paused;
         }
-
         @keyframes nbScrollText {
             0% { transform: translateX(0%); }
             100% { transform: translateX(-100%); }
         }
 
-        /* ===== NOTICE CARDS ===== */
-
+        .nb-card-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
         .nb-card {
-            background: var(--card-bg, #ffffff);
-            border: 1px solid var(--border-color, #e2e8f0);
-            border-radius: 18px;
-            padding: 14px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+            position: relative;
             display: flex;
             align-items: flex-start;
             gap: 12px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 14px 14px 14px 18px;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(2, 6, 36, .06);
             cursor: pointer;
         }
-
-        .nb-card.unread {
-            border-left: 4px solid var(--app-main-color, #020624);
+        .nb-card::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            background: linear-gradient(to bottom, #0ea5e9, #2563eb);
+        }
+        .nb-card.unread::before {
+            background: linear-gradient(to bottom, #ef4444, #dc2626);
+        }
+        body.dark-mode .nb-card {
+            background: #0f172a;
+            border-color: #1e293b;
         }
 
         .nb-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: #e2e8f0;
-            color: var(--app-main-color, #020624);
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: rgba(14, 165, 233, .12);
+            color: #0284c7;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 20px;
             flex-shrink: 0;
-            margin-top: 2px;
         }
-
         body.dark-mode .nb-avatar {
-            background: rgba(255,255,255,0.14);
+            background: rgba(255, 255, 255, .14);
             color: #ffffff;
         }
 
@@ -624,315 +433,587 @@ function injectStyles() {
             flex: 1;
             min-width: 0;
         }
-
         .nb-card-top {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
         }
-
         .nb-card-title {
             margin: 0;
             font-size: 16px;
             font-weight: 700;
-            color: var(--text-main, #0f172a);
-            line-height: 1.3;
+            color: #0f172a;
+            line-height: 1.35;
         }
-
+        body.dark-mode .nb-card-title {
+            color: #f8fafc;
+        }
         .nb-new-tag {
             background: #dc2626;
             color: #ffffff;
             font-size: 10.5px;
             font-weight: 700;
-            padding: 2px 7px;
+            padding: 2px 8px;
             border-radius: 999px;
             flex-shrink: 0;
         }
-
         .nb-card-body {
             margin: 6px 0 8px;
             font-size: 13.5px;
-            line-height: 1.55;
-            color: var(--text-muted, #475569);
+            line-height: 1.6;
+            color: #475569;
             white-space: pre-wrap;
             word-break: break-word;
         }
-
+        body.dark-mode .nb-card-body {
+            color: #cbd5e1;
+        }
         .nb-card-foot {
             font-size: 11.5px;
-            color: var(--text-muted, #64748b);
+            color: #64748b;
+        }
+        body.dark-mode .nb-card-foot {
+            color: #94a3b8;
+        }
+
+        .nb-mini-btn {
+            border: none;
+            border-radius: 10px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .nb-mini-btn.del {
+            background: #ef4444;
+            color: #fff;
+        }
+        .nb-mini-btn.tag {
+            background: #0ea5e9;
+            color: #fff;
+        }
+
+        .nb-editor-panel {
+            background: #ffffff;
+            border: 1.5px solid #bae6fd;
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 10px 26px rgba(14, 165, 233, .12);
+        }
+        body.dark-mode .nb-editor-panel {
+            background: #0f172a;
+            border-color: #334155;
+        }
+        .nb-editor-panel input,
+        .nb-editor-panel textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #0f172a;
+            font-size: 14.5px;
+            font-family: inherit;
+        }
+        .nb-editor-panel textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+        body.dark-mode .nb-editor-panel input,
+        body.dark-mode .nb-editor-panel textarea {
+            background: #1e293b;
+            color: #f8fafc;
+            border-color: #334155;
         }
 
         .nb-empty {
-            background: var(--card-bg, #ffffff);
-            border: 1px solid var(--border-color, #e2e8f0);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 18px;
             padding: 34px 18px;
             text-align: center;
-            color: var(--text-muted, #64748b);
+            color: #64748b;
+        }
+        body.dark-mode .nb-empty {
+            background: #0f172a;
+            border-color: #1e293b;
+            color: #94a3b8;
+        }
+
+        .nb-rich mark {
+            background: #fde68a;
+            color: #111827;
+            padding: 0 3px;
+            border-radius: 4px;
         }
     `;
-
     document.head.appendChild(style);
 }
 
-// ======================================
-// OPEN NOTICE INBOX
-// ======================================
+/* ============================== Highlight & Admin Code ============================== */
 
-export function openNoticeInbox() {
-    injectStyles();
+function highlightHTML(html) {
+    if (!noticeSearchQuery) return html;
+    const re = new RegExp(`(${escapeRegExp(escapeHTML(noticeSearchQuery))})`, "gi");
+    return html
+        .split(/(<[^>]+>)/g)
+        .map(seg => (seg.startsWith("<") ? seg : seg.replace(re, "<mark>$1</mark>")))
+        .join("");
+}
 
-    noticeQuery = "";
+function checkAdminCode() {
+    if (noticeSearchQuery !== ADMIN_CODE) return;
+    const btn = document.getElementById("adminLoginBtn");
+    if (btn) {
+        btn.classList.remove("hidden");
+        btn.style.display = "inline-flex";
+    }
+}
 
-    let panel = document.getElementById("noticeInboxPanel");
-    if (panel) panel.remove();
+/* ============================== Layout / Header / History ============================== */
 
-    panel = document.createElement("div");
-    panel.id = "noticeInboxPanel";
+const NOTICE_HIDE_IDS = [
+    "mainDashboardView", "categoryDetailsView", "dataDetailsView",
+    "heroSlider", "searchBox", "subPageHeaderSearchWrapper", "slidingNoticeContainer"
+];
 
-    let closedByButton = false;
+let nbDepth = 0;
+let swallowPop = 0;
+let viewSnapshot = null;
+let searchHandler = null;
+let noticeTitleNow = "";
 
-    panel.innerHTML = `
-        <div class="nb-top-wrap">
-            <header class="nb-header">
-                <div class="nb-header-left">
-                    <button type="button"
-                        id="noticeCloseBtn"
-                        class="nb-back-btn"
-                        aria-label="Back">←</button>
+function ensureSheetContainer() {
+    const sheet = document.getElementById("mainScrollSheet");
+    if (!sheet) return null;
 
-                    <div class="nb-title-area">
-                        <h2 class="nb-title">Notice Box</h2>
-                        <div class="nb-clock">
-                            ${formatNow(new Date())}
-                        </div>
-                    </div>
-                </div>
+    let view = document.getElementById("noticeBoxSheetView");
+    if (!view) {
+        view = document.createElement("div");
+        view.id = "noticeBoxSheetView";
+        view.className = "hidden";
+        const mainEl = sheet.querySelector("main.container") || sheet;
+        mainEl.appendChild(view);
+    }
+    return view;
+}
 
-                <div class="nb-header-right">
-                    <button type="button"
-                        id="nbAdminTriggerBtn"
-                        class="nb-admin-btn hidden">
-                        🔑 Admin
-                    </button>
+function pushNoticeState(level) {
+    try { history.pushState({ nbLevel: level }, "", location.href); } catch (e) { /* ignore */ }
+    nbDepth = level;
+}
 
-                    <img class="nb-logo"
-                        src="${escapeHTML(LOGO_SRC)}"
-                        alt="Logo"
-                        onerror="this.style.display='none'">
-                </div>
-            </header>
+window.addEventListener("popstate", (e) => {
+    if (swallowPop > 0) {
+        swallowPop--;
+        e.stopImmediatePropagation();
+        return;
+    }
+    if (!isNoticeActive) return;
 
-            <div class="nb-search-mini-wrap">
-                <div id="nbSearchField"
-                    class="nb-search-mini-field">
-                    <span class="nb-search-mini-icon"
-                        aria-hidden="true">⌕</span>
+    e.stopImmediatePropagation();
+    const lvl = e.state && typeof e.state.nbLevel === "number" ? e.state.nbLevel : 0;
+    if (lvl >= 1) {
+        nbDepth = lvl;
+        return;
+    }
+    nbDepth = 0;
+    closeNoticeBox(true);
+}, true);
 
-                    <input id="nbSearchInput"
-                        type="search"
-                        class="nb-search-mini-input"
-                        placeholder="Search..."
-                        autocomplete="off">
+function setHeaderBackMode(titleText) {
+    const appTitleText = document.querySelector(".app-title-text");
+    const menuIcon = document.getElementById("menuIcon");
+    const backIcon = document.getElementById("backIcon");
+    const navBtn = document.getElementById("navToggleBtn");
 
-                    <button id="nbSearchClear"
-                        type="button"
-                        class="nb-search-mini-clear"
-                        aria-label="Clear search"
-                        title="Clear search">×</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="nb-sheet">
-            <div class="nb-ticker-bar">
-                <span class="nb-ticker-badge">
-                    📢 জরুরি বিজ্ঞপ্তি:
-                </span>
-
-                <div class="nb-ticker-viewport">
-                    <div id="nbTickerTrack"
-                        class="nb-ticker-track">
-                        কোনো জরুরি নোটিশ নেই
-                    </div>
-                </div>
-            </div>
-
-            <div id="nbCardsList"></div>
-        </div>
-    `;
-
-    const cardsListEl = panel.querySelector("#nbCardsList");
-    const tickerTrackEl = panel.querySelector("#nbTickerTrack");
-    const searchInput = panel.querySelector("#nbSearchInput");
-    const searchField = panel.querySelector("#nbSearchField");
-    const searchClear = panel.querySelector("#nbSearchClear");
-    const nbAdminBtn = panel.querySelector("#nbAdminTriggerBtn");
-
-    nbAdminBtn.addEventListener("click", () => {
-        document.getElementById("adminLoginBtn")?.click();
-    });
-
-    function updateTicker(all, filtered, q) {
-        if (!all.length) {
-            tickerTrackEl.textContent =
-                "কোনো নোটিশ সংরক্ষিত নেই — নতুন নোটিশ আসলে এখানে স্ক্রল করে দেখা যাবে।";
-            return;
-        }
-
-        const summary = q
-            ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
-            : `মোট ${all.length}টি নোটিশ • `;
-
-        const headlines = (filtered.length ? filtered : all)
-            .map(n => `${n.title}: ${n.body || ""}`.trim())
-            .join("   ★   ");
-
-        tickerTrackEl.textContent = `${summary}   •   ${headlines}`;
+    noticeTitleNow = titleText;
+    if (appTitleText) appTitleText.textContent = titleText;
+    if (menuIcon && backIcon) {
+        menuIcon.classList.add("hidden");
+        backIcon.classList.remove("hidden");
     }
 
-    function renderList() {
-        const all = loadNotices();
-        const q = noticeQuery.trim().toLowerCase();
+    if (navBtn && !navBtn.dataset.nbBound) {
+        navBtn.dataset.nbBound = "1";
+        navBtn.addEventListener("click", (e) => {
+            if (!isNoticeActive) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (nbDepth > 0) {
+                history.back();
+            } else {
+                closeNoticeBox();
+            }
+        }, true);
+    }
+}
 
-        const filtered = q
-            ? all.filter(n =>
-                (n.title || "").toLowerCase().includes(q) ||
-                (n.body || "").toLowerCase().includes(q) ||
-                (n.time || "").toLowerCase().includes(q)
-            )
-            : all;
+function captureHeaderState() {
+    const appTitleText = document.querySelector(".app-title-text");
+    const menuIcon = document.getElementById("menuIcon");
+    const backIcon = document.getElementById("backIcon");
+    prevTitleText = appTitleText ? appTitleText.textContent : "";
+    prevMenuHidden = menuIcon ? menuIcon.classList.contains("hidden") : false;
+    prevBackHidden = backIcon ? backIcon.classList.contains("hidden") : true;
+}
 
-        updateTicker(all, filtered, q);
+function restoreHeaderMode() {
+    const appTitleText = document.querySelector(".app-title-text");
+    const menuIcon = document.getElementById("menuIcon");
+    const backIcon = document.getElementById("backIcon");
 
-        if (!filtered.length) {
-            cardsListEl.innerHTML = `
-                <div class="nb-empty">
-                    <div style="font-size:28px;margin-bottom:6px;">📢</div>
-                    <div style="
-                        font-size:15px;
-                        font-weight:700;
-                        color:var(--text-main,#0f172a);
-                    ">
-                        ${q
-                            ? "কোনো নোটিশ খুঁজে পাওয়া যায়নি"
-                            : "কোনো নোটিশ সংরক্ষিত নেই"}
-                    </div>
+    if (appTitleText) appTitleText.textContent = prevTitleText || "RMP MT Contacts";
+    if (menuIcon) menuIcon.classList.toggle("hidden", prevMenuHidden);
+    if (backIcon) backIcon.classList.toggle("hidden", prevBackHidden);
+}
 
-                    <div style="font-size:12.5px;margin-top:4px;">
-                        ${q
-                            ? "অন্য শব্দ দিয়ে সার্চ করে দেখুন।"
-                            : "নতুন নোটিশ যুক্ত হলে এখানে দেখা যাবে।"}
-                    </div>
-                </div>
-            `;
-            return;
+function hideMainViewsForNotice(hide) {
+    if (hide) {
+        viewSnapshot = {};
+        NOTICE_HIDE_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            viewSnapshot[id] = { hidden: el.classList.contains("hidden"), display: el.style.display };
+            el.classList.add("hidden");
+        });
+        const slider = document.getElementById("heroSlider");
+        if (slider) slider.style.display = "none";
+        return;
+    }
+
+    if (!viewSnapshot) return;
+    NOTICE_HIDE_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        const snap = viewSnapshot[id];
+        if (!el || !snap) return;
+        el.classList.toggle("hidden", snap.hidden);
+        el.style.display = snap.display;
+    });
+    viewSnapshot = null;
+}
+
+/* ============================== Header Search ============================== */
+
+function mountHeaderSearch(placeholder) {
+    let wrap = document.getElementById("nbHeaderSearch");
+
+    if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = "nbHeaderSearch";
+        wrap.className = "header-search-inline is-visible";
+        wrap.innerHTML = `
+            <div class="subpage-search-field">
+                <span class="subpage-search-icon" aria-hidden="true">⌕</span>
+                <input id="nbToolbarSearchInput" type="search" autocomplete="off">
+                <button id="nbClearSearchBtn" type="button" class="subpage-search-clear" aria-label="Clear search" title="Clear search">×</button>
+            </div>`;
+
+        const top = document.querySelector(".modern-top-wrapper");
+        const header = top?.querySelector(".modern-header");
+        if (header) {
+            header.insertAdjacentElement("afterend", wrap);
+        } else if (top) {
+            top.appendChild(wrap);
+        } else {
+            const sheet = document.getElementById("mainScrollSheet");
+            if (sheet?.parentElement) sheet.parentElement.insertBefore(wrap, sheet);
+            else document.body.prepend(wrap);
         }
 
-        cardsListEl.innerHTML = filtered.map(n => `
-            <article class="nb-card ${n.read ? "" : "unread"}"
-                data-id="${escapeHTML(n.id)}">
-                <div class="nb-avatar">📢</div>
+        const field = wrap.querySelector(".subpage-search-field");
+        const input = wrap.querySelector("#nbToolbarSearchInput");
+        const clearBtn = wrap.querySelector("#nbClearSearchBtn");
 
-                <div class="nb-content">
-                    <div class="nb-card-top">
-                        <h3 class="nb-card-title">
-                            ${escapeHTML(n.title)}
-                        </h3>
-
-                        ${n.read
-                            ? ""
-                            : `<span class="nb-new-tag">নতুন</span>`}
-                    </div>
-
-                    <p class="nb-card-body">
-                        ${escapeHTML(n.body)}
-                    </p>
-
-                    <div class="nb-card-foot">
-                        <span>🕒 ${escapeHTML(n.time || "")}</span>
-                    </div>
-                </div>
-            </article>
-        `).join("");
-
-        cardsListEl.querySelectorAll(".nb-card").forEach(card => {
-            card.addEventListener("click", () => {
-                const id = card.getAttribute("data-id");
-                const next = loadNotices().map(item =>
-                    item.id === id ? { ...item, read: true } : item
-                );
-                saveNotices(next);
-                renderList();
-            });
+        input.addEventListener("input", () => {
+            noticeSearchQuery = input.value.trim().toLowerCase();
+            field.classList.toggle("has-value", input.value.length > 0);
+            checkAdminCode();
+            if (searchHandler) searchHandler();
+        });
+        clearBtn.addEventListener("click", () => {
+            noticeSearchQuery = "";
+            input.value = "";
+            field.classList.remove("has-value");
+            input.focus();
+            if (searchHandler) searchHandler();
         });
     }
 
-    panel._rerenderList = renderList;
-
-    searchInput.addEventListener("input", () => {
-        noticeQuery = searchInput.value;
-        searchField.classList.toggle("has-value", searchInput.value.length > 0);
-        showAdminButtonIfTyped(searchInput.value);
-        renderList();
-    });
-
-    searchClear.addEventListener("click", () => {
-        noticeQuery = "";
-        searchInput.value = "";
-        searchField.classList.remove("has-value");
-        searchInput.focus();
-        renderList();
-    });
-
-    panel.querySelector("#noticeCloseBtn").onclick = () => {
-        closePanel(true);
-    };
-
-    const navLogo = document.querySelector(".bottom-nav-logo-circle");
-    const onNavLogoClick = () => {
-        if (document.getElementById("noticeInboxPanel")) {
-            closePanel(true);
-        }
-    };
-
-    navLogo?.addEventListener("click", onNavLogoClick);
-
-    function closePanel(fromButton = false) {
-        if (!document.getElementById("noticeInboxPanel")) return;
-
-        window.removeEventListener("popstate", onPop);
-        navLogo?.removeEventListener("click", onNavLogoClick);
-        panel.remove();
-
-        if (
-            fromButton &&
-            window.history.state &&
-            window.history.state.page === "notice-box"
-        ) {
-            closedByButton = true;
-            window.history.back();
-        }
-    }
-
-    const onPop = () => {
-        if (closedByButton) {
-            closedByButton = false;
-            return;
-        }
-        closePanel(false);
-    };
-
-    document.body.appendChild(panel);
-    renderList();
-
-    try {
-        window.history.pushState({ page: "notice-box" }, "");
-        window.addEventListener("popstate", onPop);
-    } catch (e) {}
+    const field = wrap.querySelector(".subpage-search-field");
+    const input = wrap.querySelector("#nbToolbarSearchInput");
+    input.placeholder = placeholder;
+    if (input.value.trim().toLowerCase() !== noticeSearchQuery) input.value = noticeSearchQuery;
+    field.classList.toggle("has-value", input.value.length > 0);
+    wrap.classList.add("is-visible");
+    wrap.classList.remove("hidden");
 }
 
+function unmountHeaderSearch() {
+    document.getElementById("nbHeaderSearch")?.remove();
+    searchHandler = null;
+}
+
+/* ============================== Notice List Render ============================== */
+
+function renderNoticeListView(container, admin) {
+    setHeaderBackMode(noticeTitleNow || "Notice Box");
+    mountHeaderSearch("নোটিশ খুঁজুন...");
+
+    let html = `
+        <div class="nb-action-row">
+            <div id="nbResultCount" class="nb-result-count"></div>
+            ${admin ? `<button id="nbAddNoticeBtn" type="button" class="nb-add-btn">＋ নোটিশ</button>` : ""}
+        </div>
+
+        <div class="nb-ticker-bar">
+            <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
+            <div class="nb-ticker-viewport">
+                <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
+            </div>
+        </div>
+    `;
+
+    if (admin) {
+        html += `
+            <div id="nbNoticeEditor" class="nb-editor-panel hidden">
+                <input id="nbTitleInput" type="text" placeholder="নোটিশের শিরোনাম (যেমন: জরুরি নির্দেশনা)">
+                <textarea id="nbBodyInput" placeholder="নোটিশের বিস্তারিত লিখুন..."></textarea>
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button id="nbCancelBtn" type="button" class="nb-mini-btn del">বাতিল</button>
+                    <button id="nbSaveBtn" type="button" class="nb-mini-btn tag">সেভ করুন</button>
+                </div>
+            </div>`;
+    }
+
+    html += `<div id="nbListArea"></div>`;
+    container.innerHTML = html;
+
+    searchHandler = () => fillNoticeList(admin);
+    fillNoticeList(admin);
+
+    document.getElementById("nbAddNoticeBtn")?.addEventListener("click", () => {
+        const panel = document.getElementById("nbNoticeEditor");
+        if (panel) {
+            panel.classList.remove("hidden");
+            document.getElementById("nbTitleInput").value = "";
+            document.getElementById("nbBodyInput").value = "";
+            document.getElementById("nbTitleInput").focus();
+        }
+    });
+
+    document.getElementById("nbCancelBtn")?.addEventListener("click", () => {
+        document.getElementById("nbNoticeEditor")?.classList.add("hidden");
+    });
+
+    document.getElementById("nbSaveBtn")?.addEventListener("click", async () => {
+        const title = document.getElementById("nbTitleInput")?.value.trim() || "";
+        const body = document.getElementById("nbBodyInput")?.value.trim() || "";
+        if (!title && !body) return showNoticeToast("নোটিশের শিরোনাম বা লেখা লিখুন");
+
+        const entry = {
+            id: generateNoticeId(),
+            title: title || "জরুরি বিজ্ঞপ্তি",
+            body,
+            time: formatNow(new Date()),
+            read: false,
+            createdAt: Date.now()
+        };
+
+        if (!Array.isArray(noticeState.notices)) noticeState.notices = [];
+        noticeState.notices.unshift(entry);
+        await persistNotices();
+    });
+}
+
+function updateTicker(all, filtered, q, trackEl) {
+    if (!trackEl) return;
+    if (!all.length) {
+        trackEl.textContent = "কোনো নোটিশ সংরক্ষিত নেই — নতুন নোটিশ আসলে এখানে স্ক্রল করে দেখা যাবে।";
+        return;
+    }
+
+    const summary = q
+        ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
+        : `মোট ${all.length}টি নোটিশ • `;
+
+    const headlines = (filtered.length ? filtered : all)
+        .map(n => `${n.title}: ${n.body || ""}`.trim())
+        .join("   ★   ");
+
+    trackEl.textContent = `${summary}   •   ${headlines}`;
+}
+
+function fillNoticeList(admin) {
+    const area = document.getElementById("nbListArea");
+    const countEl = document.getElementById("nbResultCount");
+    const tickerEl = document.getElementById("nbTickerTrack");
+    if (!area) return;
+
+    const all = loadLocalNotices();
+    const q = noticeSearchQuery;
+
+    const filtered = q
+        ? all.filter(n =>
+            (n.title || "").toLowerCase().includes(q) ||
+            (n.body || "").toLowerCase().includes(q) ||
+            (n.time || "").toLowerCase().includes(q)
+        )
+        : all;
+
+    if (countEl) {
+        countEl.textContent = q ? `${filtered.length}টি নোটিশ পাওয়া গেছে` : "";
+    }
+    updateTicker(all, filtered, q, tickerEl);
+
+    if (!filtered.length) {
+        area.innerHTML = `
+            <div class="nb-empty">
+                <div style="font-size:28px;margin-bottom:6px;">📢</div>
+                <div style="font-size:15px;font-weight:700;">
+                    ${q ? "কোনো নোটিশ খুঁজে পাওয়া যায়নি" : "কোনো নোটিশ সংরক্ষিত নেই"}
+                </div>
+                <div style="font-size:12.5px;margin-top:4px;">
+                    ${q ? "অন্য শব্দ দিয়ে সার্চ করে দেখুন।" : "নতুন নোটিশ যুক্ত হলে এখানে দেখা যাবে।"}
+                </div>
+            </div>`;
+        return;
+    }
+
+    area.innerHTML = `<div class="nb-card-stack nb-rich">${filtered.map(n => `
+        <article class="nb-card ${n.read ? "" : "unread"}" data-id="${escapeHTML(n.id)}">
+            <div class="nb-avatar">📢</div>
+            <div class="nb-content">
+                <div class="nb-card-top">
+                    <h3 class="nb-card-title">${highlightHTML(escapeHTML(n.title))}</h3>
+                    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                        ${n.read ? "" : `<span class="nb-new-tag">নতুন</span>`}
+                        ${admin ? `<button type="button" class="nb-mini-btn del nb-del-notice" data-id="${escapeHTML(n.id)}">🗑️</button>` : ""}
+                    </div>
+                </div>
+                <p class="nb-card-body">${highlightHTML(escapeHTML(n.body))}</p>
+                <div class="nb-card-foot">
+                    <span>🕒 ${highlightHTML(escapeHTML(n.time || ""))}</span>
+                </div>
+            </div>
+        </article>`).join("")}</div>`;
+
+    area.querySelectorAll(".nb-card").forEach(card => {
+        card.addEventListener("click", () => {
+            const id = card.getAttribute("data-id");
+            noticeState.notices = loadLocalNotices().map(item =>
+                item.id === id ? { ...item, read: true } : item
+            );
+            saveLocalNotices();
+            renderNoticeBoxInSheet();
+        });
+    });
+
+    area.querySelectorAll(".nb-del-notice").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            e.stopPropagation();
+            const id = btn.getAttribute("data-id");
+            if (!confirm("এই নোটিশটি মুছে ফেলবেন?")) return;
+            noticeState.notices = loadLocalNotices().filter(item => item.id !== id);
+            await persistNotices();
+        });
+    });
+}
+
+/* ============================== Public API ============================== */
+
+export function renderNoticeBoxInSheet() {
+    const view = ensureSheetContainer();
+    if (!view) return;
+    renderNoticeListView(view, isAdminUser());
+}
+
+export function openNoticeInbox() {
+    injectNoticeStyles();
+    loadLocalNotices();
+
+    if (!isNoticeActive) {
+        captureHeaderState();
+        hideMainViewsForNotice(true);
+        pushNoticeState(1);
+    }
+
+    isNoticeActive = true;
+    noticeSearchQuery = "";
+    noticeTitleNow = "Notice Box";
+
+    const view = ensureSheetContainer();
+    if (view) {
+        view.classList.remove("hidden");
+        renderNoticeBoxInSheet();
+    }
+}
+
+export function closeNoticeBox(fromPop = false) {
+    if (!isNoticeActive) return;
+
+    if (fromPop !== true && nbDepth > 0) {
+        swallowPop++;
+        try { history.go(-nbDepth); } catch (e) { swallowPop = 0; }
+    }
+    nbDepth = 0;
+    isNoticeActive = false;
+    noticeSearchQuery = "";
+
+    unmountHeaderSearch();
+
+    const view = document.getElementById("noticeBoxSheetView");
+    if (view) {
+        view.classList.add("hidden");
+        view.innerHTML = "";
+    }
+
+    restoreHeaderMode();
+    hideMainViewsForNotice(false);
+}
+
+export function addNotice(title, body) {
+    const cleanTitle = String(title ?? "").trim();
+    const cleanBody = String(body ?? "").trim();
+    if (!cleanTitle && !cleanBody) return null;
+
+    loadLocalNotices();
+    const entry = {
+        id: generateNoticeId(),
+        title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
+        body: cleanBody,
+        time: formatNow(new Date()),
+        read: false,
+        createdAt: Date.now()
+    };
+
+    noticeState.notices.unshift(entry);
+    saveLocalNotices();
+    if (isNoticeActive) renderNoticeBoxInSheet();
+    return entry;
+}
+
+window.addEventListener("app:notice", (e) => {
+    const d = e?.detail || {};
+    if (d.title || d.body) addNotice(d.title, d.body);
+});
+
+window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY || e.key === LEGACY_KEY) {
+        loadLocalNotices();
+        if (isNoticeActive) renderNoticeBoxInSheet();
+    }
+});
+
 window.openNoticeInbox = openNoticeInbox;
+window.closeNoticeBox = () => closeNoticeBox();
 window.addNotice = addNotice;
