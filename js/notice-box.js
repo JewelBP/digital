@@ -1,8 +1,7 @@
-// js/notice-box.js  (Clean Notice Box Edition — Based on driving-guide.js structure)
+// js/notice-box.js  (Clean Notice Box Edition)
 
 const STORAGE_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
-const DEFAULT_NOTICE_IMG = "https://cdn-icons-png.flaticon.com/512/1827/1827301.png";
 const ADMIN_CODE = "admin@jr";
 
 let noticeState = { notices: [] };
@@ -161,7 +160,7 @@ function saveLocalNotices() {
 async function persistNotices() {
     saveLocalNotices();
     renderNoticeBoxInSheet();
-    showNoticeToast("নোটিশ সেভ হয়েছে");
+    showNoticeToast("নোটিশ আপডেট হয়েছে");
 }
 
 /* ============================== Styles & Notch Clean Fix ============================== */
@@ -310,20 +309,6 @@ function injectNoticeStyles() {
         }
         body.dark-mode .nb-result-count {
             color: #94a3b8;
-        }
-
-        .nb-add-btn {
-            background: linear-gradient(135deg, #0ea5e9, #2563eb);
-            color: #fff;
-            border: none;
-            border-radius: 14px;
-            padding: 11px 15px;
-            font-size: 13.5px;
-            font-weight: 700;
-            cursor: pointer;
-            white-space: nowrap;
-            flex-shrink: 0;
-            box-shadow: 0 6px 16px rgba(14, 165, 233, .38);
         }
 
         .nb-ticker-bar {
@@ -492,47 +477,6 @@ function injectNoticeStyles() {
         .nb-mini-btn.del {
             background: #ef4444;
             color: #fff;
-        }
-        .nb-mini-btn.tag {
-            background: #0ea5e9;
-            color: #fff;
-        }
-
-        .nb-editor-panel {
-            background: #ffffff;
-            border: 1.5px solid #bae6fd;
-            border-radius: 20px;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            box-shadow: 0 10px 26px rgba(14, 165, 233, .12);
-        }
-        body.dark-mode .nb-editor-panel {
-            background: #0f172a;
-            border-color: #334155;
-        }
-        .nb-editor-panel input,
-        .nb-editor-panel textarea {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 1px solid #cbd5e1;
-            background: #f8fafc;
-            color: #0f172a;
-            font-size: 14.5px;
-            font-family: inherit;
-        }
-        .nb-editor-panel textarea {
-            min-height: 110px;
-            resize: vertical;
-        }
-        body.dark-mode .nb-editor-panel input,
-        body.dark-mode .nb-editor-panel textarea {
-            background: #1e293b;
-            color: #f8fafc;
-            border-color: #334155;
         }
 
         .nb-empty {
@@ -769,10 +713,9 @@ function renderNoticeListView(container, admin) {
     setHeaderBackMode(noticeTitleNow || "Notice Box");
     mountHeaderSearch("নোটিশ খুঁজুন...");
 
-    let html = `
+    const html = `
         <div class="nb-action-row">
             <div id="nbResultCount" class="nb-result-count"></div>
-            ${admin ? `<button id="nbAddNoticeBtn" type="button" class="nb-add-btn">＋ নোটিশ</button>` : ""}
         </div>
 
         <div class="nb-ticker-bar">
@@ -781,58 +724,14 @@ function renderNoticeListView(container, admin) {
                 <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
             </div>
         </div>
+
+        <div id="nbListArea"></div>
     `;
 
-    if (admin) {
-        html += `
-            <div id="nbNoticeEditor" class="nb-editor-panel hidden">
-                <input id="nbTitleInput" type="text" placeholder="নোটিশের শিরোনাম (যেমন: জরুরি নির্দেশনা)">
-                <textarea id="nbBodyInput" placeholder="নোটিশের বিস্তারিত লিখুন..."></textarea>
-                <div style="display:flex;gap:8px;justify-content:flex-end;">
-                    <button id="nbCancelBtn" type="button" class="nb-mini-btn del">বাতিল</button>
-                    <button id="nbSaveBtn" type="button" class="nb-mini-btn tag">সেভ করুন</button>
-                </div>
-            </div>`;
-    }
-
-    html += `<div id="nbListArea"></div>`;
     container.innerHTML = html;
 
     searchHandler = () => fillNoticeList(admin);
     fillNoticeList(admin);
-
-    document.getElementById("nbAddNoticeBtn")?.addEventListener("click", () => {
-        const panel = document.getElementById("nbNoticeEditor");
-        if (panel) {
-            panel.classList.remove("hidden");
-            document.getElementById("nbTitleInput").value = "";
-            document.getElementById("nbBodyInput").value = "";
-            document.getElementById("nbTitleInput").focus();
-        }
-    });
-
-    document.getElementById("nbCancelBtn")?.addEventListener("click", () => {
-        document.getElementById("nbNoticeEditor")?.classList.add("hidden");
-    });
-
-    document.getElementById("nbSaveBtn")?.addEventListener("click", async () => {
-        const title = document.getElementById("nbTitleInput")?.value.trim() || "";
-        const body = document.getElementById("nbBodyInput")?.value.trim() || "";
-        if (!title && !body) return showNoticeToast("নোটিশের শিরোনাম বা লেখা লিখুন");
-
-        const entry = {
-            id: generateNoticeId(),
-            title: title || "জরুরি বিজ্ঞপ্তি",
-            body,
-            time: formatNow(new Date()),
-            read: false,
-            createdAt: Date.now()
-        };
-
-        if (!Array.isArray(noticeState.notices)) noticeState.notices = [];
-        noticeState.notices.unshift(entry);
-        await persistNotices();
-    });
 }
 
 function updateTicker(all, filtered, q, trackEl) {
