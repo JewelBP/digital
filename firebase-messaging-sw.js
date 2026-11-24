@@ -14,6 +14,23 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+    event?.waitUntil?.(
+        clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+            clientList.forEach((client) => {
+                client.postMessage({
+                    type: "FCM_NOTICE",
+                    from: "firebase-messaging-sw",
+                    payload: {
+                        id: payload.messageId || payload.fcmMessageId || "",
+                        title,
+                        body: options.body || ""
+                    }
+                });
+            });
+        })
+    );
+
+
 messaging.onBackgroundMessage((payload) => {
     const d = payload.data || {};
     const title = payload.notification?.title || d.title || "New notification";
