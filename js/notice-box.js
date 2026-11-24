@@ -654,17 +654,24 @@ function handleDrawerAction(action) {
                 window.location.reload();
             });
             break;
-        case "notice-box":
+                case "notice-box":
             if (typeof window.openNoticeInbox === "function") {
                 window.openNoticeInbox();
             } else {
-                import("./notice-box.js").then(mod => {
-                    mod.openNoticeInbox();
-                }).catch(err => {
-                    console.error("Notice Box load error:", err);
-                });
+                import("./js/notice-box.js")
+                    .catch(() => import("./notice-box.js"))
+                    .then(mod => {
+                        if (mod && typeof mod.openNoticeInbox === "function") {
+                            mod.openNoticeInbox();
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Notice Box load error:", err);
+                        showDrawerDialog("Notice Box ফাইলটি লোড করা যাচ্ছে না।", "ত্রুটি");
+                    });
             }
             break;
+
         case "share":
             if (navigator.share) {
                 navigator.share({
