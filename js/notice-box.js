@@ -1,8 +1,7 @@
-// js/notice-box.js  (Clean Notice Box Edition — Category/Sub-category Matched)
+// js/notice-box.js  (Clean Notice Box Edition — Matched with driving-guide.js style)
 
 const STORAGE_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
-const ADMIN_CODE = "admin@jr";
 
 let noticeState = { notices: [] };
 let memoryNotices = [];
@@ -305,13 +304,14 @@ function injectNoticeStyles() {
             display: none;
         }
 
-        /* জরুরি বিজ্ঞপ্তি টিকার — আরও উপরের দিকে তোলা */
+        /* জরুরি বিজ্ঞপ্তি টিকার — আরও উপরের দিকে তোলা ও হাইট বৃদ্ধি */
         .nb-ticker-bar {
             background: var(--card-bg, #ffffff);
             border: 1px solid var(--border-color, #e2e8f0);
             border-radius: 14px;
             margin: 0 0 4px 0;
-            padding: 6px 10px 6px 8px;
+            min-height: 44px;
+            padding: 8px 12px 8px 8px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -327,21 +327,27 @@ function injectNoticeStyles() {
             color: #ffffff;
             font-size: 12px;
             font-weight: 700;
-            padding: 4px 9px;
-            border-radius: 8px;
+            padding: 6px 10px;
+            border-radius: 9px;
             white-space: nowrap;
             flex-shrink: 0;
         }
         .nb-ticker-viewport {
             flex: 1;
             min-width: 0;
+            height: 28px;
+            display: flex;
+            align-items: center;
             overflow: hidden;
             position: relative;
         }
         .nb-ticker-track {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            height: 28px;
+            line-height: 28px;
             white-space: nowrap;
-            font-size: 12.5px;
+            font-size: 13.5px;
             font-weight: 600;
             color: var(--text-main, #0f172a);
             padding-left: 100%;
@@ -502,7 +508,7 @@ function highlightHTML(html) {
 }
 
 function checkAdminCode() {
-    if (noticeSearchQuery !== ADMIN_CODE) return;
+    if (noticeSearchQuery !== "admin@jr") return;
     const btn = document.getElementById("adminLoginBtn");
     if (btn) {
         btn.classList.remove("hidden");
