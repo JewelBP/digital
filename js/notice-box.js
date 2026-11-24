@@ -1,5 +1,6 @@
+
 // js/notice-box.js
-// ড্রয়ারের "Notice Box" ক্লিক করলে drawer.js এই ফাইলটি লোড করে openNoticeInbox() চালায়।
+// Notice Box + Bottom Navigation Notch Fix
 
 const PRIMARY_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
@@ -24,8 +25,15 @@ const HAS_STORAGE = canUseStorage();
 
 function normalizeNotice(raw, index = 0) {
     if (!raw || typeof raw !== "object") return null;
-    const title = String(raw.title ?? raw.subject ?? raw.heading ?? "জরুরি বিজ্ঞপ্তি").trim();
-    const body = String(raw.body ?? raw.message ?? raw.text ?? raw.description ?? "").trim();
+
+    const title = String(
+        raw.title ?? raw.subject ?? raw.heading ?? "জরুরি বিজ্ঞপ্তি"
+    ).trim();
+
+    const body = String(
+        raw.body ?? raw.message ?? raw.text ?? raw.description ?? ""
+    ).trim();
+
     if (!title && !body) return null;
 
     return {
@@ -39,12 +47,14 @@ function normalizeNotice(raw, index = 0) {
 
 function formatNow(date = new Date()) {
     const pad = n => String(n).padStart(2, "0");
+
     const dd = pad(date.getDate());
     const mm = pad(date.getMonth() + 1);
     const yyyy = date.getFullYear();
 
     let h = date.getHours();
     const ampm = h >= 12 ? "PM" : "AM";
+
     h = h % 12 || 12;
 
     return `${dd}/${mm}/${yyyy} ${pad(h)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
@@ -52,12 +62,20 @@ function formatNow(date = new Date()) {
 
 function readFromKey(key) {
     if (!HAS_STORAGE) return null;
+
     try {
         const raw = window.localStorage.getItem(key);
+
         if (!raw) return null;
+
         const parsed = JSON.parse(raw);
+
         if (!Array.isArray(parsed)) return null;
-        return parsed.map((item, idx) => normalizeNotice(item, idx)).filter(Boolean);
+
+        return parsed
+            .map((item, idx) => normalizeNotice(item, idx))
+            .filter(Boolean);
+
     } catch (e) {
         console.warn("Notice read error:", key, e);
         return null;
@@ -66,12 +84,14 @@ function readFromKey(key) {
 
 function loadNotices() {
     const fromPrimary = readFromKey(PRIMARY_KEY);
+
     if (fromPrimary && fromPrimary.length > 0) {
         memoryNotices = fromPrimary;
         return fromPrimary;
     }
 
     const fromLegacy = readFromKey(LEGACY_KEY);
+
     if (fromLegacy && fromLegacy.length > 0) {
         memoryNotices = fromLegacy;
         saveNotices(fromLegacy);
@@ -95,8 +115,10 @@ function saveNotices(list) {
     if (HAS_STORAGE) {
         try {
             const serialized = JSON.stringify(safe);
+
             window.localStorage.setItem(PRIMARY_KEY, serialized);
             window.localStorage.setItem(LEGACY_KEY, serialized);
+
         } catch (e) {
             console.warn("Notice save error:", e);
         }
@@ -118,7 +140,9 @@ function escapeHTML(str) {
 
 function showAdminButtonIfTyped(value) {
     if (String(value ?? "").trim().toLowerCase() === ADMIN_CODE) {
+
         const adminBtn = document.getElementById("adminLoginBtn");
+
         if (adminBtn) {
             adminBtn.classList.remove("hidden");
             adminBtn.style.display = "inline-flex";
@@ -126,25 +150,30 @@ function showAdminButtonIfTyped(value) {
             adminBtn.style.gap = "4px";
             adminBtn.style.position = "relative";
             adminBtn.style.zIndex = "100000";
+
             if (!adminBtn.textContent.includes("Admin")) {
                 adminBtn.innerHTML = `🔑 Admin`;
             }
         }
 
         const nbAdminBtn = document.getElementById("nbAdminTriggerBtn");
+
         if (nbAdminBtn) {
             nbAdminBtn.classList.remove("hidden");
         }
     }
 }
 
-// অন্য কোড থেকে নোটিশ যোগ করার জন্য: addNotice("শিরোনাম", "বার্তা")
+// অন্য কোড থেকে নোটিশ যোগ করার জন্য
 export function addNotice(title, body) {
+
     const cleanTitle = String(title ?? "").trim();
     const cleanBody = String(body ?? "").trim();
+
     if (!cleanTitle && !cleanBody) return null;
 
     const list = loadNotices();
+
     const entry = {
         id: `notice_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
@@ -154,36 +183,56 @@ export function addNotice(title, body) {
     };
 
     list.unshift(entry);
+
     saveNotices(list);
 
     const panel = document.getElementById("noticeInboxPanel");
+
     if (panel && typeof panel._rerenderList === "function") {
         panel._rerenderList();
     }
+
     return entry;
 }
 
 window.addEventListener("app:notice", (e) => {
+
     const d = e?.detail || {};
-    if (d.title || d.body) addNotice(d.title, d.body);
+
+    if (d.title || d.body) {
+        addNotice(d.title, d.body);
+    }
 });
 
 window.addEventListener("storage", (e) => {
+
     if (e.key === PRIMARY_KEY || e.key === LEGACY_KEY) {
+
         loadNotices();
+
         const panel = document.getElementById("noticeInboxPanel");
+
         if (panel && typeof panel._rerenderList === "function") {
             panel._rerenderList();
         }
     }
 });
 
+
+// ======================================
+// STYLE INJECTION
+// ======================================
+
 function injectStyles() {
+
     if (document.getElementById("rmpNoticeInboxMatchedCSS")) return;
 
     const style = document.createElement("style");
+
     style.id = "rmpNoticeInboxMatchedCSS";
+
     style.textContent = `
+
         #noticeInboxPanel {
             position: fixed;
             top: 0;
@@ -197,21 +246,46 @@ function injectStyles() {
             flex-direction: column;
             overflow: hidden;
             font-family: inherit;
+            isolation: isolate;
         }
 
-        /* নিচের নচ লোগোর কালো/সাদা ওভারল্যাপ ফিক্স */
+        /* ===== BOTTOM NAV NOTCH BLACK LINE FIX ===== */
+
         .custom-bottom-nav {
+            position: fixed !important;
             z-index: 100000 !important;
             height: 48px !important;
+            isolation: isolate !important;
+            overflow: visible !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
         }
 
         .custom-bottom-nav .bottom-nav-svg {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
             height: 48px !important;
+            display: block !important;
             filter: none !important;
+            box-shadow: none !important;
+            border: none !important;
+            outline: none !important;
             z-index: 1 !important;
+            overflow: visible !important;
+            background: transparent !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-svg path {
+            filter: none !important;
+            stroke: none !important;
+            outline: none !important;
         }
 
         .custom-bottom-nav .bottom-nav-logo-circle {
+            position: absolute !important;
             top: auto !important;
             bottom: 10px !important;
             left: 50% !important;
@@ -219,20 +293,42 @@ function injectStyles() {
             width: 54px !important;
             height: 54px !important;
             padding: 0 !important;
+            margin: 0 !important;
             background: transparent !important;
+            border: none !important;
+            outline: none !important;
             box-shadow: none !important;
+            filter: none !important;
             overflow: hidden !important;
             z-index: 2 !important;
+            isolation: isolate !important;
         }
 
         .custom-bottom-nav .bottom-nav-logo-circle img {
+            display: block !important;
             width: 100% !important;
             height: 100% !important;
-            border-radius: 50% !important;
             object-fit: cover !important;
+            border-radius: 50% !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
             background: transparent !important;
-            display: block !important;
+            filter: none !important;
         }
+
+        .custom-bottom-nav,
+        .custom-bottom-nav * {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-logo-circle,
+        .custom-bottom-nav .bottom-nav-logo-circle img {
+            backface-visibility: hidden !important;
+            -webkit-backface-visibility: hidden !important;
+        }
+
+        /* ===== NOTICE HEADER ===== */
 
         .nb-top-wrap {
             background: var(--app-main-color, var(--primary-color, #020624));
@@ -257,8 +353,8 @@ function injectStyles() {
         }
 
         .nb-back-btn {
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.18);
             color: #ffffff;
             width: 34px;
             height: 34px;
@@ -302,8 +398,8 @@ function injectStyles() {
         }
 
         .nb-admin-btn {
-            background: rgba(255, 255, 255, 0.14);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(255,255,255,0.14);
+            border: 1px solid rgba(255,255,255,0.25);
             color: #ffffff;
             padding: 6px 10px;
             border-radius: 9px;
@@ -328,7 +424,8 @@ function injectStyles() {
             flex-shrink: 0;
         }
 
-        /* ছোট কম্প্যাক্ট সার্চ উইজেট */
+        /* ===== SEARCH ===== */
+
         .nb-search-mini-wrap {
             padding: 2px 16px 4px;
             display: flex;
@@ -343,16 +440,16 @@ function injectStyles() {
             align-items: center;
             gap: 6px;
             padding: 0 10px;
-            border: 1px solid rgba(255, 255, 255, 0.24);
+            border: 1px solid rgba(255,255,255,0.24);
             border-radius: 50px;
-            background: rgba(255, 255, 255, 0.11);
+            background: rgba(255,255,255,0.11);
             box-sizing: border-box;
             transition: border-color 0.25s ease, box-shadow 0.25s ease;
         }
 
         .nb-search-mini-field:focus-within {
-            border-color: rgba(255, 255, 255, 0.55);
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+            border-color: rgba(255,255,255,0.55);
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
         }
 
         .nb-search-mini-icon {
@@ -388,7 +485,7 @@ function injectStyles() {
             padding: 0;
             border: 0;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.18);
+            background: rgba(255,255,255,0.18);
             color: #ffffff;
             font-size: 13px;
             line-height: 16px;
@@ -402,6 +499,8 @@ function injectStyles() {
             justify-content: center;
         }
 
+        /* ===== NOTICE SHEET ===== */
+
         .nb-sheet {
             flex: 1;
             overflow-y: auto;
@@ -413,10 +512,11 @@ function injectStyles() {
             padding: 16px 14px 28px;
             position: relative;
             z-index: 20;
-            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 -6px 20px rgba(0,0,0,0.12);
         }
 
-        /* ক্যাটাগরি/সাব-ক্যাটাগরির মতো টেক্সট স্ক্রল বার */
+        /* ===== TICKER ===== */
+
         .nb-ticker-bar {
             background: var(--card-bg, #ffffff);
             border: 1px solid var(--border-color, #e2e8f0);
@@ -426,7 +526,7 @@ function injectStyles() {
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
             overflow: hidden;
         }
 
@@ -467,13 +567,15 @@ function injectStyles() {
             100% { transform: translateX(-100%); }
         }
 
+        /* ===== NOTICE CARDS ===== */
+
         .nb-card {
             background: var(--card-bg, #ffffff);
             border: 1px solid var(--border-color, #e2e8f0);
             border-radius: 18px;
             padding: 14px;
             margin-bottom: 12px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.06);
             display: flex;
             align-items: flex-start;
             gap: 12px;
@@ -499,7 +601,7 @@ function injectStyles() {
         }
 
         body.dark-mode .nb-avatar {
-            background: rgba(255, 255, 255, 0.14);
+            background: rgba(255,255,255,0.14);
             color: #ffffff;
         }
 
@@ -556,14 +658,23 @@ function injectStyles() {
             color: var(--text-muted, #64748b);
         }
     `;
+
     document.head.appendChild(style);
 }
 
+
+// ======================================
+// OPEN NOTICE INBOX
+// ======================================
+
 export function openNoticeInbox() {
+
     injectStyles();
+
     noticeQuery = "";
 
     let panel = document.getElementById("noticeInboxPanel");
+
     if (panel) panel.remove();
 
     panel = document.createElement("div");
@@ -572,38 +683,94 @@ export function openNoticeInbox() {
     let closedByButton = false;
 
     panel.innerHTML = `
+
         <div class="nb-top-wrap">
+
             <header class="nb-header">
+
                 <div class="nb-header-left">
-                    <button type="button" id="noticeCloseBtn" class="nb-back-btn" aria-label="Back">←</button>
+
+                    <button type="button"
+                        id="noticeCloseBtn"
+                        class="nb-back-btn"
+                        aria-label="Back">←</button>
+
                     <div class="nb-title-area">
+
                         <h2 class="nb-title">Notice Box</h2>
-                        <div class="nb-clock">${formatNow(new Date())}</div>
+
+                        <div class="nb-clock">
+                            ${formatNow(new Date())}
+                        </div>
+
                     </div>
+
                 </div>
+
                 <div class="nb-header-right">
-                    <button type="button" id="nbAdminTriggerBtn" class="nb-admin-btn hidden">🔑 Admin</button>
-                    <img class="nb-logo" src="${escapeHTML(LOGO_SRC)}" alt="Logo" onerror="this.style.display='none'">
+
+                    <button type="button"
+                        id="nbAdminTriggerBtn"
+                        class="nb-admin-btn hidden">
+                        🔑 Admin
+                    </button>
+
+                    <img class="nb-logo"
+                        src="${escapeHTML(LOGO_SRC)}"
+                        alt="Logo"
+                        onerror="this.style.display='none'">
+
                 </div>
+
             </header>
 
             <div class="nb-search-mini-wrap">
-                <div id="nbSearchField" class="nb-search-mini-field">
-                    <span class="nb-search-mini-icon" aria-hidden="true">⌕</span>
-                    <input id="nbSearchInput" type="search" class="nb-search-mini-input" placeholder="Search..." autocomplete="off">
-                    <button id="nbSearchClear" type="button" class="nb-search-mini-clear" aria-label="Clear search" title="Clear search">×</button>
+
+                <div id="nbSearchField"
+                    class="nb-search-mini-field">
+
+                    <span class="nb-search-mini-icon"
+                        aria-hidden="true">⌕</span>
+
+                    <input id="nbSearchInput"
+                        type="search"
+                        class="nb-search-mini-input"
+                        placeholder="Search..."
+                        autocomplete="off">
+
+                    <button id="nbSearchClear"
+                        type="button"
+                        class="nb-search-mini-clear"
+                        aria-label="Clear search"
+                        title="Clear search">×</button>
+
                 </div>
+
             </div>
+
         </div>
 
         <div class="nb-sheet">
+
             <div class="nb-ticker-bar">
-                <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
+
+                <span class="nb-ticker-badge">
+                    📢 জরুরি বিজ্ঞপ্তি:
+                </span>
+
                 <div class="nb-ticker-viewport">
-                    <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
+
+                    <div id="nbTickerTrack"
+                        class="nb-ticker-track">
+                        কোনো জরুরি নোটিশ নেই
+                    </div>
+
                 </div>
+
             </div>
+
             <div id="nbCardsList"></div>
+
         </div>
     `;
 
@@ -618,23 +785,36 @@ export function openNoticeInbox() {
         document.getElementById("adminLoginBtn")?.click();
     });
 
+
     function updateTicker(all, filtered, q) {
+
         if (!all.length) {
-            tickerTrackEl.textContent = "কোনো নোটিশ সংরক্ষিত নেই — নতুন নোটিশ আসলে এখানে স্ক্রল করে দেখা যাবে।";
+
+            tickerTrackEl.textContent =
+                "কোনো নোটিশ সংরক্ষিত নেই — নতুন নোটিশ আসলে এখানে স্ক্রল করে দেখা যাবে।";
+
             return;
         }
+
         const summary = q
             ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
             : `মোট ${all.length}টি নোটিশ • `;
+
         const headlines = (filtered.length ? filtered : all)
             .map(n => `${n.title}: ${n.body || ""}`.trim())
             .join("   ★   ");
-        tickerTrackEl.textContent = `${summary}   •   ${headlines}`;
+
+        tickerTrackEl.textContent =
+            `${summary}   •   ${headlines}`;
     }
 
+
     function renderList() {
+
         const all = loadNotices();
+
         const q = noticeQuery.trim().toLowerCase();
+
         const filtered = q
             ? all.filter(n =>
                 (n.title || "").toLowerCase().includes(q) ||
@@ -646,102 +826,203 @@ export function openNoticeInbox() {
         updateTicker(all, filtered, q);
 
         if (!filtered.length) {
+
             cardsListEl.innerHTML = `
+
                 <div class="nb-empty">
-                    <div style="font-size:28px;margin-bottom:6px;">📢</div>
-                    <div style="font-size:15px;font-weight:700;color:var(--text-main,#0f172a);">
-                        ${q ? "কোনো নোটিশ খুঁজে পাওয়া যায়নি" : "কোনো নোটিশ সংরক্ষিত নেই"}
+
+                    <div style="font-size:28px;margin-bottom:6px;">
+                        📢
                     </div>
+
+                    <div style="
+                        font-size:15px;
+                        font-weight:700;
+                        color:var(--text-main,#0f172a);
+                    ">
+
+                        ${q
+                            ? "কোনো নোটিশ খুঁজে পাওয়া যায়নি"
+                            : "কোনো নোটিশ সংরক্ষিত নেই"}
+
+                    </div>
+
                     <div style="font-size:12.5px;margin-top:4px;">
-                        ${q ? "অন্য শব্দ দিয়ে সার্চ করে দেখুন।" : "নতুন নোটিশ যুক্ত হলে এখানে দেখা যাবে।"}
+
+                        ${q
+                            ? "অন্য শব্দ দিয়ে সার্চ করে দেখুন।"
+                            : "নতুন নোটিশ যুক্ত হলে এখানে দেখা যাবে।"}
+
                     </div>
-                </div>`;
+
+                </div>
+            `;
+
             return;
         }
 
         cardsListEl.innerHTML = filtered.map(n => `
-            <article class="nb-card ${n.read ? "" : "unread"}" data-id="${escapeHTML(n.id)}">
+
+            <article class="nb-card ${n.read ? "" : "unread"}"
+                data-id="${escapeHTML(n.id)}">
+
                 <div class="nb-avatar">📢</div>
+
                 <div class="nb-content">
+
                     <div class="nb-card-top">
-                        <h3 class="nb-card-title">${escapeHTML(n.title)}</h3>
-                        ${n.read ? "" : `<span class="nb-new-tag">নতুন</span>`}
+
+                        <h3 class="nb-card-title">
+                            ${escapeHTML(n.title)}
+                        </h3>
+
+                        ${n.read
+                            ? ""
+                            : `<span class="nb-new-tag">নতুন</span>`}
+
                     </div>
-                    <p class="nb-card-body">${escapeHTML(n.body)}</p>
+
+                    <p class="nb-card-body">
+                        ${escapeHTML(n.body)}
+                    </p>
+
                     <div class="nb-card-foot">
+
                         <span>🕒 ${escapeHTML(n.time || "")}</span>
+
                     </div>
+
                 </div>
+
             </article>
+
         `).join("");
 
+
         cardsListEl.querySelectorAll(".nb-card").forEach(card => {
+
             card.addEventListener("click", () => {
+
                 const id = card.getAttribute("data-id");
+
                 const next = loadNotices().map(item =>
-                    item.id === id ? { ...item, read: true } : item
+                    item.id === id
+                        ? { ...item, read: true }
+                        : item
                 );
+
                 saveNotices(next);
+
                 renderList();
             });
+
         });
     }
 
+
     panel._rerenderList = renderList;
 
+
     searchInput.addEventListener("input", () => {
+
         noticeQuery = searchInput.value;
-        searchField.classList.toggle("has-value", searchInput.value.length > 0);
+
+        searchField.classList.toggle(
+            "has-value",
+            searchInput.value.length > 0
+        );
+
         showAdminButtonIfTyped(searchInput.value);
+
         renderList();
     });
+
 
     searchClear.addEventListener("click", () => {
+
         noticeQuery = "";
+
         searchInput.value = "";
+
         searchField.classList.remove("has-value");
+
         searchInput.focus();
+
         renderList();
     });
 
-    panel.querySelector("#noticeCloseBtn").onclick = () => closePanel(true);
+
+    panel.querySelector("#noticeCloseBtn").onclick = () => {
+        closePanel(true);
+    };
+
 
     const navLogo = document.querySelector(".bottom-nav-logo-circle");
+
     const onNavLogoClick = () => {
+
         if (document.getElementById("noticeInboxPanel")) {
             closePanel(true);
         }
     };
+
     navLogo?.addEventListener("click", onNavLogoClick);
 
+
     function closePanel(fromButton = false) {
+
         if (!document.getElementById("noticeInboxPanel")) return;
+
         window.removeEventListener("popstate", onPop);
+
         navLogo?.removeEventListener("click", onNavLogoClick);
+
         panel.remove();
 
-        if (fromButton && window.history.state && window.history.state.page === "notice-box") {
+        if (
+            fromButton &&
+            window.history.state &&
+            window.history.state.page === "notice-box"
+        ) {
+
             closedByButton = true;
+
             window.history.back();
         }
     }
 
+
     const onPop = () => {
+
         if (closedByButton) {
+
             closedByButton = false;
+
             return;
         }
+
         closePanel(false);
     };
 
+
     document.body.appendChild(panel);
+
     renderList();
 
+
     try {
-        window.history.pushState({ page: "notice-box" }, "");
+
+        window.history.pushState(
+            { page: "notice-box" },
+            ""
+        );
+
         window.addEventListener("popstate", onPop);
+
     } catch (e) {}
+
 }
+
 
 window.openNoticeInbox = openNoticeInbox;
 window.addNotice = addNotice;
