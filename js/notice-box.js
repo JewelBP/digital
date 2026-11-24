@@ -4,7 +4,7 @@
 const PRIMARY_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
 const LOGO_SRC = "icons/icon-192.png";
-const ADMIN_CODE = "admin@jr";
+const ADMIN_SECRET = "admin@jr";
 
 let memoryNotices = [];
 let noticeQuery = "";
@@ -116,12 +116,29 @@ function escapeHTML(str) {
     );
 }
 
-function showAdminButtonIfTyped(value) {
-    if (String(value ?? "").trim().toLowerCase() === ADMIN_CODE) {
-        const adminBtn = document.getElementById("adminLoginBtn");
-        if (adminBtn) {
-            adminBtn.classList.remove("hidden");
+/* ================= Admin@jr বাটন শো করার লজিক ================= */
+function checkAdminSecret(rawText) {
+    const typed = String(rawText ?? "").trim().toLowerCase();
+    if (typed !== ADMIN_SECRET) return;
+
+    // ১) মূল অ্যাপের #adminLoginBtn থাকলে সেটিকে লুকানো অবস্থা থেকে দেখানো
+    const appAdminBtn = document.getElementById("adminLoginBtn");
+    if (appAdminBtn) {
+        appAdminBtn.classList.remove("hidden");
+        appAdminBtn.style.display = "inline-flex";
+        appAdminBtn.style.alignItems = "center";
+        appAdminBtn.style.gap = "4px";
+        appAdminBtn.style.position = "relative";
+        appAdminBtn.style.zIndex = "100000";
+        if (!appAdminBtn.textContent.includes("Admin")) {
+            appAdminBtn.innerHTML = `🔑 Admin`;
         }
+    }
+
+    // ২) নোটিশ বক্স হেডারের ভেতরেও দ্রুত অ্যাক্সেসের জন্য বাটন দেখানো
+    const nbAdminBtn = document.getElementById("nbAdminTriggerBtn");
+    if (nbAdminBtn) {
+        nbAdminBtn.classList.remove("hidden");
     }
 }
 
@@ -246,6 +263,31 @@ function injectStyles() {
             font-family: monospace;
         }
 
+        .nb-header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .nb-admin-btn {
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            padding: 6px 10px;
+            border-radius: 9px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .nb-admin-btn.hidden {
+            display: none !important;
+        }
+
         .nb-logo {
             width: 65px;
             height: 65px;
@@ -343,6 +385,7 @@ function injectStyles() {
             box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.12);
         }
 
+        /* ক্যাটাগরি/সাব-ক্যাটাগরির মতো টেক্সট স্ক্রল বার */
         .nb-ticker-bar {
             background: var(--card-bg, #ffffff);
             border: 1px solid var(--border-color, #e2e8f0);
@@ -507,7 +550,10 @@ export function openNoticeInbox() {
                         <div class="nb-clock">${formatNow(new Date())}</div>
                     </div>
                 </div>
-                <img class="nb-logo" src="${escapeHTML(LOGO_SRC)}" alt="Logo" onerror="this.style.display='none'">
+                <div class="nb-header-right">
+                    <button type="button" id="nbAdminTriggerBtn" class="nb-admin-btn hidden">🔑 Admin</button>
+                    <img class="nb-logo" src="${escapeHTML(LOGO_SRC)}" alt="Logo" onerror="this.style.display='none'">
+                </div>
             </header>
 
             <div class="nb-search-mini-wrap">
@@ -535,6 +581,11 @@ export function openNoticeInbox() {
     const searchInput = panel.querySelector("#nbSearchInput");
     const searchField = panel.querySelector("#nbSearchField");
     const searchClear = panel.querySelector("#nbSearchClear");
+    const nbAdminBtn = panel.querySelector("#nbAdminTriggerBtn");
+
+    nbAdminBtn.addEventListener("click", () => {
+        document.getElementById("adminLoginBtn")?.click();
+    });
 
     function updateTicker(all, filtered, q) {
         if (!all.length) {
@@ -610,7 +661,7 @@ export function openNoticeInbox() {
     searchInput.addEventListener("input", () => {
         noticeQuery = searchInput.value;
         searchField.classList.toggle("has-value", searchInput.value.length > 0);
-        showAdminButtonIfTyped(searchInput.value);
+        checkAdminSecret(searchInput.value);
         renderList();
     });
 
