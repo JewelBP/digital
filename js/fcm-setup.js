@@ -40,6 +40,21 @@ export async function initWebPushNotifications() {
                 data: d
             };
             if (d.image && /^https?:/i.test(d.image)) options.image = d.image;
+
+            const noticePayload = {
+                id: payload.messageId || payload.fcmMessageId || d.id || "",
+                title,
+                body: options.body || "",
+                read: false,
+                createdAt: Date.now()
+            };
+
+            if (typeof window.saveNoticeToUserStorage === "function") {
+                window.saveNoticeToUserStorage(noticePayload);
+            } else {
+                window.dispatchEvent(new CustomEvent("app:notice", { detail: noticePayload }));
+            }
+
             if (Notification.permission === "granted") {
                 // Android Chrome does not allow `new Notification()`; use the service worker.
                 try { await registration.showNotification(title, options); }
