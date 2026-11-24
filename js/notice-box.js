@@ -1,4 +1,4 @@
-// js/notice-box.js  (Clean Notice Box Edition)
+// js/notice-box.js  (Clean Notice Box Edition — Category/Sub-category Matched)
 
 const STORAGE_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
@@ -281,12 +281,13 @@ function injectNoticeStyles() {
             -webkit-tap-highlight-color: transparent !important;
         }
 
-        /* ===== NOTICE BOX VIEW ===== */
+        /* ===== NOTICE BOX VIEW (ক্যাটাগরি ও সাব-ক্যাটাগরির মতো মার্জিন ও প্যাডিং) ===== */
         #noticeBoxSheetView {
             display: flex;
             flex-direction: column;
-            gap: 14px;
-            padding-bottom: 28px;
+            gap: 10px;
+            margin-top: -6px;
+            padding: 0 2px 24px;
         }
         #noticeBoxSheetView.hidden {
             display: none !important;
@@ -295,44 +296,39 @@ function injectNoticeStyles() {
             display: none !important;
         }
 
-        .nb-action-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
         .nb-result-count {
             font-size: 12px;
-            color: #64748b;
+            color: var(--text-muted, #64748b);
             margin: 0 4px;
-            flex: 1;
         }
-        body.dark-mode .nb-result-count {
-            color: #94a3b8;
+        .nb-result-count:empty {
+            display: none;
         }
 
+        /* জরুরি বিজ্ঞপ্তি টিকার — আরও উপরের দিকে তোলা */
         .nb-ticker-bar {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
             border-radius: 14px;
-            padding: 6px 10px 6px 6px;
+            margin: 0 0 4px 0;
+            padding: 6px 10px 6px 8px;
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 4px 12px rgba(2, 6, 36, .06);
+            box-shadow: 0 3px 10px rgba(2, 6, 36, .05);
             overflow: hidden;
         }
         body.dark-mode .nb-ticker-bar {
-            background: #0f172a;
-            border-color: #1e293b;
+            background: var(--card-bg, #0f172a);
+            border-color: var(--border-color, #1e293b);
         }
         .nb-ticker-badge {
             background: #dc2626;
             color: #ffffff;
             font-size: 12px;
             font-weight: 700;
-            padding: 5px 10px;
-            border-radius: 9px;
+            padding: 4px 9px;
+            border-radius: 8px;
             white-space: nowrap;
             flex-shrink: 0;
         }
@@ -347,12 +343,12 @@ function injectNoticeStyles() {
             white-space: nowrap;
             font-size: 12.5px;
             font-weight: 600;
-            color: #0f172a;
+            color: var(--text-main, #0f172a);
             padding-left: 100%;
             animation: nbScrollText 14s linear infinite;
         }
         body.dark-mode .nb-ticker-track {
-            color: #f8fafc;
+            color: var(--text-main, #f8fafc);
         }
         .nb-ticker-bar:hover .nb-ticker-track {
             animation-play-state: paused;
@@ -362,51 +358,44 @@ function injectNoticeStyles() {
             100% { transform: translateX(-100%); }
         }
 
+        /* কার্ড লিস্ট — ক্যাটাগরি ও সাব-ক্যাটাগরির মতো স্পেসিং */
         .nb-card-stack {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
         }
         .nb-card {
             position: relative;
             display: flex;
             align-items: flex-start;
             gap: 12px;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 18px;
-            padding: 14px 14px 14px 18px;
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 16px;
+            margin: 0;
+            padding: 14px;
             overflow: hidden;
-            box-shadow: 0 6px 18px rgba(2, 6, 36, .06);
+            box-shadow: 0 4px 12px rgba(2, 6, 36, .05);
             cursor: pointer;
         }
-        .nb-card::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 5px;
-            background: linear-gradient(to bottom, #0ea5e9, #2563eb);
-        }
-        .nb-card.unread::before {
-            background: linear-gradient(to bottom, #ef4444, #dc2626);
+        .nb-card.unread {
+            border-left: 4px solid var(--app-main-color, var(--primary-color, #020624));
         }
         body.dark-mode .nb-card {
-            background: #0f172a;
-            border-color: #1e293b;
+            background: var(--card-bg, #0f172a);
+            border-color: var(--border-color, #1e293b);
         }
 
         .nb-avatar {
-            width: 46px;
-            height: 46px;
-            border-radius: 14px;
-            background: rgba(14, 165, 233, .12);
-            color: #0284c7;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--app-main-color, var(--primary-color, #020624)) 12%, transparent);
+            color: var(--app-main-color, var(--primary-color, #020624));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 19px;
             flex-shrink: 0;
         }
         body.dark-mode .nb-avatar {
@@ -426,13 +415,13 @@ function injectNoticeStyles() {
         }
         .nb-card-title {
             margin: 0;
-            font-size: 16px;
+            font-size: 15.5px;
             font-weight: 700;
-            color: #0f172a;
+            color: var(--text-main, #0f172a);
             line-height: 1.35;
         }
         body.dark-mode .nb-card-title {
-            color: #f8fafc;
+            color: var(--text-main, #f8fafc);
         }
         .nb-new-tag {
             background: #dc2626;
@@ -446,26 +435,23 @@ function injectNoticeStyles() {
         .nb-card-body {
             margin: 6px 0 8px;
             font-size: 13.5px;
-            line-height: 1.6;
-            color: #475569;
+            line-height: 1.55;
+            color: var(--text-muted, #475569);
             white-space: pre-wrap;
             word-break: break-word;
         }
         body.dark-mode .nb-card-body {
-            color: #cbd5e1;
+            color: var(--text-muted, #cbd5e1);
         }
         .nb-card-foot {
             font-size: 11.5px;
-            color: #64748b;
-        }
-        body.dark-mode .nb-card-foot {
-            color: #94a3b8;
+            color: var(--text-muted, #64748b);
         }
 
         .nb-mini-btn {
             border: none;
             border-radius: 10px;
-            padding: 7px 10px;
+            padding: 6px 10px;
             font-size: 12px;
             font-weight: 700;
             cursor: pointer;
@@ -480,17 +466,18 @@ function injectNoticeStyles() {
         }
 
         .nb-empty {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 18px;
-            padding: 34px 18px;
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 16px;
+            margin: 0;
+            padding: 28px 16px;
             text-align: center;
-            color: #64748b;
+            color: var(--text-muted, #64748b);
         }
         body.dark-mode .nb-empty {
-            background: #0f172a;
-            border-color: #1e293b;
-            color: #94a3b8;
+            background: var(--card-bg, #0f172a);
+            border-color: var(--border-color, #1e293b);
+            color: var(--text-muted, #94a3b8);
         }
 
         .nb-rich mark {
@@ -714,10 +701,6 @@ function renderNoticeListView(container, admin) {
     mountHeaderSearch("নোটিশ খুঁজুন...");
 
     const html = `
-        <div class="nb-action-row">
-            <div id="nbResultCount" class="nb-result-count"></div>
-        </div>
-
         <div class="nb-ticker-bar">
             <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
             <div class="nb-ticker-viewport">
@@ -725,6 +708,7 @@ function renderNoticeListView(container, admin) {
             </div>
         </div>
 
+        <div id="nbResultCount" class="nb-result-count"></div>
         <div id="nbListArea"></div>
     `;
 
