@@ -4,6 +4,7 @@
 const PRIMARY_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
 const LOGO_SRC = "icons/icon-192.png";
+const ADMIN_SECRET = "admin@jr";
 
 let memoryNotices = [];
 let noticeQuery = "";
@@ -70,7 +71,6 @@ function loadNotices() {
         return fromPrimary;
     }
 
-    // পুরনো বা অন্য কোড app_notices কি-তে সেভ করলে সেটিও পড়ে নেবে
     const fromLegacy = readFromKey(LEGACY_KEY);
     if (fromLegacy && fromLegacy.length > 0) {
         memoryNotices = fromLegacy;
@@ -116,6 +116,32 @@ function escapeHTML(str) {
     );
 }
 
+// সার্চ ফিল্ডে Admin@jr লিখলে হেডারের #adminLoginBtn শো করবে
+let prevAdminBtnHidden = null;
+
+function revealAdminLoginIfMatched(rawValue) {
+    const btn = document.getElementById("adminLoginBtn");
+    if (!btn) return false;
+
+    const clean = String(rawValue ?? "").trim().toLowerCase();
+    if (clean === ADMIN_SECRET) {
+        if (prevAdminBtnHidden === null) {
+            prevAdminBtnHidden = btn.classList.contains("hidden");
+        }
+        btn.classList.remove("hidden");
+        return true;
+    }
+    return false;
+}
+
+function restoreAdminLoginButton() {
+    const btn = document.getElementById("adminLoginBtn");
+    if (btn && prevAdminBtnHidden !== null) {
+        btn.classList.toggle("hidden", prevAdminBtnHidden);
+        prevAdminBtnHidden = null;
+    }
+}
+
 // অন্য কোড থেকে নোটিশ যোগ করার জন্য: addNotice("শিরোনাম", "বার্তা")
 export function addNotice(title, body) {
     const cleanTitle = String(title ?? "").trim();
@@ -141,7 +167,6 @@ export function addNotice(title, body) {
     return entry;
 }
 
-// অন্য সিস্টেম থেকে ইভেন্ট বা storage পরিবর্তনে নোটিশ ধরার জন্য
 window.addEventListener("app:notice", (e) => {
     const d = e?.detail || {};
     if (d.title || d.body) addNotice(d.title, d.body);
@@ -182,7 +207,7 @@ function injectStyles() {
         .nb-top-wrap {
             background: var(--app-main-color, var(--primary-color, #020624));
             color: #ffffff;
-            padding-bottom: 22px;
+            padding-bottom: 24px;
             flex-shrink: 0;
         }
 
@@ -190,7 +215,7 @@ function injectStyles() {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 16px 8px;
+            padding: 14px 16px 8px;
             gap: 10px;
         }
 
@@ -240,73 +265,87 @@ function injectStyles() {
         }
 
         .nb-logo {
-            width: 52px;
-            height: 52px;
+            width: 65px;
+            height: 65px;
             border-radius: 50%;
             object-fit: cover;
+            margin-left: 4px;
             flex-shrink: 0;
         }
 
-        /* index.html-এর সার্চ ফিল্ড ডিজাইন */
-        .nb-search-wrap {
-            padding: 4px 16px 4px;
-            width: 78%;
-            max-width: 420px;
+        /* index.html-এর .header-search-inline ও .subpage-search-field এর সাথে হুবহু সামঞ্জস্যপূর্ণ */
+        .nb-search-inline {
+            display: block;
+            padding: 2px 16px 6px;
+            width: 70%;
+            box-sizing: border-box;
             margin: 0 auto;
+        }
+
+        @media (max-width: 600px) {
+            .nb-search-inline {
+                width: 86%;
+            }
         }
 
         .nb-search-field {
             width: 100%;
-            height: 38px;
+            height: 40px;
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 0 12px;
+            justify-content: center;
+            gap: 9px;
+            box-sizing: border-box;
+            padding: 0 13px;
             border: 1px solid rgba(255, 255, 255, 0.25);
             border-radius: 40px;
             background: rgba(255, 255, 255, 0.11);
-            box-sizing: border-box;
+            margin: 0 auto;
         }
 
         .nb-search-icon {
+            flex: 0 0 auto;
             color: #cbd5e1;
-            font-size: 20px;
+            font-size: 23px;
             line-height: 1;
-            flex-shrink: 0;
         }
 
         .nb-search-input {
             flex: 1 1 auto;
             min-width: 0;
-            height: 100%;
-            border: 0;
-            outline: 0;
-            background: transparent;
-            color: #ffffff;
-            font-size: 13.5px;
+            height: 100% !important;
+            padding: 0 !important;
+            border: 0 !important;
+            outline: 0 !important;
+            background: transparent !important;
+            color: #ffffff !important;
+            font-size: 14px;
+            box-shadow: none !important;
+            text-align: left;
         }
 
         .nb-search-input::placeholder {
-            color: #cbd5e1;
+            color: #cbd5e1 !important;
             opacity: 1;
         }
 
         .nb-search-clear {
             display: none;
-            width: 22px;
-            height: 22px;
+            flex: 0 0 25px;
+            width: 25px;
+            height: 25px;
+            padding: 0;
             border: 0;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.18);
-            color: #ffffff;
-            font-size: 16px;
-            line-height: 20px;
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+            font-size: 20px;
+            line-height: 22px;
             cursor: pointer;
-            flex-shrink: 0;
         }
 
         .nb-search-field.has-value .nb-search-clear {
-            display: inline-block;
+            display: block;
         }
 
         /* সাদা রাউন্ডেড শিট */
@@ -317,8 +356,11 @@ function injectStyles() {
             background: var(--bg-color, #f8fafc);
             border-top-left-radius: 24px;
             border-top-right-radius: 24px;
-            margin-top: -14px;
+            margin-top: -16px;
             padding: 16px 14px 28px;
+            position: relative;
+            z-index: 20;
+            box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.12);
         }
 
         .nb-strip {
@@ -506,11 +548,11 @@ export function openNoticeInbox() {
                 <img class="nb-logo" src="${escapeHTML(LOGO_SRC)}" alt="Logo" onerror="this.style.display='none'">
             </header>
 
-            <div class="nb-search-wrap">
+            <div class="nb-search-inline">
                 <div id="nbSearchField" class="nb-search-field">
                     <span class="nb-search-icon" aria-hidden="true">⌕</span>
                     <input id="nbSearchInput" type="search" class="nb-search-input" placeholder="Search notices..." autocomplete="off">
-                    <button id="nbSearchClear" type="button" class="nb-search-clear" aria-label="Clear">×</button>
+                    <button id="nbSearchClear" type="button" class="nb-search-clear" aria-label="Clear search" title="Clear search">×</button>
                 </div>
             </div>
         </div>
@@ -607,6 +649,7 @@ export function openNoticeInbox() {
     searchInput.addEventListener("input", () => {
         noticeQuery = searchInput.value;
         searchField.classList.toggle("has-value", searchInput.value.length > 0);
+        revealAdminLoginIfMatched(searchInput.value);
         renderList();
     });
 
@@ -626,7 +669,6 @@ export function openNoticeInbox() {
         renderList();
     };
 
-    // নিচের নেভিগেশনের মাঝখানের লোগোতে ক্লিক করলে নোটিশ বক্স বন্ধ হবে
     const navLogo = document.querySelector(".bottom-nav-logo-circle");
     const onNavLogoClick = () => {
         if (document.getElementById("noticeInboxPanel")) {
@@ -639,6 +681,7 @@ export function openNoticeInbox() {
         if (!document.getElementById("noticeInboxPanel")) return;
         window.removeEventListener("popstate", onPop);
         navLogo?.removeEventListener("click", onNavLogoClick);
+        restoreAdminLoginButton();
         panel.remove();
 
         if (fromButton && window.history.state && window.history.state.page === "notice-box") {
