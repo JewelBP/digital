@@ -25,6 +25,7 @@ let autoSyncStarted = false;
 let autoSyncPollTimer = null;
 
 let lastSyncedSnapshotSignature = "";
+let syncErrorMsg = "";
 
 let nbDepth = 0;
 let swallowPop = 0;
@@ -95,6 +96,31 @@ function escapeRegExp(s) {
 function generateNoticeId() {
     return `push_${Date.now()}_${Math.random()
         .toString(36).substring(2, 7)}`;
+}
+
+
+/* Firebase push-id এর প্রথম ৮ অক্ষরে সময় (ms) থাকে।
+   createdAt না থাকলেও এখান থেকে সঠিক ক্রম পাওয়া যায়। */
+const PUSH_CHARS =
+    "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+
+function pushIdToTime(key) {
+    const k = String(key || "");
+    if (k.length < 8) {
+        return 0;
+    }
+
+    let t = 0;
+    for (let i = 0; i < 8; i++) {
+        const idx = PUSH_CHARS.indexOf(k.charAt(i));
+        if (idx < 0) {
+            return 0;
+        }
+        t = t * 64 + idx;
+    }
+
+    // বাস্তবসম্মত সময় কিনা যাচাই (২০১৫ - ২১০০)
+    return t > 1420070400000 && t < 4102444800000 ? t : 0;
 }
 
 function formatNow(date = new Date()) {
@@ -990,7 +1016,7 @@ function fillNoticeList() {
     if (countEl) {
         countEl.textContent = q
             ? `${filtered.length}টি নোটিশ পাওয়া গেছে`
-            : "";
+            : (syncErrorMsg || "");
     }
 
     updateTicker(all, filtered, q, tickerEl);
@@ -1176,93 +1202,60 @@ function upsertNoticeToUserStorage(rawNotice) {
    FIREBASE DATA EXTRACTION
 ========================================================= */
 
+function buildPushFromRaw(val, key, idx) {
+    if (!val || typeof val !== "object" || !isPushNotice(val)) {
+        return null;
+    }
+
+    const title = String(
+        val.title ?? val.subject ?? val.heading ?? ""
+    ).trim();
+
+    const body = String(
+        val.message ?? val.body ?? val.text ?? val.description ?? ""
+    ).trim();
+
+    if (!title && !body) {
+        return null;
+    }
+
+    const idStr = String(val.id || key || `push_${idx}`);
+
+    return {
+        id: idStr,
+        title,
+        body,
+        type: "push",
+        time: String(
+            val.time ?? val.timestamp ?? formatNow()
+        ),
+        createdAt:
+            Number(val.createdAt) ||
+            Number(val.timestamp) ||
+            pushIdToTime(key || idStr) ||
+            (1700000000000 + idx * 1000)
+    };
+}
+
 function extractStrictPushList(input) {
     if (!input) {
         return [];
     }
 
     if (Array.isArray(input)) {
-        return input.map((item, idx) => {
-            if (
-                !item ||
-                typeof item !== "object" ||
-                !isPushNotice(item)
-            ) {
-                return null;
-            }
-
-            return {
-                id: String(
-                    item.id ??
-                    item._key ??
-                    `push_arr_${idx}`
-                ),
-                title: String(
-                    item.title ??
-                    item.subject ??
-                    item.heading ??
-                    ""
-                ).trim(),
-                body: String(
-                    item.message ??
-                    item.body ??
-                    item.text ??
-                    item.description ??
-                    ""
-                ).trim(),
-                type: "push",
-                time: String(
-                    item.time ??
-                    item.timestamp ??
-                    formatNow()
-                ),
-                createdAt:
-                    Number(item.createdAt) ||
-                    (1700000000000 + idx * 1000)
-            };
-        }).filter(item =>
-            item && (item.title || item.body)
-        );
+        return input
+            .map((item, idx) =>
+                buildPushFromRaw(item, item && (item._key || item.id), idx)
+            )
+            .filter(Boolean);
     }
 
     if (typeof input === "object") {
-        return Object.entries(input).map(([key, val], idx) => {
-            if (
-                !val ||
-                typeof val !== "object" ||
-                !isPushNotice(val)
-            ) {
-                return null;
-            }
-
-            return {
-                id: String(val.id || key),
-                title: String(
-                    val.title ??
-                    val.subject ??
-                    val.heading ??
-                    ""
-                ).trim(),
-                body: String(
-                    val.message ??
-                    val.body ??
-                    val.text ??
-                    val.description ??
-                    ""
-                ).trim(),
-                type: "push",
-                time: String(
-                    val.time ??
-                    val.timestamp ??
-                    formatNow()
-                ),
-                createdAt:
-                    Number(val.createdAt) ||
-                    (1700000000000 + idx * 1000)
-            };
-        }).filter(item =>
-            item && (item.title || item.body)
-        );
+        return Object.entries(input)
+            .map(([key, val], idx) =>
+                buildPushFromRaw(val, key, idx)
+            )
+            .filter(Boolean);
     }
 
     return [];
@@ -1398,34 +1391,87 @@ function resolveDatabaseUrl() {
    FIREBASE REST FETCH
 ========================================================= */
 
+async function getAuthTokenSafe() {
+    try {
+        const cands = [
+            window.firebase?.auth?.()?.currentUser,
+            window.firebaseAuth?.currentUser,
+            window.auth?.currentUser,
+            window._firebaseModularAuth?.currentUser
+        ];
+
+        for (const u of cands) {
+            if (u && typeof u.getIdToken === "function") {
+                return await u.getIdToken();
+            }
+        }
+    } catch (e) {}
+
+    return "";
+}
+
+function setSyncError(msg) {
+    syncErrorMsg = msg || "";
+
+    if (isNoticeActive) {
+        fillNoticeList();
+    }
+}
+
+let restFetching = false;
+
 async function fetchPushNoticesViaRest() {
+    if (restFetching) {
+        return;
+    }
+
     const dbUrl = resolveDatabaseUrl();
     if (!dbUrl) {
         return;
     }
 
-    try {
-        const base =
-            String(dbUrl).replace(/\/+$/, "");
+    restFetching = true;
 
-        const res = await fetch(
-            `${base}/${FIREBASE_NOTICES_PATH}.json`,
-            {
-                cache: "no-store"
-            }
-        );
+    try {
+        const base = String(dbUrl).replace(/\/+$/, "");
+        const token = await getAuthTokenSafe();
+
+        const url =
+            `${base}/${FIREBASE_NOTICES_PATH}.json` +
+            (token ? `?auth=${encodeURIComponent(token)}` : "");
+
+        const res = await fetch(url, { cache: "no-store" });
 
         if (!res.ok) {
+            console.warn("Firebase REST error:", res.status);
+
+            if (res.status === 401 || res.status === 403) {
+                setSyncError(
+                    "⚠️ Firebase Rules এর কারণে নোটিশ পড়া যাচ্ছে না (Permission denied)।"
+                );
+            } else {
+                setSyncError(
+                    `⚠️ নোটিশ সিঙ্ক ব্যর্থ (কোড ${res.status})।`
+                );
+            }
             return;
         }
 
         const data = await res.json();
 
+        syncErrorMsg = "";
+
         // খালি Firebase ডাটা হলে LocalStorage অক্ষত থাকবে।
         syncFirebaseNoticesList(data || {});
     } catch (e) {
-        // Network error হলে LocalStorage ব্যবহার হবে।
         console.warn("Firebase REST sync unavailable:", e);
+        setSyncError(
+            navigator.onLine === false
+                ? "ইন্টারনেট নেই — সংরক্ষিত নোটিশ দেখানো হচ্ছে।"
+                : ""
+        );
+    } finally {
+        restFetching = false;
     }
 }
 
@@ -1461,7 +1507,13 @@ function startFirebaseAutoSync() {
                         ? snapshot.val()
                         : null;
 
+                syncErrorMsg = "";
                 syncFirebaseNoticesList(val || {});
+            }, (err) => {
+                console.warn("Firebase listener denied:", err);
+                setSyncError(
+                    "⚠️ Firebase Rules এর কারণে নোটিশ পড়া যাচ্ছে না (Permission denied)।"
+                );
             });
         } catch (e) {
             console.warn("Firebase SDK listener fallback to REST:", e);
@@ -1487,12 +1539,25 @@ function startFirebaseAutoSync() {
                         ? snapshot.val()
                         : null;
 
+                syncErrorMsg = "";
                 syncFirebaseNoticesList(val || {});
+            }, (err) => {
+                console.warn("Firebase modular listener denied:", err);
+                setSyncError(
+                    "⚠️ Firebase Rules এর কারণে নোটিশ পড়া যাচ্ছে না (Permission denied)।"
+                );
             });
         } catch (e) {
             console.warn("Firebase Modular listener fallback to REST:", e);
         }
     }
+
+    window.addEventListener("online", fetchPushNoticesViaRest);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            fetchPushNoticesViaRest();
+        }
+    });
 
     // প্রতি ৫ সেকেন্ডে REST Auto Sync
     if (!autoSyncPollTimer) {
@@ -1524,6 +1589,7 @@ export function openNoticeInbox() {
 
     // তারপর Firebase Auto Sync
     startFirebaseAutoSync();
+    fetchPushNoticesViaRest();
 
     if (!isNoticeActive) {
         captureHeaderState();
