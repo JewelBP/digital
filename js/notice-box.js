@@ -6,6 +6,7 @@ const LEGACY_KEY = "app_notices";
 let noticeState = { notices: [] };
 let memoryNotices = [];
 let lastRemoteNotices = [];
+let lastSyncError = "";
 let noticeSearchQuery = "";
 let isNoticeActive = false;
 let prevTitleText = "";
@@ -295,22 +296,33 @@ function injectNoticeStyles() {
             display: none;
         }
 
-        /* স্লাইড টেক্সট — ক্যাটাগরি/সাব-ক্যাটাগরির #slidingNoticeContainer এর মতো (ট্রান্সপারেন্ট, নিচে বর্ডার, গোলাকার) */
+        /* জরুরি বিজ্ঞপ্তি টিকার — আরও উপরের দিকে তোলা ও হাইট বৃদ্ধি */
         .nb-ticker-bar {
-            background: transparent;
-            border: 0;
-            border-bottom: 1px solid var(--border-color, #e2e8f0);
-            border-radius: 8px;
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 14px;
             margin: 0 0 4px 0;
-            padding: 2px 0;
+            min-height: 44px;
+            padding: 8px 12px 8px 8px;
             display: flex;
             align-items: center;
+            gap: 8px;
+            box-shadow: 0 3px 10px rgba(2, 6, 36, .05);
             overflow: hidden;
         }
-        .nb-ticker-bar.hidden {
-            display: none !important;
-            margin: 0 !important;
-            border: 0 !important;
+        body.dark-mode .nb-ticker-bar {
+            background: var(--card-bg, #0f172a);
+            border-color: var(--border-color, #1e293b);
+        }
+        .nb-ticker-badge {
+            background: #dc2626;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 9px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .nb-ticker-viewport {
             flex: 1;
@@ -670,9 +682,10 @@ function renderNoticeListView(container) {
     mountHeaderSearch("নোটিশ খুঁজুন...");
 
     const html = `
-        <div id="nbTickerBar" class="nb-ticker-bar hidden">
+        <div id="nbTickerBar" class="nb-ticker-bar">
+            <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
             <div class="nb-ticker-viewport">
-                <div id="nbTickerTrack" class="nb-ticker-track"></div>
+                <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
             </div>
         </div>
 
@@ -686,23 +699,37 @@ function renderNoticeListView(container) {
     fillNoticeList();
 }
 
+function readSlidingNoticeText() {
+    const box = document.getElementById("slidingNoticeContainer");
+    if (!box) return "";
+    return (box.textContent || "").replace(/\s+/g, " ").trim();
+}
+
 function updateTicker(all, filtered, q, trackEl) {
     if (!trackEl) return;
-    const bar = document.getElementById("nbTickerBar");
-    const list = q ? filtered : all;
 
-    if (!list.length) {
-        if (bar) bar.classList.add("hidden");
-        trackEl.textContent = "";
+    if (!all.length) {
+        // স্টোরেজ ফাঁকা হলে অ্যাপের স্লাইডিং নোটিশ (ক্যাটাগরি/সাব-ক্যাটাগরির টেক্সট) থাকলে সেটিই দেখানো
+        const slide = readSlidingNoticeText();
+        if (slide) {
+            if (trackEl.textContent !== slide) trackEl.textContent = slide;
+            return;
+        }
+        const hint = lastSyncError ? ` (সিঙ্ক সমস্যা: ${lastSyncError})` : "";
+        trackEl.textContent = "কোনো নোটিশ সংরক্ষিত নেই — নতুন নোটিশ আসলে এখানে স্ক্রল করে দেখা যাবে।" + hint;
         return;
     }
 
-    const text = list
-        .map(n => `${n.title}${n.body ? ": " + n.body : ""}`.trim())
+    const summary = q
+        ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
+        : `মোট ${all.length}টি নোটিশ • `;
+
+    const headlines = (filtered.length ? filtered : all)
+        .map(n => `${n.title}: ${n.body || ""}`.trim())
         .join("   ★   ");
 
+    const text = `${summary}   •   ${headlines}`;
     if (trackEl.textContent !== text) trackEl.textContent = text;
-    if (bar) bar.classList.remove("hidden");
 }
 
 function fillNoticeList() {
@@ -942,8 +969,10 @@ async function runAutoSync() {
         // ১) Firebase Realtime Database (/notices) থেকে সরাসরি সর্বশেষ নোটিশ আনা
         try {
             const list = await fetchNoticesFromDatabase();
+            lastSyncError = "";
             syncFirebaseNoticesList(list);
         } catch (e) {
+            lastSyncError = String(e && e.message ? e.message : e);
             console.warn("Notice DB fetch failed:", e);
         }
         // ২) অ্যাপের নিজস্ব ফেচার থাকলে (Promise<Array>) সেটিও ব্যবহার
