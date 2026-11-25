@@ -1,4 +1,4 @@
-// js/notice-box.js  (Auto Sync + All Notices + Sliding Notice Sync — Read-Only)
+// js/notice-box.js  (Strict type="push" Auto Sync — Read-Only All Users)
 
 const STORAGE_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
@@ -14,7 +14,7 @@ let prevMenuHidden = false;
 let autoSyncStarted = false;
 let autoSyncPollTimer = null;
 let autoSyncRetryTimer = null;
-let slidingObserver = null;
+let lastSyncedSnapshotSignature = "";
 
 /* ============================== Helpers ============================== */
 
@@ -30,6 +30,16 @@ function canUseStorage() {
 }
 
 const HAS_STORAGE = canUseStorage();
+
+function isPushNotice(raw) {
+    if (!raw || typeof raw !== "object") return false;
+    const rawType = String(
+        raw.type ?? raw.Type ?? raw.noticeType ?? raw.categoryType ?? ""
+    )
+        .trim()
+        .toLowerCase();
+    return rawType === "push";
+}
 
 function escapeHTML(str) {
     return String(str ?? "").replace(
@@ -49,7 +59,7 @@ function escapeRegExp(s) {
 }
 
 function generateNoticeId() {
-    return `notice_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    return `push_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 }
 
 function formatNow(date = new Date()) {
@@ -65,8 +75,9 @@ function formatNow(date = new Date()) {
     return `${dd}/${mm}/${yyyy} ${pad(h)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
 }
 
-function normalizeNotice(raw, index = 0) {
+function normalizePushNotice(raw, index = 0) {
     if (!raw || typeof raw !== "object") return null;
+    if (!isPushNotice(raw)) return null;
 
     const title = String(
         raw.title ?? raw.subject ?? raw.heading ?? "জরুরি বিজ্ঞপ্তি"
@@ -79,9 +90,10 @@ function normalizeNotice(raw, index = 0) {
     if (!title && !body) return null;
 
     return {
-        id: String(raw.id ?? `notice_${Date.now()}_${index}`),
+        id: String(raw.id ?? `push_${index}_${title.slice(0, 10)}`),
         title: title || "জরুরি বিজ্ঞপ্তি",
         body,
+        type: "push",
         time: String(raw.time ?? raw.timestamp ?? formatNow()),
         read: Boolean(raw.read),
         createdAt: Number(raw.createdAt) || (1700000000000 + index * 1000)
@@ -97,7 +109,9 @@ function readFromKey(key) {
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed)) return null;
-        return parsed.map((item, idx) => normalizeNotice(item, idx)).filter(Boolean);
+        return parsed
+            .map((item, idx) => normalizePushNotice(item, idx))
+            .filter(Boolean);
     } catch (e) {
         console.warn("Notice read error:", key, e);
         return null;
@@ -121,8 +135,9 @@ function loadLocalNotices() {
     }
 
     if (Array.isArray(memoryNotices) && memoryNotices.length > 0) {
-        noticeState = { notices: memoryNotices };
-        return memoryNotices;
+        const filteredMem = memoryNotices.filter(isPushNotice);
+        noticeState = { notices: filteredMem };
+        return filteredMem;
     }
 
     noticeState = { notices: [] };
@@ -131,7 +146,7 @@ function loadLocalNotices() {
 
 function saveLocalNotices() {
     const safe = (Array.isArray(noticeState.notices) ? noticeState.notices : [])
-        .map((item, idx) => normalizeNotice(item, idx))
+        .map((item, idx) => normalizePushNotice(item, idx))
         .filter(Boolean);
 
     noticeState.notices = safe;
@@ -146,56 +161,6 @@ function saveLocalNotices() {
             console.error("Notice local save error:", e);
         }
     }
-}
-
-/* ============================== Sliding Notification Reader ============================== */
-
-function readSlidingNoticeText() {
-    const el =
-        document.getElementById("slidingNoticeContainer") ||
-        document.querySelector(".sliding-notice-container") ||
-        document.querySelector(".category-sliding-notice") ||
-        document.querySelector(".subcategory-sliding-notice");
-
-    if (!el) return "";
-    return String(el.textContent || "").replace(/\s+/g, " ").trim();
-}
-
-function syncFromSlidingNoticeDom() {
-    const text = readSlidingNoticeText();
-    if (!text) return;
-
-    const current = loadLocalNotices();
-    const exists = current.some(n => n.body === text || n.title === text);
-    if (!exists) {
-        const entry = normalizeNotice({
-            id: "sliding_dom_notice",
-            title: "বিজ্ঞপ্তি",
-            body: text,
-            time: formatNow(new Date()),
-            read: false,
-            createdAt: Date.now()
-        }, 0);
-        if (entry) {
-            noticeState.notices = [entry, ...current];
-            saveLocalNotices();
-            if (isNoticeActive) renderNoticeBoxInSheet();
-        }
-    }
-}
-
-function observeSlidingNoticeDom() {
-    if (slidingObserver || typeof MutationObserver === "undefined") return;
-    const target =
-        document.getElementById("slidingNoticeContainer") ||
-        document.querySelector(".sliding-notice-container") ||
-        document.body;
-
-    if (!target) return;
-    slidingObserver = new MutationObserver(() => {
-        syncFromSlidingNoticeDom();
-    });
-    slidingObserver.observe(target, { childList: true, subtree: true, characterData: true });
 }
 
 /* ============================== Styles & Notch Clean Fix ============================== */
@@ -734,13 +699,13 @@ function renderNoticeListView(container) {
 function updateTicker(all, filtered, q, trackEl) {
     if (!trackEl) return;
     if (!all.length) {
-        trackEl.textContent = "কোনো নোটিশ সংরক্ষিত নেই — নোটিশ আসলে এখানে স্ক্রল করে দেখা যাবে।";
+        trackEl.textContent = "কোনো পুশ নোটিশ নেই — Firebase এ type: push নোটিশ থাকলে এখানে দেখা যাবে।";
         return;
     }
 
     const summary = q
-        ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
-        : `মোট ${all.length}টি নোটিশ • `;
+        ? `সার্চ ফলাফল: ${filtered.length}টি পুশ নোটিশ পাওয়া গেছে`
+        : `মোট ${all.length}টি পুশ নোটিশ • `;
 
     const headlines = (filtered.length ? filtered : all)
         .map(n => `${n.title}: ${n.body || ""}`.trim())
@@ -755,7 +720,7 @@ function fillNoticeList() {
     const tickerEl = document.getElementById("nbTickerTrack");
     if (!area) return;
 
-    const all = loadLocalNotices();
+    const all = loadLocalNotices().filter(isPushNotice);
     const q = noticeSearchQuery;
 
     const filtered = q
@@ -776,10 +741,10 @@ function fillNoticeList() {
             <div class="nb-empty">
                 <div style="font-size:28px;margin-bottom:6px;">📢</div>
                 <div style="font-size:15px;font-weight:700;">
-                    ${q ? "কোনো নোটিশ খুঁজে পাওয়া যায়নি" : "কোনো নোটিশ সংরক্ষিত নেই"}
+                    ${q ? "কোনো নোটিশ খুঁজে পাওয়া যায়নি" : "কোনো পুশ নোটিশ নেই"}
                 </div>
                 <div style="font-size:12.5px;margin-top:4px;">
-                    ${q ? "অন্য শব্দ দিয়ে সার্চ করে দেখুন।" : "নোটিশ যুক্ত হলে এখানে দেখা যাবে।"}
+                    ${q ? "অন্য শব্দ দিয়ে সার্চ করে দেখুন।" : "Firebase এ type: \"push\" নোটিশ থাকলে এখানে দেখা যাবে।"}
                 </div>
             </div>`;
         return;
@@ -814,13 +779,18 @@ function fillNoticeList() {
     });
 }
 
-/* ============================== Auto Sync & Storage Helpers ============================== */
+/* ============================== Strict type="push" Auto Sync ============================== */
 
 function upsertNoticeToUserStorage(rawNotice) {
     if (!rawNotice || typeof rawNotice !== "object") return null;
+    if (!isPushNotice(rawNotice)) return null;
 
-    const cleanTitle = String(rawNotice.title ?? rawNotice.subject ?? rawNotice.heading ?? "").trim();
-    const cleanBody = String(rawNotice.body ?? rawNotice.message ?? rawNotice.text ?? rawNotice.description ?? "").trim();
+    const cleanTitle = String(
+        rawNotice.title ?? rawNotice.subject ?? rawNotice.heading ?? ""
+    ).trim();
+    const cleanBody = String(
+        rawNotice.body ?? rawNotice.message ?? rawNotice.text ?? rawNotice.description ?? ""
+    ).trim();
     if (!cleanTitle && !cleanBody) return null;
 
     loadLocalNotices();
@@ -835,10 +805,11 @@ function upsertNoticeToUserStorage(rawNotice) {
 
     if (existingIndex !== -1) {
         const existing = noticeState.notices[existingIndex];
-        const updated = normalizeNotice({
+        const updated = normalizePushNotice({
             ...existing,
             title: cleanTitle || existing.title,
             body: cleanBody || existing.body,
+            type: "push",
             time: rawNotice.time || existing.time,
             read: existing.read,
             createdAt: existing.createdAt
@@ -856,6 +827,7 @@ function upsertNoticeToUserStorage(rawNotice) {
         id: targetId || generateNoticeId(),
         title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
         body: cleanBody,
+        type: "push",
         time: String(rawNotice.time ?? rawNotice.timestamp ?? formatNow(new Date())),
         read: false,
         createdAt: Number(rawNotice.createdAt) || Date.now()
@@ -867,109 +839,105 @@ function upsertNoticeToUserStorage(rawNotice) {
     return entry;
 }
 
-function extractNoticesList(input) {
+function extractStrictPushList(input) {
     if (!input) return [];
 
     if (Array.isArray(input)) {
         return input
-            .filter(item => item && typeof item === "object" && item.type !== "slider")
-            .map((item, idx) => ({
-                id: item.id ?? item._key ?? `fb_idx_${idx}`,
-                title: item.title ?? item.subject ?? item.heading ?? "",
-                body: item.message ?? item.body ?? item.text ?? item.description ?? "",
-                time: item.time ?? item.timestamp ?? formatNow(new Date()),
-                createdAt: Number(item.createdAt) || (1700000000000 + idx * 1000)
-            }));
+            .map((item, idx) => {
+                if (!item || typeof item !== "object" || !isPushNotice(item)) return null;
+                return {
+                    id: String(item.id ?? item._key ?? `push_arr_${idx}`),
+                    title: String(item.title ?? item.subject ?? item.heading ?? "").trim(),
+                    body: String(item.message ?? item.body ?? item.text ?? item.description ?? "").trim(),
+                    type: "push",
+                    time: String(item.time ?? item.timestamp ?? formatNow(new Date())),
+                    createdAt: Number(item.createdAt) || (1700000000000 + idx * 1000)
+                };
+            })
+            .filter(item => item && (item.title || item.body));
     }
 
     if (typeof input === "object") {
         return Object.entries(input)
-            .filter(([, val]) => val && typeof val === "object" && val.type !== "slider")
-            .map(([key, val], idx) => ({
-                id: val.id || key,
-                title: val.title ?? val.subject ?? val.heading ?? "",
-                body: val.message ?? val.body ?? val.text ?? val.description ?? "",
-                time: val.time ?? val.timestamp ?? formatNow(new Date()),
-                createdAt: Number(val.createdAt) || (1700000000000 + idx * 1000)
-            }));
+            .map(([key, val], idx) => {
+                if (!val || typeof val !== "object" || !isPushNotice(val)) return null;
+                return {
+                    id: String(val.id || key),
+                    title: String(val.title ?? val.subject ?? val.heading ?? "").trim(),
+                    body: String(val.message ?? val.body ?? val.text ?? val.description ?? "").trim(),
+                    type: "push",
+                    time: String(val.time ?? val.timestamp ?? formatNow(new Date())),
+                    createdAt: Number(val.createdAt) || (1700000000000 + idx * 1000)
+                };
+            })
+            .filter(item => item && (item.title || item.body));
     }
 
     return [];
 }
 
 function syncFirebaseNoticesList(noticesInput) {
-    const existingAll = loadLocalNotices();
-    const incoming = extractNoticesList(noticesInput);
+    const pushItems = extractStrictPushList(noticesInput);
+    const sig = JSON.stringify(pushItems.map(i => [i.id, i.title, i.body, i.time]));
 
-    if (!incoming.length) {
-        if (existingAll.length > 0 && isNoticeActive) {
-            renderNoticeBoxInSheet();
-        }
-        return;
-    }
+    const prevList = loadLocalNotices().filter(isPushNotice);
+    const prevReadMap = new Map(prevList.map(n => [String(n.id), Boolean(n.read)]));
+    const prevCreatedMap = new Map(prevList.map(n => [String(n.id), Number(n.createdAt) || 0]));
 
-    const prevReadMap = new Map(existingAll.map(n => [String(n.id), Boolean(n.read)]));
-    const mergedMap = new Map();
+    const nextList = pushItems.map((n, idx) => ({
+        id: String(n.id),
+        title: n.title || "জরুরি বিজ্ঞপ্তি",
+        body: n.body,
+        type: "push",
+        time: n.time || formatNow(new Date()),
+        read: prevReadMap.has(String(n.id)) ? prevReadMap.get(String(n.id)) : false,
+        createdAt: Number(n.createdAt) || prevCreatedMap.get(String(n.id)) || (1700000000000 + idx * 1000)
+    }));
 
-    // পুরাতন লোকাল নোটিশগুলো রাখুন
-    existingAll.forEach((item, idx) => {
-        const key = String(item.id ?? `local_${idx}`);
-        mergedMap.set(key, { ...item, id: key });
-    });
+    nextList.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
 
-    // Firebase-এর সব পুরনো ও নতুন নোটিশ যুক্ত/আপডেট করুন
-    incoming.forEach((n, idx) => {
-        const cleanTitle = String(n.title ?? "").trim();
-        const cleanBody = String(n.body ?? "").trim();
-        if (!cleanTitle && !cleanBody) return;
+    const changed =
+        sig !== lastSyncedSnapshotSignature ||
+        JSON.stringify(prevList) !== JSON.stringify(nextList);
 
-        const nid = String(n.id ?? generateNoticeId());
-        const prev = mergedMap.get(nid);
-
-        mergedMap.set(nid, {
-            id: nid,
-            title: cleanTitle || prev?.title || "জরুরি বিজ্ঞপ্তি",
-            body: cleanBody || prev?.body || "",
-            time: String(n.time ?? prev?.time ?? formatNow(new Date())),
-            read: prevReadMap.has(nid) ? prevReadMap.get(nid) : Boolean(prev?.read),
-            createdAt: Number(n.createdAt) || prev?.createdAt || (1700000000000 + idx * 1000)
-        });
-    });
-
-    const nextList = Array.from(mergedMap.values()).sort(
-        (a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0)
-    );
-
-    const prevSerialized = JSON.stringify(existingAll);
-    const nextSerialized = JSON.stringify(nextList);
-
+    lastSyncedSnapshotSignature = sig;
     noticeState.notices = nextList;
     memoryNotices = nextList;
     saveLocalNotices();
 
-    if (prevSerialized !== nextSerialized && isNoticeActive) {
-        renderNoticeBoxInSheet();
-    } else if (isNoticeActive) {
-        fillNoticeList();
+    if (isNoticeActive) {
+        if (changed) renderNoticeBoxInSheet();
+        else fillNoticeList();
     }
 }
 
 function resolveRealtimeDbInstance() {
+    if (window.db && typeof window.db.ref === "function") return window.db;
+    if (window.firebaseDb && typeof window.firebaseDb.ref === "function") return window.firebaseDb;
+    if (window.database && typeof window.database.ref === "function") return window.database;
+    if (window.rtdb && typeof window.rtdb.ref === "function") return window.rtdb;
+    if (window.firebase && typeof window.firebase.database === "function") {
+        try {
+            return window.firebase.database();
+        } catch (e) {
+            return null;
+        }
+    }
+    return null;
+}
+
+function resolveDatabaseUrl() {
     return (
-        window.db ||
-        window.firebaseDb ||
-        window.database ||
-        window.rtdb ||
-        (window.firebase && typeof window.firebase.database === "function" ? window.firebase.database() : null)
+        window.FIREBASE_DATABASE_URL ||
+        window.firebaseConfig?.databaseURL ||
+        window.firebase?.app?.()?.options?.databaseURL ||
+        ""
     );
 }
 
-async function fetchNoticesViaRestFallback() {
-    const dbUrl =
-        window.FIREBASE_DATABASE_URL ||
-        window.firebaseConfig?.databaseURL ||
-        window.firebase?.app?.()?.options?.databaseURL;
-
+async function fetchPushNoticesViaRest() {
+    const dbUrl = resolveDatabaseUrl();
     if (!dbUrl) return;
 
     try {
@@ -987,15 +955,14 @@ function startFirebaseAutoSync() {
     if (autoSyncStarted) return;
 
     const db = resolveRealtimeDbInstance();
-
-    if (db && typeof db.ref === "function") {
+    if (db) {
         autoSyncStarted = true;
         const ref = db.ref(FIREBASE_NOTICES_PATH);
         ref.on("value", (snapshot) => {
             const val = snapshot && typeof snapshot.val === "function" ? snapshot.val() : null;
             syncFirebaseNoticesList(val || {});
         }, (err) => {
-            console.warn("Firebase notices auto-sync listener error:", err);
+            console.warn("Firebase push notices listener error:", err);
         });
         return;
     }
@@ -1010,15 +977,11 @@ function startFirebaseAutoSync() {
         return;
     }
 
-    const dbUrl =
-        window.FIREBASE_DATABASE_URL ||
-        window.firebaseConfig?.databaseURL ||
-        window.firebase?.app?.()?.options?.databaseURL;
-
+    const dbUrl = resolveDatabaseUrl();
     if (dbUrl && !autoSyncPollTimer) {
         autoSyncStarted = true;
-        fetchNoticesViaRestFallback();
-        autoSyncPollTimer = setInterval(fetchNoticesViaRestFallback, 8000);
+        fetchPushNoticesViaRest();
+        autoSyncPollTimer = setInterval(fetchPushNoticesViaRest, 5000);
         return;
     }
 
@@ -1026,13 +989,13 @@ function startFirebaseAutoSync() {
         let attempts = 0;
         autoSyncRetryTimer = setInterval(() => {
             attempts++;
-            if (autoSyncStarted || attempts >= 25) {
+            if (autoSyncStarted || attempts >= 30) {
                 clearInterval(autoSyncRetryTimer);
                 autoSyncRetryTimer = null;
                 return;
             }
             startFirebaseAutoSync();
-        }, 800);
+        }, 700);
     }
 }
 
@@ -1047,8 +1010,8 @@ export function renderNoticeBoxInSheet() {
 export function openNoticeInbox() {
     injectNoticeStyles();
     loadLocalNotices();
-    syncFromSlidingNoticeDom();
     startFirebaseAutoSync();
+    if (resolveDatabaseUrl()) fetchPushNoticesViaRest();
 
     if (!isNoticeActive) {
         captureHeaderState();
@@ -1092,11 +1055,13 @@ export function closeNoticeBox(fromPop = false) {
 
 window.addEventListener("app:notice", (e) => {
     const d = e?.detail || {};
+    if (!isPushNotice(d)) return;
     if (d.title || d.body || d.message) {
         upsertNoticeToUserStorage({
             id: d.id,
             title: d.title,
             body: d.body ?? d.message,
+            type: "push",
             time: d.time,
             createdAt: d.createdAt
         });
@@ -1116,18 +1081,22 @@ window.addEventListener("message", (event) => {
     const data = event?.data;
     if (!data || typeof data !== "object") return;
 
-    if (data.type === "FCM_NOTICE" || data.type === "PUSH_NOTIFICATION" || data.from === "firebase-messaging-sw") {
-        const payload = data.payload || data.data || data;
-        const title = payload.notification?.title || payload.title;
-        const body = payload.notification?.body || payload.body || payload.message;
-        if (title || body) {
-            upsertNoticeToUserStorage({
-                id: payload.id || payload.messageId,
-                title,
-                body,
-                time: formatNow(new Date())
-            });
-        }
+    const payload = data.payload || data.data || data;
+    const nested = payload.data && typeof payload.data === "object" ? payload.data : {};
+    const merged = { ...nested, ...payload };
+
+    if (!isPushNotice(merged)) return;
+
+    const title = merged.notification?.title || merged.title || merged.subject || "";
+    const body = merged.notification?.body || merged.body || merged.message || merged.text || "";
+    if (title || body) {
+        upsertNoticeToUserStorage({
+            id: merged.id || merged.messageId,
+            title,
+            body,
+            type: "push",
+            time: merged.time || formatNow(new Date())
+        });
     }
 });
 
@@ -1140,15 +1109,13 @@ window.addEventListener("storage", (e) => {
 
 document.addEventListener("DOMContentLoaded", () => {
     loadLocalNotices();
-    syncFromSlidingNoticeDom();
-    observeSlidingNoticeDom();
     startFirebaseAutoSync();
     setTimeout(startFirebaseAutoSync, 1000);
 });
 
 window.addEventListener("load", () => {
-    syncFromSlidingNoticeDom();
     startFirebaseAutoSync();
+    if (resolveDatabaseUrl()) fetchPushNoticesViaRest();
 });
 
 window.openNoticeInbox = openNoticeInbox;
