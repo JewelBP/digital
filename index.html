@@ -27,6 +27,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://qrt-team-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="modulepreload" href="js/firebase.js">
+    <link rel="modulepreload" href="js/auth.js">
+    <link rel="modulepreload" href="js/app1.js">
 
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap"
           rel="stylesheet">
@@ -1165,16 +1170,42 @@
 <script type="module" src="js/custom-settings.js"></script>
 
 <script>
-    function updateLiveClock() {
+    (function initLiveClock() {
         const clockEl = document.getElementById('liveDateTime');
         if (!clockEl) return;
-        const now = new Date();
-        const dateStr = now.toLocaleDateString('en-GB');
-        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        clockEl.textContent = `${dateStr} ${timeStr}`;
-    }
-    setInterval(updateLiveClock, 1000);
-    updateLiveClock();
+
+        let clockTimer = null;
+
+        function updateLiveClock() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-GB');
+            const timeStr = now.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            clockEl.textContent = `${dateStr} ${timeStr}`;
+        }
+
+        function startClock() {
+            if (clockTimer || document.hidden) return;
+            updateLiveClock();
+            clockTimer = window.setInterval(updateLiveClock, 1000);
+        }
+
+        function stopClock() {
+            if (clockTimer === null) return;
+            window.clearInterval(clockTimer);
+            clockTimer = null;
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) stopClock();
+            else startClock();
+        });
+
+        startClock();
+    })();
 
     (function initSubPageHeaderSearch() {
         const mainDashboard = document.getElementById('mainDashboardView');
@@ -1319,7 +1350,11 @@
                 const fill = getComputedStyle(path).fill;
                 if (fill && fill !== 'none' && !/rgba\(.*,\s*0\)$/.test(fill) && fill !== 'transparent') color = fill;
             }
-            document.documentElement.style.setProperty('--app-main-color', color);
+            // Avoid writing the same custom property repeatedly; this keeps the
+            // observer-driven theme sync from causing needless style recalculation.
+            if (document.documentElement.style.getPropertyValue('--app-main-color') !== color) {
+                document.documentElement.style.setProperty('--app-main-color', color);
+            }
             const normalized = color.replace(/\s+/g, '').toLowerCase();
             const isDefault = normalized === '#020624' || normalized === 'rgb(2,6,36)';
             document.body?.classList.toggle('has-custom-theme', !isDefault);
@@ -1330,7 +1365,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             new MutationObserver(apply).observe(document.body, { attributes: true, attributeFilter: ['style', 'class'] });
         });
-        setInterval(apply, 1500);
     })();
 </script>
 </body>
