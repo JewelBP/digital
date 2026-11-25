@@ -1,0 +1,895 @@
+/* =========================================
+   Notification & Slider System Module (Complete & Active)
+========================================= */
+
+import { db } from "./firebase.js";
+import { ref, push, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+import { hasServiceAccount, saveServiceAccount, clearServiceAccount, sendPushToAll } from "./fcm-sender.js";
+
+let sliderInterval = null;
+
+/* ==========================================
+   SLIDER OFFLINE CACHE
+   - স্লাইডের ডাটা: localStorage
+   - স্লাইডের ছবি: IndexedDB (Blob)
+========================================== */
+const SLIDER_DATA_KEY = "police_pb_slider_cache";
+const SLIDER_DB_NAME = "rmp_slider_images";
+const SLIDER_STORE = "kv";
+const SLIDER_MAX_IMG_BYTES = 2 * 1024 * 1024;
+let sliderCacheQueue = Promise.resolve();
+
+function sliderOpenDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(SLIDER_DB_NAME, 1);
+        req.onupgradeneeded = () => req.result.createObjectStore(SLIDER_STORE);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function sliderIdbGet(key) {
+    const dbi = await sliderOpenDB();
+    return new Promise((resolve, reject) => {
+        const req = dbi.transaction(SLIDER_STORE, "readonly").objectStore(SLIDER_STORE).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+async function sliderIdbSet(key, value) {
+    const dbi = await sliderOpenDB();
+    return new Promise((resolve, reject) => {
+        const tx = dbi.transaction(SLIDER_STORE, "readwrite");
+        tx.objectStore(SLIDER_STORE).put(value, key);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+function saveSliderDataCache(items) {
+    try {
+        localStorage.setItem(SLIDER_DATA_KEY, JSON.stringify(items));
+    } catch (e) {
+        console.error("Slider data cache error:", e);
+    }
+}
+
+function loadSliderDataCache() {
+    try {
+        const raw = localStorage.getItem(SLIDER_DATA_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+function cacheSliderImages(urls) {
+    if (!navigator.onLine || !("indexedDB" in window)) return;
+    const list = urls.filter(u => /^https?:/i.test(u));
+
+    sliderCacheQueue = sliderCacheQueue.then(async () => {
+        try {
+            const store = (await sliderIdbGet("images")) || {};
+            let changed = false;
+
+            for (const url of list) {
+                if (store[url]) continue;
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) continue;
+                    const blob = await res.blob();
+                    if (blob.size > 0 && blob.size <= SLIDER_MAX_IMG_BYTES) {
+                        store[url] = blob;
+                        changed = true;
+                    }
+                } catch (e) {
+                    /* CORS/নেটওয়ার্ক সমস্যা: এই ছবি ক্যাশ হবে না */
+                }
+            }
+
+            // বাদ পড়া স্লাইডের পুরনো ছবি মুছে ফেলা
+            Object.keys(store).forEach(url => {
+                if (!list.includes(url)) {
+                    delete store[url];
+                    changed = true;
+                }
+            });
+
+            if (changed) await sliderIdbSet("images", store);
+        } catch (e) {
+            console.error("Slider image cache error:", e);
+        }
+    });
+}
+
+async function swapWithCachedImage(img) {
+    if (!img || img.dataset.cachedSwap) return;
+    const original = img.dataset.origSrc || img.getAttribute("src");
+    if (!original) return;
+    try {
+        const store = await sliderIdbGet("images");
+        const blob = store && store[original];
+        if (blob) {
+            img.dataset.cachedSwap = "1";
+            img.src = URL.createObjectURL(blob);
+        }
+    } catch (e) { /* ignore */ }
+}
+
+function enableSliderImageFallback(track) {
+    if (!track.dataset.fallbackReady) {
+        track.dataset.fallbackReady = "1";
+        // ছবি লোড ব্যর্থ হলে ক্যাশ করা ছবি বসানো
+        track.addEventListener("error", (e) => {
+            if (e.target && e.target.tagName === "IMG") swapWithCachedImage(e.target);
+        }, true);
+    }
+    // অফলাইনে শুরুতেই ক্যাশ করা ছবি বসানো (ভাঙা ছবির ঝলক এড়াতে)
+    if (!navigator.onLine) {
+        track.querySelectorAll("img").forEach(img => swapWithCachedImage(img));
+    }
+}
+
+export function initNotificationSystem() {
+    createNotificationUI();
+    setupNotificationEvents();
+    loadAllFirebaseListsAndListen();
+}
+
+function showCustomDialog(message, title = "বার্তা") {
+    return new Promise((resolve) => {
+        let dialogEl = document.getElementById("notifCustomDialog");
+        if (!dialogEl) {
+            dialogEl = document.createElement("div");
+            dialogEl.id = "notifCustomDialog";
+            dialogEl.style.cssText = `
+                position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+                display: none; justify-content: center; align-items: center;
+                z-index: 100000; padding: 16px;
+            `;
+            dialogEl.innerHTML = `
+                <div style="background: var(--card-bg, #ffffff); color: var(--text-main, #1e293b); width: 100%; max-width: 380px; border-radius: 16px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 id="notifDialogTitle" style="margin: 0; font-size: 18px; font-weight: 700;"></h3>
+                        <button type="button" id="notifDialogCloseX" style="background: none; border: none; font-size: 20px; color: var(--text-muted, #64748b); cursor: pointer;">✕</button>
+                    </div>
+                    <p id="notifDialogMsg" style="margin: 0 0 20px 0; font-size: 14.5px; line-height: 1.5; color: var(--text-main, #334155);"></p>
+                    <div id="notifDialogActions" style="display: flex; justify-content: flex-end; gap: 10px;"></div>
+                </div>
+            `;
+            document.body.appendChild(dialogEl);
+        }
+
+        const titleEl = document.getElementById("notifDialogTitle");
+        const msgEl = document.getElementById("notifDialogMsg");
+        const actionsEl = document.getElementById("notifDialogActions");
+        const closeX = document.getElementById("notifDialogCloseX");
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        actionsEl.innerHTML = `
+            <button type="button" id="notifDialogOkBtn" style="padding: 8px 20px; background: #0d6efd; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">ঠিক আছে</button>
+        `;
+
+        dialogEl.style.display = "flex";
+
+        const finish = () => {
+            dialogEl.style.display = "none";
+            resolve();
+        };
+
+        document.getElementById("notifDialogOkBtn").onclick = finish;
+        closeX.onclick = finish;
+    });
+}
+
+function showCustomConfirm(message, title = "নিশ্চিতকরণ") {
+    return new Promise((resolve) => {
+        let dialogEl = document.getElementById("notifCustomDialog");
+        if (!dialogEl) {
+            showCustomDialog("", "");
+            dialogEl = document.getElementById("notifCustomDialog");
+        }
+
+        const titleEl = document.getElementById("notifDialogTitle");
+        const msgEl = document.getElementById("notifDialogMsg");
+        const actionsEl = document.getElementById("notifDialogActions");
+        const closeX = document.getElementById("notifDialogCloseX");
+
+        titleEl.innerText = title;
+        msgEl.innerText = message;
+        actionsEl.innerHTML = `
+            <button type="button" id="notifConfirmCancelBtn" style="padding: 8px 16px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer;">বাতিল</button>
+            <button type="button" id="notifConfirmYesBtn" style="padding: 8px 16px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">হ্যাঁ, মুছুন</button>
+        `;
+
+        dialogEl.style.display = "flex";
+
+        const finish = (val) => {
+            dialogEl.style.display = "none";
+            resolve(val);
+        };
+
+        document.getElementById("notifConfirmCancelBtn").onclick = () => finish(false);
+        document.getElementById("notifConfirmYesBtn").onclick = () => finish(true);
+        closeX.onclick = () => finish(false);
+    });
+}
+
+function createNotificationUI() {
+    if (document.getElementById("notificationModal")) return;
+
+    const notificationHTML = `
+    <div id="notificationModal" class="modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 9999;">
+        <div class="modal-content notification-modal-content" style="background: var(--card-bg, #fff); color: var(--text-main, #333); max-width: 680px; width: 95%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="background: #0d6efd; color: #fff; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;">
+                <h2 style="margin: 0; font-size: 16px;">📢 ফায়ারবেজ রিয়েল-টাইম নোটিফিকেশন ও স্লাইডার প্যানেল</h2>
+                <button class="close-btn" data-close="notificationModal" type="button" style="background: none; border: none; color: #fff; font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            
+            <div class="notification-body" style="max-height: 75vh; overflow-y: auto; padding: 15px;">
+                
+                <!-- Tabs -->
+                <div class="notice-tabs" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color, #ddd); padding-bottom: 10px;">
+                    <button type="button" class="tab-btn active-tab" data-target="tabSliding" style="flex: 1; min-width: 110px; padding: 8px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">স্লাইডিং নোটিশ</button>
+                    <button type="button" class="tab-btn" data-target="tabHome" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">হোম নোটিশ</button>
+                    <button type="button" class="tab-btn" data-target="tabPush" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">পুশ নোটিশ</button>
+                    <button type="button" class="tab-btn" data-target="tabSlider" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">ইমেজ স্লাইডার</button>
+                </div>
+
+                <input type="hidden" id="editNoticeId" value="">
+
+                <!-- TAB 1: SLIDING -->
+                <div id="tabSliding" class="notice-tab-content">
+                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 class="form-title-sliding" style="margin: 0; font-size: 15px;">স্লাইডিং নোটিশ তৈরি করুন</h3>
+                            <button type="button" id="toggleSlidingGlobalBtn" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; background: #28a745; color: #fff;">স্ট্যাটাস: চালু আছে</button>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">শিরোনাম:</label>
+                            <input type="text" id="slidingTitle" placeholder="শিরোনাম লিখুন..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">বিস্তারিত:</label>
+                            <textarea id="slidingMessage" rows="2" placeholder="বিস্তারিত লিখুন..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);"></textarea>
+                        </div>
+                        <button type="button" class="submit-notice-btn" data-type="sliding" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">স্লাইডিং নোটিশ প্রকাশ করুন</button>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 8px; font-size: 14px;">স্লাইডিং নোটিশের তালিকা</h4>
+                        <div id="sentSlidingList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: HOME (App Aligned) -->
+                <div id="tabHome" class="notice-tab-content" style="display: none;">
+                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 class="form-title-home" style="margin: 0; font-size: 15px;">হোম নোটিশ পপআপ তৈরি করুন</h3>
+                            <button type="button" id="toggleHomeGlobalBtn" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; background: #28a745; color: #fff;">স্ট্যাটাস: চালু আছে</button>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Title:</label>
+                            <input type="text" id="homeTitle" placeholder="শিরোনাম..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Message:</label>
+                            <textarea id="homeMessage" rows="2" placeholder="মেসেজ..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);"></textarea>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Image Link (img):</label>
+                            <input type="url" id="homeImage" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Video Link (Video):</label>
+                            <input type="url" id="homeVideo" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Web/Site Link (keys):</label>
+                            <input type="url" id="homeKeys" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <button type="button" class="submit-notice-btn" data-type="home" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">হোম নোটিশ প্রকাশ করুন</button>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 8px; font-size: 14px;">হোম নোটিশের তালিকা</h4>
+                        <div id="sentHomeList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: PUSH -->
+                <div id="tabPush" class="notice-tab-content" style="display: none;">
+                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
+                        <h3 class="form-title-push" style="margin: 0; font-size: 15px; margin-bottom: 10px;">পুশ নোটিশ তৈরি করুন</h3>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">শিরোনাম:</label>
+                            <input type="text" id="pushTitle" placeholder="শিরোনাম..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">বিস্তারিত:</label>
+                            <textarea id="pushMessage" rows="2" placeholder="মেসেজ..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);"></textarea>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">ইমেজ লিংক:</label>
+                            <input type="url" id="pushImageLink" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="margin-bottom: 10px; padding: 10px; border: 1px dashed var(--border-color, #ccc); border-radius: 6px;">
+                            <div id="fcmSaStatus" style="font-size: 12px; margin-bottom: 6px;"></div>
+                            <textarea id="fcmSaInput" rows="2" placeholder="Paste Firebase Service Account JSON (saved only on this phone)" style="width: 100%; padding: 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);"></textarea>
+                            <div style="display: flex; gap: 6px; margin-top: 6px;">
+                                <button type="button" id="fcmSaSaveBtn" style="flex: 1; padding: 6px; border: none; border-radius: 4px; background: #28a745; color: #fff; cursor: pointer;">Save</button>
+                                <button type="button" id="fcmSaClearBtn" style="flex: 1; padding: 6px; border: none; border-radius: 4px; background: #dc3545; color: #fff; cursor: pointer;">Remove</button>
+                            </div>
+                        </div>
+                        <button type="button" class="submit-notice-btn" data-type="push" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">পুশ নোটিশ পাঠান</button>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 8px; font-size: 14px;">পুশ নোটিশের তালিকা</h4>
+                        <div id="sentPushList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: IMAGE SLIDER -->
+                <div id="tabSlider" class="notice-tab-content" style="display: none;">
+                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
+                        <h3 class="form-title-slider" style="margin: 0 0 10px 0; font-size: 15px;">স্লাইডার ইমেজ যুক্ত/এডিট করুন</h3>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">ইমেজ লিংক (URL) *:</label>
+                            <input type="url" id="sliderImage" placeholder="https://example.com/banner.jpg" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">স্লাইড শিরোনাম *:</label>
+                            <input type="text" id="sliderTitle" placeholder="যেমন: Welcome to RMP MT Contacts" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                            <div style="flex: 1;">
+                                <label style="display:block; margin-bottom: 4px; font-size: 13px;">বাটন টেক্সট:</label>
+                                <input type="text" id="sliderBtnText" placeholder="Explore" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="display:block; margin-bottom: 4px; font-size: 13px;">বাটন লিংক:</label>
+                                <input type="text" id="sliderBtnLink" placeholder="#categoryList বা https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
+                            </div>
+                        </div>
+                        <button type="button" class="submit-notice-btn" data-type="slider" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">স্লাইডার সেভ করুন</button>
+                    </div>
+                    <div>
+                        <h4 style="margin-bottom: 8px; font-size: 14px;">স্লাইডার ইমেজের তালিকা</h4>
+                        <div id="sentSliderList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
+                    </div>
+                </div>
+
+                <button id="cancelEditBtn" class="secondary-btn" style="width: 100%; padding: 8px; margin-top: 15px; background: #6c757d; color: #fff; border: none; border-radius: 4px; cursor: pointer; display: none;">এডিট বাতিল করুন</button>
+            </div>
+        </div>
+    </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', notificationHTML);
+}
+
+function setupNotificationEvents() {
+    const refreshSaStatus = () => {
+        const el = document.getElementById("fcmSaStatus");
+        if (el) el.innerText = hasServiceAccount() ? "✅ Service Account is set" : "⚠️ Service Account not set (push cannot be sent)";
+    };
+    document.addEventListener("click", async (e) => {
+        if (e.target.id === "fcmSaSaveBtn") {
+            try {
+                saveServiceAccount(document.getElementById("fcmSaInput").value.trim());
+                document.getElementById("fcmSaInput").value = "";
+                refreshSaStatus();
+                await showCustomDialog("Saved", "Done");
+            } catch (err) { await showCustomDialog(err.message, "Error"); }
+        } else if (e.target.id === "fcmSaClearBtn") {
+            clearServiceAccount();
+            refreshSaStatus();
+        }
+    });
+    setTimeout(refreshSaStatus, 0);
+
+    const notifBtn = document.getElementById("notificationBtn");
+    const modal = document.getElementById("notificationModal");
+    const cancelEditBtn = document.getElementById("cancelEditBtn");
+    const toggleSlidingBtn = document.getElementById("toggleSlidingGlobalBtn");
+    const toggleHomeBtn = document.getElementById("toggleHomeGlobalBtn");
+
+    if (notifBtn && modal) {
+        notifBtn.addEventListener("click", () => {
+            modal.style.display = "flex";
+            updateToggleButtonsUI();
+        });
+    }
+
+    modal?.querySelectorAll("[data-close]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            modal.style.display = "none";
+            resetForm();
+        });
+    });
+
+    toggleSlidingBtn?.addEventListener("click", () => {
+        let isOff = localStorage.getItem("sliding_notice_disabled") === "true";
+        localStorage.setItem("sliding_notice_disabled", !isOff);
+        updateToggleButtonsUI();
+        loadAllFirebaseListsAndListen();
+    });
+
+    toggleHomeBtn?.addEventListener("click", () => {
+        let isOff = localStorage.getItem("home_notice_disabled") === "true";
+        localStorage.setItem("home_notice_disabled", !isOff);
+        updateToggleButtonsUI();
+        loadAllFirebaseListsAndListen();
+    });
+
+    const tabBtns = modal.querySelectorAll(".tab-btn");
+    tabBtns.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            tabBtns.forEach(b => {
+                b.classList.remove("active-tab");
+                b.style.background = "#e9ecef";
+                b.style.color = "#333";
+            });
+            e.target.classList.add("active-tab");
+            e.target.style.background = "#0d6efd";
+            e.target.style.color = "#fff";
+
+            modal.querySelectorAll(".notice-tab-content").forEach(content => {
+                content.style.display = "none";
+            });
+
+            const targetTab = e.target.getAttribute("data-target");
+            const targetElement = document.getElementById(targetTab);
+            if (targetElement) targetElement.style.display = "block";
+        });
+    });
+
+    modal.querySelectorAll(".submit-notice-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const type = e.target.getAttribute("data-type");
+            saveOrUpdateToFirebase(type);
+        });
+    });
+
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener("click", () => resetForm());
+    }
+
+    const popupModal = document.getElementById("homeNoticePopupModal");
+    const closePopupBtn = document.getElementById("closeHomePopupBtn");
+
+    if (closePopupBtn) {
+        closePopupBtn.style.backgroundColor = "#dc3545"; 
+        closePopupBtn.style.color = "#ffffff";
+        closePopupBtn.style.border = "none";
+
+        closePopupBtn.addEventListener("click", () => {
+            if (popupModal) {
+                popupModal.style.display = "none";
+            }
+            
+            const mediaContainer = document.getElementById("popupMediaContainer");
+            if (mediaContainer) {
+                mediaContainer.innerHTML = ""; 
+            }
+        });
+    }
+}
+
+function updateToggleButtonsUI() {
+    const slidingBtn = document.getElementById("toggleSlidingGlobalBtn");
+    const homeBtn = document.getElementById("toggleHomeGlobalBtn");
+
+    if (slidingBtn) {
+        const isOff = localStorage.getItem("sliding_notice_disabled") === "true";
+        slidingBtn.innerText = isOff ? "স্ট্যাটাস: বন্ধ আছে" : "স্ট্যাটাস: চালু আছে";
+        slidingBtn.style.background = isOff ? "#dc3545" : "#28a745";
+    }
+
+    if (homeBtn) {
+        const isOff = localStorage.getItem("home_notice_disabled") === "true";
+        homeBtn.innerText = isOff ? "স্ট্যাটাস: বন্ধ আছে" : "স্ট্যাটাস: চালু আছে";
+        homeBtn.style.background = isOff ? "#dc3545" : "#28a745";
+    }
+}
+
+async function saveOrUpdateToFirebase(type) {
+    const editId = document.getElementById("editNoticeId").value;
+    let title = "";
+    let message = "";
+    let img = "";
+    let video = "";
+    let keys = "";
+
+    if (type === 'sliding') {
+        title = document.getElementById("slidingTitle").value.trim();
+        message = document.getElementById("slidingMessage").value.trim();
+    } else if (type === 'home') {
+        title = document.getElementById("homeTitle").value.trim();
+        message = document.getElementById("homeMessage").value.trim();
+        img = document.getElementById("homeImage").value.trim();
+        video = document.getElementById("homeVideo").value.trim();
+        keys = document.getElementById("homeKeys").value.trim();
+    } else if (type === 'push') {
+        title = document.getElementById("pushTitle").value.trim();
+        message = document.getElementById("pushMessage").value.trim();
+        img = document.getElementById("pushImageLink").value.trim();
+    } else if (type === 'slider') {
+        img = document.getElementById("sliderImage").value.trim();
+        title = document.getElementById("sliderTitle").value.trim();
+        message = document.getElementById("sliderBtnText").value.trim() || "Explore";
+        keys = document.getElementById("sliderBtnLink").value.trim() || "#categoryList";
+
+        if (!img || !title) {
+            await showCustomDialog("দয়া করে স্লাইডার ইমেজ লিংক এবং শিরোনাম দিন।", "সতর্কতা");
+            return;
+        }
+    }
+
+    if (type !== 'slider' && (!title || !message)) {
+        await showCustomDialog("দয়া করে শিরোনাম এবং বিস্তারিত বিবরণ লিখুন।", "সতর্কতা");
+        return;
+    }
+
+    try {
+        if (editId) {
+            const noticeRef = ref(db, 'webapp/notices/' + editId);
+            await update(noticeRef, {
+                title,
+                message,
+                img,
+                Video: video,
+                keys,
+                time: new Date().toLocaleString('bn-BD') + " (এডিটেড)"
+            });
+            await showCustomDialog("ফায়ারবেজে সফলভাবে আপডেট করা হয়েছে!", "সফল");
+        } else {
+            const noticesRef = ref(db, 'webapp/notices');
+            const newNoticeRef = push(noticesRef);
+            await set(newNoticeRef, {
+                id: newNoticeRef.key,
+                type,
+                title,
+                message,
+                img,
+                Video: video,
+                keys,
+                time: new Date().toLocaleString('bn-BD')
+            });
+            if (type === 'push') {
+                if (!hasServiceAccount()) {
+                    await showCustomDialog("Notice saved, but Service Account is not set, so push was NOT sent.", "Warning");
+                } else {
+                    try {
+                        const r = await sendPushToAll({ title, body: message, image: img });
+                        await showCustomDialog("Push sent: " + r.sent + " ok, " + r.failed + " failed.", "Done");
+                    } catch (e) {
+                        console.error(e);
+                        await showCustomDialog("Push failed: " + e.message, "Error");
+                    }
+                }
+            } else {
+                await showCustomDialog("ফায়ারবেজে সফলভাবে সংরক্ষণ করা হয়েছে!", "সফল");
+            }
+        }
+
+        resetForm();
+        document.getElementById("notificationModal").style.display = "none";
+    } catch (error) {
+        console.error("Firebase Error: ", error);
+        await showCustomDialog("সংরক্ষণ করতে ব্যর্থ হয়েছে", "ত্রুটি");
+    }
+}
+
+function loadAllFirebaseListsAndListen() {
+    // অফলাইনে/ধীর নেটে Firebase থেকে ডাটা আসার আগেই ক্যাশ করা স্লাইডার দেখানো
+    const cachedSlides = loadSliderDataCache();
+    if (cachedSlides) renderHeroSlider(cachedSlides);
+
+    const noticesRef = ref(db, 'webapp/notices');
+    onValue(noticesRef, (snapshot) => {
+        const data = snapshot.val();
+        let notices = [];
+        
+        if (data) {
+            notices = Object.keys(data).map(key => ({
+                id: key,
+                ...data[key]
+            }));
+            notices.reverse();
+        }
+
+        const slidingList = document.getElementById("sentSlidingList");
+        const homeList = document.getElementById("sentHomeList");
+        const pushList = document.getElementById("sentPushList");
+        const sliderList = document.getElementById("sentSliderList");
+
+        const slidingNotices = notices.filter(n => n.type === 'sliding');
+        const homeNotices = notices.filter(n => n.type === 'home');
+        const pushNotices = notices.filter(n => n.type === 'push');
+        const sliderNotices = notices.filter(n => n.type === 'slider');
+
+        const slidingContainer = document.getElementById("slidingNoticeContainer");
+        const isSlidingDisabled = localStorage.getItem("sliding_notice_disabled") === "true";
+
+        if (slidingContainer) {
+            if (!isSlidingDisabled && slidingNotices.length > 0) {
+                const latestNotice = slidingNotices[0];
+                slidingContainer.style.display = "block";
+                slidingContainer.innerHTML = `
+                    <div style="background: var(--card-bg, #fff); border-bottom: 1px solid var(--border-color, #e2e8f0); display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02); overflow: hidden; height: 36px;">
+                        <div style="background: #dc3545; color: #fff; padding: 0 12px; height: 100%; display: flex; align-items: center; font-size: 13px; font-weight: 600; white-space: nowrap; z-index: 2;">
+                            📢 ${latestNotice.title}:
+                        </div>
+                        <marquee behavior="scroll" direction="left" scrollamount="5" onmouseover="this.stop();" onmouseout="this.start();" style="width: 100%; font-size: 13px; font-weight: 500; color: var(--text-main, #1e293b); padding-left: 10px;">
+                            ${latestNotice.message}
+                        </marquee>
+                    </div>
+                `;
+            } else {
+                slidingContainer.style.display = "none";
+                slidingContainer.innerHTML = "";
+            }
+        }
+
+        const isHomeDisabled = localStorage.getItem("home_notice_disabled") === "true";
+        const popupModal = document.getElementById("homeNoticePopupModal");
+        
+        if (popupModal && !isHomeDisabled && homeNotices.length > 0) {
+            const latestHomeNotice = homeNotices[0];
+            
+            const shownKey = `popup_shown_${latestHomeNotice.id}`;
+            if (!sessionStorage.getItem(shownKey)) {
+                document.getElementById("popupTitle").innerText = latestHomeNotice.title || "";
+                document.getElementById("popupMessage").innerText = latestHomeNotice.message || "";
+                
+                const mediaContainer = document.getElementById("popupMediaContainer");
+                const websiteBtn = document.getElementById("popupWebsiteBtn");
+                
+                const imgLink = latestHomeNotice.img ? latestHomeNotice.img.trim() : "";
+                const videoLink = latestHomeNotice.Video ? latestHomeNotice.Video.trim() : "";
+                const siteLink = latestHomeNotice.keys ? latestHomeNotice.keys.trim() : "";
+
+                if (videoLink) {
+                    mediaContainer.style.display = "flex";
+                    if (videoLink.includes("youtube.com") || videoLink.includes("youtu.be")) {
+                        let embedUrl = videoLink;
+                        if (videoLink.includes("watch?v=")) {
+                            embedUrl = videoLink.replace("watch?v=", "embed/");
+                        } else if (videoLink.includes("youtu.be/")) {
+                            embedUrl = videoLink.replace("youtu.be/", "www.youtube.com/embed/");
+                        }
+                        mediaContainer.innerHTML = `<iframe src="${embedUrl}" style="width: 100%; height: 200px; border: none; border-radius: 6px;" allowfullscreen></iframe>`;
+                    } else {
+                        mediaContainer.innerHTML = `<video src="${videoLink}" controls autoplay style="width: 100%; max-height: 230px; object-fit: contain; background: #000; border-radius: 6px;"></video>`;
+                    }
+                } else if (imgLink) {
+                    mediaContainer.style.display = "flex";
+                    mediaContainer.innerHTML = `<img src="${imgLink}" style="width: 100%; max-height: 230px; object-fit: contain; background: #000; border-radius: 6px;" alt="Notice Image">`;
+                } else {
+                    mediaContainer.style.display = "none";
+                    mediaContainer.innerHTML = "";
+                }
+
+                if (siteLink && siteLink.startsWith("http")) {
+                    websiteBtn.href = siteLink;
+                    websiteBtn.style.display = "block";
+                } else {
+                    websiteBtn.style.display = "none";
+                }
+
+                popupModal.style.display = "flex";
+                sessionStorage.setItem(shownKey, "true");
+            }
+        }
+
+        if (slidingList) {
+            slidingList.innerHTML = slidingNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো স্লাইডিং নোটিশ নেই</p>' : 
+            slidingNotices.map(n => renderCard(n)).join('');
+        }
+        if (homeList) {
+            homeList.innerHTML = homeNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো হোম নোটিশ নেই</p>' : 
+            homeNotices.map(n => renderCard(n)).join('');
+        }
+        if (pushList) {
+            pushList.innerHTML = pushNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো পুশ নোটিশ নেই</p>' : 
+            pushNotices.map(n => renderCard(n)).join('');
+        }
+        if (sliderList) {
+            sliderList.innerHTML = sliderNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো স্লাইডার ইমেজ নেই</p>' : 
+            sliderNotices.map(n => renderCard(n)).join('');
+        }
+
+        saveSliderDataCache(sliderNotices);
+        renderHeroSlider(sliderNotices);
+        attachCardActions();
+    });
+}
+
+function renderHeroSlider(slidesData) {
+    const track = document.getElementById('sliderTrack');
+    const dotsContainer = document.getElementById('sliderDots');
+    if (!track || !dotsContainer) return;
+
+    const items = slidesData.length > 0 ? slidesData : [{
+        img: "https://images.unsplash.com/photo-1546272989-40c92939c6c2?auto=format&fit=crop&w=800&q=80",
+        title: "Welcome to Digital Phonebook",
+        message: "Explore",
+        keys: "#categoryList"
+    }];
+
+    track.innerHTML = items.map(item => `
+        <div class="slide-item">
+            <img src="${item.img}" data-orig-src="${item.img}" alt="${item.title}">
+            <div class="slide-overlay">
+                <div class="slide-info">
+                    <span class="slide-badge">📢</span>
+                    <h4>${item.title}</h4>
+                </div>
+                <a href="${item.keys || '#categoryList'}" class="slide-btn">${item.message || 'Explore'}</a>
+            </div>
+        </div>
+    `).join('');
+
+    enableSliderImageFallback(track);
+    cacheSliderImages(items.map(item => item.img).filter(Boolean));
+
+    dotsContainer.innerHTML = '';
+    let currentIndex = 0;
+
+    items.forEach((_, i) => {
+        const dot = document.createElement('div');
+        dot.classList.add('slider-dot');
+        if (i === 0) dot.classList.add('active');
+        dot.addEventListener('click', () => goToSlide(i));
+        dotsContainer.appendChild(dot);
+    });
+
+    const dots = dotsContainer.children;
+
+    function goToSlide(index) {
+        currentIndex = index;
+        track.style.transform = `translateX(-${currentIndex * 100}%)`;
+        Array.from(dots).forEach((d, idx) => {
+            d.classList.toggle('active', idx === currentIndex);
+        });
+    }
+
+    if (sliderInterval) clearInterval(sliderInterval);
+    if (items.length > 1) {
+        sliderInterval = setInterval(() => {
+            currentIndex = (currentIndex + 1) % items.length;
+            goToSlide(currentIndex);
+        }, 3500);
+    }
+}
+
+function renderCard(n) {
+    const thumbHtml = n.type === 'slider' && n.img
+        ? `<img src="${n.img}" alt="${n.title}" style="width: 48px; height: 36px; object-fit: cover; border-radius: 4px; margin-right: 8px; flex-shrink: 0;">`
+        : '';
+
+    return `
+        <div style="padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; margin-bottom: 8px; background: var(--card-bg, #fff); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; flex: 1; padding-right: 8px; min-width: 0;">
+                ${thumbHtml}
+                <div style="min-width: 0;">
+                    <strong style="font-size: 13px; color: var(--text-main, #333); display:block;">${n.title}</strong>
+                    <p style="font-size: 12px; color: var(--text-muted, #666); margin: 2px 0; word-break: break-all;">${n.type === 'slider' ? `বাটন: ${n.message} (${n.keys || '#categoryList'})` : n.message}</p>
+                    <small style="font-size: 10px; color: #999;">${n.time}</small>
+                </div>
+            </div>
+            <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                <button class="edit-btn" data-id="${n.id}" style="padding: 4px 8px; font-size: 11px; background: #ffc107; border: none; border-radius: 4px; cursor: pointer;">এডিট</button>
+                <button class="delete-btn" data-id="${n.id}" style="padding: 4px 8px; font-size: 11px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer;">ডিলিট</button>
+            </div>
+        </div>
+    `;
+}
+
+function attachCardActions() {
+    const modal = document.getElementById("notificationModal");
+    if (!modal) return;
+
+    modal.querySelectorAll(".edit-btn").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const id = e.target.getAttribute("data-id");
+            const snapshot = await get(ref(db, 'webapp/notices/' + id));
+            if (snapshot.exists()) {
+                const notice = snapshot.val();
+                document.getElementById("editNoticeId").value = id;
+
+                const targetTabBtn = modal.querySelector(`.tab-btn[data-target="tab${notice.type.charAt(0).toUpperCase() + notice.type.slice(1)}"]`);
+                if (targetTabBtn) targetTabBtn.click();
+
+                if (notice.type === 'sliding') {
+                    document.getElementById("slidingTitle").value = notice.title;
+                    document.getElementById("slidingMessage").value = notice.message;
+                } else if (notice.type === 'home') {
+                    document.getElementById("homeTitle").value = notice.title;
+                    document.getElementById("homeMessage").value = notice.message;
+                    document.getElementById("homeImage").value = notice.img || "";
+                    document.getElementById("homeVideo").value = notice.Video || "";
+                    document.getElementById("homeKeys").value = notice.keys || "";
+                } else if (notice.type === 'push') {
+                    document.getElementById("pushTitle").value = notice.title;
+                    document.getElementById("pushMessage").value = notice.message;
+                    document.getElementById("pushImageLink").value = notice.img || "";
+                } else if (notice.type === 'slider') {
+                    document.getElementById("sliderImage").value = notice.img || "";
+                    document.getElementById("sliderTitle").value = notice.title || "";
+                    document.getElementById("sliderBtnText").value = notice.message || "";
+                    document.getElementById("sliderBtnLink").value = notice.keys || "";
+                }
+
+                const cancelBtn = document.getElementById("cancelEditBtn");
+                if (cancelBtn) cancelBtn.style.display = "block";
+            }
+        });
+    });
+
+    modal.querySelectorAll(".delete-btn").forEach(btn => {
+        btn.addEventListener("click", async (e) => {
+            const id = e.target.getAttribute("data-id");
+            const ok = await showCustomConfirm("আপনি কি এটি ডিলিট করতে চান?", "নিশ্চিতকরণ");
+            if (ok) {
+                await remove(ref(db, 'webapp/notices/' + id));
+                await showCustomDialog("সফলভাবে ডিলিট করা হয়েছে!", "সফল");
+            }
+        });
+    });
+}
+
+function resetForm() {
+    const editIdInput = document.getElementById("editNoticeId");
+    if (editIdInput) editIdInput.value = "";
+    
+    const slidingTitle = document.getElementById("slidingTitle");
+    if (slidingTitle) slidingTitle.value = "";
+    
+    const slidingMsg = document.getElementById("slidingMessage");
+    if (slidingMsg) slidingMsg.value = "";
+    
+    const homeTitle = document.getElementById("homeTitle");
+    if (homeTitle) homeTitle.value = "";
+    
+    const homeMsg = document.getElementById("homeMessage");
+    if (homeMsg) homeMsg.value = "";
+    
+    const homeImage = document.getElementById("homeImage");
+    if (homeImage) homeImage.value = "";
+    
+    const homeVideo = document.getElementById("homeVideo");
+    if (homeVideo) homeVideo.value = "";
+    
+    const homeKeys = document.getElementById("homeKeys");
+    if (homeKeys) homeKeys.value = "";
+    
+    const pushTitle = document.getElementById("pushTitle");
+    if (pushTitle) pushTitle.value = "";
+    
+    const pushMsg = document.getElementById("pushMessage");
+    if (pushMsg) pushMsg.value = "";
+    
+    const pushImg = document.getElementById("pushImageLink");
+    if (pushImg) pushImg.value = "";
+
+    const sliderImg = document.getElementById("sliderImage");
+    if (sliderImg) sliderImg.value = "";
+
+    const sliderTitle = document.getElementById("sliderTitle");
+    if (sliderTitle) sliderTitle.value = "";
+
+    const sliderBtnText = document.getElementById("sliderBtnText");
+    if (sliderBtnText) sliderBtnText.value = "";
+
+    const sliderBtnLink = document.getElementById("sliderBtnLink");
+    if (sliderBtnLink) sliderBtnLink.value = "";
+    
+    const cancelBtn = document.getElementById("cancelEditBtn");
+    if (cancelBtn) cancelBtn.style.display = "none";
+}
