@@ -886,6 +886,52 @@ function pullRemoteNotices() {
 /* ============================== Auto Sync ============================== */
 
 const AUTO_SYNC_MS = 30000;
+const DEFAULT_DB_URL = "https://qrt-team-default-rtdb.firebaseio.com";
+const PUSH_ALPHABET = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+
+/* Firebase push-id (যেমন -P7FEhcBxzvQs97nr-dZ) এর প্রথম ৮ অক্ষর থেকে তৈরির সময় বের করা */
+function pushIdToTime(key) {
+    const k = String(key || "");
+    if (k.length !== 20) return 0;
+    let t = 0;
+    for (let i = 0; i < 8; i++) {
+        const idx = PUSH_ALPHABET.indexOf(k.charAt(i));
+        if (idx < 0) return 0;
+        t = t * 64 + idx;
+    }
+    return t;
+}
+
+/* Realtime Database এর /notices থেকে সরাসরি আনা (REST) — ফিল্টার ক্লায়েন্ট সাইডে type=push */
+async function fetchNoticesFromDatabase() {
+    const base = String(window.RMP_FIREBASE_DB_URL || DEFAULT_DB_URL).replace(/\/+$/, "");
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 12000) : null;
+
+    try {
+        const res = await fetch(`${base}/notices.json`, {
+            cache: "no-store",
+            signal: ctrl ? ctrl.signal : undefined
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data || typeof data !== "object") return [];
+
+        const entries = Array.isArray(data)
+            ? data.map((v, i) => [String(i), v])
+            : Object.entries(data);
+
+        return entries
+            .filter(([, v]) => v && typeof v === "object")
+            .map(([key, v]) => ({
+                ...v,
+                id: String(v.id || key),
+                createdAt: Number(v.createdAt) || pushIdToTime(key) || 0
+            }));
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
 let autoSyncTimer = null;
 let syncBusy = false;
 
@@ -893,7 +939,14 @@ async function runAutoSync() {
     if (syncBusy) return;
     syncBusy = true;
     try {
-        // ১) অ্যাপের নিজস্ব ফেচার থাকলে (Promise<Array>) সেটি থেকে সর্বশেষ নোটিশ আনা
+        // ১) Firebase Realtime Database (/notices) থেকে সরাসরি সর্বশেষ নোটিশ আনা
+        try {
+            const list = await fetchNoticesFromDatabase();
+            syncFirebaseNoticesList(list);
+        } catch (e) {
+            console.warn("Notice DB fetch failed:", e);
+        }
+        // ২) অ্যাপের নিজস্ব ফেচার থাকলে (Promise<Array>) সেটিও ব্যবহার
         if (typeof window.fetchFirebaseNotices === "function") {
             const list = await window.fetchFirebaseNotices();
             if (Array.isArray(list)) syncFirebaseNoticesList(list);
@@ -903,9 +956,9 @@ async function runAutoSync() {
     } finally {
         syncBusy = false;
     }
-    // ২) সর্বশেষ পাওয়া লিস্ট আবার প্রয়োগ + সোর্সকে রিকোয়েস্ট
+    // ৩) সর্বশেষ পাওয়া লিস্ট আবার প্রয়োগ + সোর্সকে রিকোয়েস্ট
     pullRemoteNotices();
-    // ৩) লোকাল স্টোরেজের পুরাতন নোটিশ স্ক্রিনে রিফ্রেশ
+    // ৪) লোকাল স্টোরেজের পুরাতন নোটিশ স্ক্রিনে রিফ্রেশ
     if (isNoticeActive) renderNoticeBoxInSheet();
 }
 
