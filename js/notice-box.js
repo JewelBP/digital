@@ -1,4 +1,3 @@
-
 /* =========================================================
    js/notice-box.js
    RMP MT CONTACTS
@@ -50,10 +49,8 @@ const NOTICE_HIDE_IDS = [
 function canUseStorage() {
     try {
         const k = "__rmp_nb_test__";
-
         window.localStorage.setItem(k, "1");
         window.localStorage.removeItem(k);
-
         return true;
     } catch (e) {
         return false;
@@ -62,9 +59,7 @@ function canUseStorage() {
 
 const HAS_STORAGE = canUseStorage();
 
-
 function isPushNotice(raw) {
-
     if (!raw || typeof raw !== "object") {
         return false;
     }
@@ -80,9 +75,7 @@ function isPushNotice(raw) {
     return rawType === "push";
 }
 
-
 function escapeHTML(str) {
-
     return String(str ?? "").replace(
         /[&<>"']/g,
         m => ({
@@ -95,22 +88,16 @@ function escapeHTML(str) {
     );
 }
 
-
 function escapeRegExp(s) {
-
     return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-
 function generateNoticeId() {
-
     return `push_${Date.now()}_${Math.random()
         .toString(36).substring(2, 7)}`;
 }
 
-
 function formatNow(date = new Date()) {
-
     const pad = n => String(n).padStart(2, "0");
 
     const dd = pad(date.getDate());
@@ -118,17 +105,13 @@ function formatNow(date = new Date()) {
     const yyyy = date.getFullYear();
 
     let h = date.getHours();
-
     const ampm = h >= 12 ? "PM" : "AM";
-
     h = h % 12 || 12;
 
     return `${dd}/${mm}/${yyyy} ${pad(h)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
 }
 
-
 function normalizePushNotice(raw, index = 0) {
-
     if (!raw || typeof raw !== "object") {
         return null;
     }
@@ -161,173 +144,111 @@ function normalizePushNotice(raw, index = 0) {
             raw.id ??
             `push_${index}_${title.slice(0, 10)}`
         ),
-
         title: title || "জরুরি বিজ্ঞপ্তি",
-
         body,
-
         type: "push",
-
         time: String(
             raw.time ??
             raw.timestamp ??
             formatNow()
         ),
-
         read: Boolean(raw.read),
-
         createdAt:
             Number(raw.createdAt) ||
             (1700000000000 + index * 1000)
     };
 }
 
-
 /* =========================================================
    LOCAL STORAGE
 ========================================================= */
 
 function readFromKey(key) {
-
     if (!HAS_STORAGE) {
         return null;
     }
 
     try {
-
         const raw = window.localStorage.getItem(key);
-
         if (!raw) {
             return null;
         }
 
         const parsed = JSON.parse(raw);
-
         if (!Array.isArray(parsed)) {
             return null;
         }
 
         return parsed
-            .map((item, idx) =>
-                normalizePushNotice(item, idx)
-            )
+            .map((item, idx) => normalizePushNotice(item, idx))
             .filter(Boolean);
-
     } catch (e) {
-
         console.warn("Notice read error:", key, e);
-
         return null;
     }
 }
 
-
 function loadLocalNotices() {
-
     const fromPrimary = readFromKey(STORAGE_KEY);
-
     if (fromPrimary && fromPrimary.length > 0) {
-
         memoryNotices = fromPrimary;
-
-        noticeState = {
-            notices: fromPrimary
-        };
-
+        noticeState = { notices: fromPrimary };
         return fromPrimary;
     }
 
     const fromLegacy = readFromKey(LEGACY_KEY);
-
     if (fromLegacy && fromLegacy.length > 0) {
-
         memoryNotices = fromLegacy;
-
-        noticeState = {
-            notices: fromLegacy
-        };
-
+        noticeState = { notices: fromLegacy };
         return fromLegacy;
     }
 
-    if (
-        Array.isArray(memoryNotices) &&
-        memoryNotices.length > 0
-    ) {
-
+    if (Array.isArray(memoryNotices) && memoryNotices.length > 0) {
         const filteredMem = memoryNotices.filter(isPushNotice);
-
-        noticeState = {
-            notices: filteredMem
-        };
-
+        noticeState = { notices: filteredMem };
         return filteredMem;
     }
 
-    noticeState = {
-        notices: []
-    };
-
+    noticeState = { notices: [] };
     return [];
 }
 
-
 function saveLocalNotices() {
-
     const safe = (
         Array.isArray(noticeState.notices)
             ? noticeState.notices
             : []
     )
-        .map((item, idx) =>
-            normalizePushNotice(item, idx)
-        )
+        .map((item, idx) => normalizePushNotice(item, idx))
         .filter(Boolean);
 
     noticeState.notices = safe;
-
     memoryNotices = safe;
 
     if (HAS_STORAGE) {
-
         try {
-
             const serialized = JSON.stringify(safe);
-
-            window.localStorage.setItem(
-                STORAGE_KEY,
-                serialized
-            );
-
-            window.localStorage.setItem(
-                LEGACY_KEY,
-                serialized
-            );
-
+            window.localStorage.setItem(STORAGE_KEY, serialized);
+            window.localStorage.setItem(LEGACY_KEY, serialized);
         } catch (e) {
-
             console.error("Notice local save error:", e);
         }
     }
 }
-
 
 /* =========================================================
    STYLES
 ========================================================= */
 
 function injectNoticeStyles() {
-
     if (document.getElementById("noticeBoxModernStyles")) {
         return;
     }
 
     const style = document.createElement("style");
-
     style.id = "noticeBoxModernStyles";
 
     style.textContent = `
-
         .custom-bottom-nav {
             position: fixed !important;
             left: 0 !important;
@@ -645,13 +566,11 @@ function injectNoticeStyles() {
     document.head.appendChild(style);
 }
 
-
 /* =========================================================
    HIGHLIGHT
 ========================================================= */
 
 function highlightHTML(html) {
-
     if (!noticeSearchQuery) {
         return html;
     }
@@ -671,41 +590,31 @@ function highlightHTML(html) {
         .join("");
 }
 
-
 /* =========================================================
    LAYOUT / HEADER / HISTORY
 ========================================================= */
 
 function ensureSheetContainer() {
-
     const sheet = document.getElementById("mainScrollSheet");
-
     if (!sheet) {
         return null;
     }
 
     let view = document.getElementById("noticeBoxSheetView");
-
     if (!view) {
-
         view = document.createElement("div");
-
         view.id = "noticeBoxSheetView";
-
         view.className = "hidden";
 
         const mainEl =
             sheet.querySelector("main.container") || sheet;
-
         mainEl.appendChild(view);
     }
 
     return view;
 }
 
-
 function pushNoticeState(level) {
-
     try {
         history.pushState(
             { nbLevel: level },
@@ -717,15 +626,10 @@ function pushNoticeState(level) {
     nbDepth = level;
 }
 
-
 window.addEventListener("popstate", (e) => {
-
     if (swallowPop > 0) {
-
         swallowPop--;
-
         e.stopImmediatePropagation();
-
         return;
     }
 
@@ -741,30 +645,21 @@ window.addEventListener("popstate", (e) => {
             : 0;
 
     if (lvl >= 1) {
-
         nbDepth = lvl;
-
         return;
     }
 
     nbDepth = 0;
-
     closeNoticeBox(true);
-
 }, true);
 
-
 function setHeaderBackMode(titleText) {
-
     const appTitleText =
         document.querySelector(".app-title-text");
-
     const menuIcon =
         document.getElementById("menuIcon");
-
     const backIcon =
         document.getElementById("backIcon");
-
     const navBtn =
         document.getElementById("navToggleBtn");
 
@@ -775,24 +670,19 @@ function setHeaderBackMode(titleText) {
     }
 
     if (menuIcon && backIcon) {
-
         menuIcon.classList.add("hidden");
-
         backIcon.classList.remove("hidden");
     }
 
     if (navBtn && !navBtn.dataset.nbBound) {
-
         navBtn.dataset.nbBound = "1";
 
         navBtn.addEventListener("click", (e) => {
-
             if (!isNoticeActive) {
                 return;
             }
 
             e.preventDefault();
-
             e.stopImmediatePropagation();
 
             if (nbDepth > 0) {
@@ -800,42 +690,31 @@ function setHeaderBackMode(titleText) {
             } else {
                 closeNoticeBox();
             }
-
         }, true);
     }
 }
 
-
 function captureHeaderState() {
-
     const appTitleText =
         document.querySelector(".app-title-text");
-
     const menuIcon =
         document.getElementById("menuIcon");
-
     const backIcon =
         document.getElementById("backIcon");
 
     prevTitleText =
         appTitleText ? appTitleText.textContent : "";
-
     prevMenuHidden =
         menuIcon ? menuIcon.classList.contains("hidden") : false;
-
     prevBackHidden =
         backIcon ? backIcon.classList.contains("hidden") : true;
 }
 
-
 function restoreHeaderMode() {
-
     const appTitleText =
         document.querySelector(".app-title-text");
-
     const menuIcon =
         document.getElementById("menuIcon");
-
     const backIcon =
         document.getElementById("backIcon");
 
@@ -853,17 +732,12 @@ function restoreHeaderMode() {
     }
 }
 
-
 function hideMainViewsForNotice(hide) {
-
     if (hide) {
-
         viewSnapshot = {};
 
         NOTICE_HIDE_IDS.forEach(id => {
-
             const el = document.getElementById(id);
-
             if (!el) {
                 return;
             }
@@ -878,7 +752,6 @@ function hideMainViewsForNotice(hide) {
 
         const slider =
             document.getElementById("heroSlider");
-
         if (slider) {
             slider.style.display = "none";
         }
@@ -891,40 +764,30 @@ function hideMainViewsForNotice(hide) {
     }
 
     NOTICE_HIDE_IDS.forEach(id => {
-
         const el = document.getElementById(id);
-
         const snap = viewSnapshot[id];
-
         if (!el || !snap) {
             return;
         }
 
         el.classList.toggle("hidden", snap.hidden);
-
         el.style.display = snap.display;
     });
 
     viewSnapshot = null;
 }
 
-
 /* =========================================================
    HEADER SEARCH
 ========================================================= */
 
 function mountHeaderSearch(placeholder) {
-
     let wrap = document.getElementById("nbHeaderSearch");
 
     if (!wrap) {
-
         wrap = document.createElement("div");
-
         wrap.id = "nbHeaderSearch";
-
-        wrap.className =
-            "header-search-inline is-visible";
+        wrap.className = "header-search-inline is-visible";
 
         wrap.innerHTML = `
             <div class="subpage-search-field">
@@ -943,23 +806,16 @@ function mountHeaderSearch(placeholder) {
 
         const top =
             document.querySelector(".modern-top-wrapper");
-
         const header =
             top?.querySelector(".modern-header");
 
         if (header) {
-
             header.insertAdjacentElement("afterend", wrap);
-
         } else if (top) {
-
             top.appendChild(wrap);
-
         } else {
-
             const sheet =
                 document.getElementById("mainScrollSheet");
-
             if (sheet?.parentElement) {
                 sheet.parentElement.insertBefore(wrap, sheet);
             } else {
@@ -969,18 +825,14 @@ function mountHeaderSearch(placeholder) {
 
         const field =
             wrap.querySelector(".subpage-search-field");
-
         const input =
             wrap.querySelector("#nbToolbarSearchInput");
-
         const clearBtn =
             wrap.querySelector("#nbClearSearchBtn");
 
         input.addEventListener("input", () => {
-
             noticeSearchQuery =
                 input.value.trim().toLowerCase();
-
             field.classList.toggle(
                 "has-value",
                 input.value.length > 0
@@ -992,13 +844,9 @@ function mountHeaderSearch(placeholder) {
         });
 
         clearBtn.addEventListener("click", () => {
-
             noticeSearchQuery = "";
-
             input.value = "";
-
             field.classList.remove("has-value");
-
             input.focus();
 
             if (searchHandler) {
@@ -1009,7 +857,6 @@ function mountHeaderSearch(placeholder) {
 
     const field =
         wrap.querySelector(".subpage-search-field");
-
     const input =
         wrap.querySelector("#nbToolbarSearchInput");
 
@@ -1028,27 +875,20 @@ function mountHeaderSearch(placeholder) {
     );
 
     wrap.classList.add("is-visible");
-
     wrap.classList.remove("hidden");
 }
 
-
 function unmountHeaderSearch() {
-
     document.getElementById("nbHeaderSearch")?.remove();
-
     searchHandler = null;
 }
-
 
 /* =========================================================
    NOTICE LIST RENDER
 ========================================================= */
 
 function renderNoticeListView(container) {
-
     setHeaderBackMode(noticeTitleNow || "Notice Box");
-
     mountHeaderSearch("নোটিশ খুঁজুন...");
 
     container.innerHTML = `
@@ -1072,13 +912,10 @@ function renderNoticeListView(container) {
     `;
 
     searchHandler = () => fillNoticeList();
-
     fillNoticeList();
 }
 
-
 function getCategorySlidingNoticeText() {
-
     const el =
         document.getElementById("slidingNoticeContainer") ||
         document.querySelector(".sliding-notice-container");
@@ -1092,9 +929,7 @@ function getCategorySlidingNoticeText() {
         .trim();
 }
 
-
 function updateTicker(all, filtered, q, trackEl) {
-
     if (!trackEl) {
         return;
     }
@@ -1103,17 +938,13 @@ function updateTicker(all, filtered, q, trackEl) {
         getCategorySlidingNoticeText();
 
     if (catSlideText) {
-
         trackEl.textContent = catSlideText;
-
         return;
     }
 
     if (!all.length) {
-
         trackEl.textContent =
             "কোনো পুশ নোটিশ নেই — Firebase এ type: push নোটিশ থাকলে এখানে দেখা যাবে।";
-
         return;
     }
 
@@ -1131,15 +962,11 @@ function updateTicker(all, filtered, q, trackEl) {
         `${summary}   •   ${headlines}`;
 }
 
-
 function fillNoticeList() {
-
     const area =
         document.getElementById("nbListArea");
-
     const countEl =
         document.getElementById("nbResultCount");
-
     const tickerEl =
         document.getElementById("nbTickerTrack");
 
@@ -1150,7 +977,6 @@ function fillNoticeList() {
     // গুরুত্বপূর্ণ:
     // Firebase খালি থাকলেও LocalStorage থেকে নোটিশ লোড হবে।
     const all = loadLocalNotices().filter(isPushNotice);
-
     const q = noticeSearchQuery;
 
     const filtered = q
@@ -1162,7 +988,6 @@ function fillNoticeList() {
         : all;
 
     if (countEl) {
-
         countEl.textContent = q
             ? `${filtered.length}টি নোটিশ পাওয়া গেছে`
             : "";
@@ -1171,7 +996,6 @@ function fillNoticeList() {
     updateTicker(all, filtered, q, tickerEl);
 
     if (!filtered.length) {
-
         area.innerHTML = `
             <div class="nb-empty">
                 <div style="font-size:28px;margin-bottom:6px;">
@@ -1191,15 +1015,12 @@ function fillNoticeList() {
                 </div>
             </div>
         `;
-
         return;
     }
 
     area.innerHTML = `
         <div class="nb-card-stack nb-rich">
-
             ${filtered.map(n => `
-
                 <article class="nb-card ${n.read ? "" : "unread"}"
                          data-id="${escapeHTML(n.id)}">
 
@@ -1208,22 +1029,17 @@ function fillNoticeList() {
                     </div>
 
                     <div class="nb-content">
-
                         <div class="nb-card-top">
-
                             <h3 class="nb-card-title">
                                 ${highlightHTML(escapeHTML(n.title))}
                             </h3>
 
                             <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-
                                 ${n.read
                                     ? ""
                                     : `<span class="nb-new-tag">নতুন</span>`
                                 }
-
                             </div>
-
                         </div>
 
                         <p class="nb-card-body">
@@ -1235,22 +1051,15 @@ function fillNoticeList() {
                                 🕒 ${highlightHTML(escapeHTML(n.time || ""))}
                             </span>
                         </div>
-
                     </div>
-
                 </article>
-
             `).join("")}
-
         </div>
     `;
 
     area.querySelectorAll(".nb-card").forEach(card => {
-
         card.addEventListener("click", () => {
-
             const id = card.getAttribute("data-id");
-
             noticeState.notices =
                 loadLocalNotices().map(item =>
                     item.id === id
@@ -1259,19 +1068,16 @@ function fillNoticeList() {
                 );
 
             saveLocalNotices();
-
             renderNoticeBoxInSheet();
         });
     });
 }
-
 
 /* =========================================================
    STRICT PUSH NOTICE STORAGE
 ========================================================= */
 
 function upsertNoticeToUserStorage(rawNotice) {
-
     if (!rawNotice || typeof rawNotice !== "object") {
         return null;
     }
@@ -1305,43 +1111,30 @@ function upsertNoticeToUserStorage(rawNotice) {
         rawNotice.id ? String(rawNotice.id) : null;
 
     const existingIndex = targetId
-
         ? noticeState.notices.findIndex(
             item => String(item.id) === targetId
         )
-
         : noticeState.notices.findIndex(item =>
             item.title === (cleanTitle || "জরুরি বিজ্ঞপ্তি") &&
             item.body === cleanBody
         );
 
     if (existingIndex !== -1) {
-
         const existing =
             noticeState.notices[existingIndex];
 
         const updated = normalizePushNotice({
-
             ...existing,
-
             title: cleanTitle || existing.title,
-
             body: cleanBody || existing.body,
-
             type: "push",
-
             time: rawNotice.time || existing.time,
-
             read: existing.read,
-
             createdAt: existing.createdAt
-
         }, existingIndex);
 
         if (updated) {
-
             noticeState.notices[existingIndex] = updated;
-
             saveLocalNotices();
 
             if (isNoticeActive) {
@@ -1355,29 +1148,21 @@ function upsertNoticeToUserStorage(rawNotice) {
     }
 
     const entry = {
-
         id: targetId || generateNoticeId(),
-
         title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
-
         body: cleanBody,
-
         type: "push",
-
         time: String(
             rawNotice.time ??
             rawNotice.timestamp ??
             formatNow()
         ),
-
         read: false,
-
         createdAt:
             Number(rawNotice.createdAt) || Date.now()
     };
 
     noticeState.notices.unshift(entry);
-
     saveLocalNotices();
 
     if (isNoticeActive) {
@@ -1387,21 +1172,17 @@ function upsertNoticeToUserStorage(rawNotice) {
     return entry;
 }
 
-
 /* =========================================================
    FIREBASE DATA EXTRACTION
 ========================================================= */
 
 function extractStrictPushList(input) {
-
     if (!input) {
         return [];
     }
 
     if (Array.isArray(input)) {
-
         return input.map((item, idx) => {
-
             if (
                 !item ||
                 typeof item !== "object" ||
@@ -1411,20 +1192,17 @@ function extractStrictPushList(input) {
             }
 
             return {
-
                 id: String(
                     item.id ??
                     item._key ??
                     `push_arr_${idx}`
                 ),
-
                 title: String(
                     item.title ??
                     item.subject ??
                     item.heading ??
                     ""
                 ).trim(),
-
                 body: String(
                     item.message ??
                     item.body ??
@@ -1432,30 +1210,23 @@ function extractStrictPushList(input) {
                     item.description ??
                     ""
                 ).trim(),
-
                 type: "push",
-
                 time: String(
                     item.time ??
                     item.timestamp ??
                     formatNow()
                 ),
-
                 createdAt:
                     Number(item.createdAt) ||
                     (1700000000000 + idx * 1000)
-
             };
-
         }).filter(item =>
             item && (item.title || item.body)
         );
     }
 
     if (typeof input === "object") {
-
         return Object.entries(input).map(([key, val], idx) => {
-
             if (
                 !val ||
                 typeof val !== "object" ||
@@ -1465,16 +1236,13 @@ function extractStrictPushList(input) {
             }
 
             return {
-
                 id: String(val.id || key),
-
                 title: String(
                     val.title ??
                     val.subject ??
                     val.heading ??
                     ""
                 ).trim(),
-
                 body: String(
                     val.message ??
                     val.body ??
@@ -1482,21 +1250,16 @@ function extractStrictPushList(input) {
                     val.description ??
                     ""
                 ).trim(),
-
                 type: "push",
-
                 time: String(
                     val.time ??
                     val.timestamp ??
                     formatNow()
                 ),
-
                 createdAt:
                     Number(val.createdAt) ||
                     (1700000000000 + idx * 1000)
-
             };
-
         }).filter(item =>
             item && (item.title || item.body)
         );
@@ -1505,22 +1268,18 @@ function extractStrictPushList(input) {
     return [];
 }
 
-
 /* =========================================================
    FIREBASE SYNC
 ========================================================= */
 
 function syncFirebaseNoticesList(noticesInput) {
-
     const pushItems =
         extractStrictPushList(noticesInput);
 
     // FIX:
     // Firebase-এ Push নোটিশ না থাকলে পুরোনো নোটিশ
     // কখনোই মুছে ফেলা হবে না।
-
     if (!pushItems.length) {
-
         loadLocalNotices();
 
         if (isNoticeActive) {
@@ -1548,26 +1307,18 @@ function syncFirebaseNoticesList(noticesInput) {
     );
 
     const nextList = pushItems.map((n, idx) => ({
-
         id: String(n.id),
-
         title: n.title || "জরুরি বিজ্ঞপ্তি",
-
         body: n.body || "",
-
         type: "push",
-
         time: n.time || formatNow(),
-
         read: prevReadMap.has(String(n.id))
             ? prevReadMap.get(String(n.id))
             : false,
-
         createdAt:
             Number(n.createdAt) ||
             prevCreatedMap.get(String(n.id)) ||
             (1700000000000 + idx * 1000)
-
     }));
 
     nextList.sort((a, b) =>
@@ -1590,13 +1341,10 @@ function syncFirebaseNoticesList(noticesInput) {
         );
 
     noticeState.notices = nextList;
-
     memoryNotices = nextList;
-
     saveLocalNotices();
 
     if (isNoticeActive) {
-
         if (changed) {
             renderNoticeBoxInSheet();
         } else {
@@ -1605,46 +1353,28 @@ function syncFirebaseNoticesList(noticesInput) {
     }
 }
 
-
 /* =========================================================
    FIREBASE DATABASE RESOLVER
 ========================================================= */
 
 function resolveRealtimeDbInstance() {
-
-    if (
-        window.db &&
-        typeof window.db.ref === "function"
-    ) {
+    if (window.db && typeof window.db.ref === "function") {
         return window.db;
     }
 
-    if (
-        window.firebaseDb &&
-        typeof window.firebaseDb.ref === "function"
-    ) {
+    if (window.firebaseDb && typeof window.firebaseDb.ref === "function") {
         return window.firebaseDb;
     }
 
-    if (
-        window.database &&
-        typeof window.database.ref === "function"
-    ) {
+    if (window.database && typeof window.database.ref === "function") {
         return window.database;
     }
 
-    if (
-        window.rtdb &&
-        typeof window.rtdb.ref === "function"
-    ) {
+    if (window.rtdb && typeof window.rtdb.ref === "function") {
         return window.rtdb;
     }
 
-    if (
-        window.firebase &&
-        typeof window.firebase.database === "function"
-    ) {
-
+    if (window.firebase && typeof window.firebase.database === "function") {
         try {
             return window.firebase.database();
         } catch (e) {
@@ -1655,9 +1385,7 @@ function resolveRealtimeDbInstance() {
     return null;
 }
 
-
 function resolveDatabaseUrl() {
-
     return (
         window.FIREBASE_DATABASE_URL ||
         window.firebaseConfig?.databaseURL ||
@@ -1666,21 +1394,17 @@ function resolveDatabaseUrl() {
     );
 }
 
-
 /* =========================================================
    FIREBASE REST FETCH
 ========================================================= */
 
 async function fetchPushNoticesViaRest() {
-
     const dbUrl = resolveDatabaseUrl();
-
     if (!dbUrl) {
         return;
     }
 
     try {
-
         const base =
             String(dbUrl).replace(/\/+$/, "");
 
@@ -1699,27 +1423,19 @@ async function fetchPushNoticesViaRest() {
 
         // খালি Firebase ডাটা হলে LocalStorage অক্ষত থাকবে।
         syncFirebaseNoticesList(data || {});
-
     } catch (e) {
-
         // Network error হলে LocalStorage ব্যবহার হবে।
-        console.warn(
-            "Firebase REST sync unavailable:",
-            e
-        );
+        console.warn("Firebase REST sync unavailable:", e);
     }
 }
-
 
 /* =========================================================
    AUTO SYNC START
 ========================================================= */
 
 function startFirebaseAutoSync() {
-
     // প্রথমে LocalStorage লোড
     // যাতে Firebase আসার আগেই পুরোনো নোটিশ পাওয়া যায়।
-
     loadLocalNotices();
 
     // তাৎক্ষণিক Firebase REST Sync
@@ -1735,30 +1451,20 @@ function startFirebaseAutoSync() {
 
     // Firebase Compat Listener
     if (db) {
-
         try {
-
             const ref =
                 db.ref(FIREBASE_NOTICES_PATH);
 
             ref.on("value", (snapshot) => {
-
                 const val =
-                    snapshot &&
-                    typeof snapshot.val === "function"
+                    snapshot && typeof snapshot.val === "function"
                         ? snapshot.val()
                         : null;
 
                 syncFirebaseNoticesList(val || {});
-
             });
-
         } catch (e) {
-
-            console.warn(
-                "Firebase SDK listener fallback to REST:",
-                e
-            );
+            console.warn("Firebase SDK listener fallback to REST:", e);
         }
     }
 
@@ -1768,9 +1474,7 @@ function startFirebaseAutoSync() {
         window._firebaseModularRef &&
         window._firebaseModularOnValue
     ) {
-
         try {
-
             const r =
                 window._firebaseModularRef(
                     window._firebaseModularDb,
@@ -1778,29 +1482,20 @@ function startFirebaseAutoSync() {
                 );
 
             window._firebaseModularOnValue(r, (snapshot) => {
-
                 const val =
-                    snapshot &&
-                    typeof snapshot.val === "function"
+                    snapshot && typeof snapshot.val === "function"
                         ? snapshot.val()
                         : null;
 
                 syncFirebaseNoticesList(val || {});
-
             });
-
         } catch (e) {
-
-            console.warn(
-                "Firebase Modular listener fallback to REST:",
-                e
-            );
+            console.warn("Firebase Modular listener fallback to REST:", e);
         }
     }
 
     // প্রতি ৫ সেকেন্ডে REST Auto Sync
     if (!autoSyncPollTimer) {
-
         autoSyncPollTimer = setInterval(
             fetchPushNoticesViaRest,
             5000
@@ -1808,15 +1503,12 @@ function startFirebaseAutoSync() {
     }
 }
 
-
 /* =========================================================
    PUBLIC API
 ========================================================= */
 
 export function renderNoticeBoxInSheet() {
-
     const view = ensureSheetContainer();
-
     if (!view) {
         return;
     }
@@ -1824,9 +1516,7 @@ export function renderNoticeBoxInSheet() {
     renderNoticeListView(view);
 }
 
-
 export function openNoticeInbox() {
-
     injectNoticeStyles();
 
     // প্রথমে পুরোনো LocalStorage নোটিশ লোড
@@ -1836,107 +1526,74 @@ export function openNoticeInbox() {
     startFirebaseAutoSync();
 
     if (!isNoticeActive) {
-
         captureHeaderState();
-
         hideMainViewsForNotice(true);
-
         pushNoticeState(1);
     }
 
     isNoticeActive = true;
-
     noticeSearchQuery = "";
-
     noticeTitleNow = "Notice Box";
 
     const view = ensureSheetContainer();
-
     if (view) {
-
         view.classList.remove("hidden");
-
         renderNoticeBoxInSheet();
     }
 }
 
-
 export function closeNoticeBox(fromPop = false) {
-
     if (!isNoticeActive) {
         return;
     }
 
     if (fromPop !== true && nbDepth > 0) {
-
         swallowPop++;
-
         try {
-
             history.go(-nbDepth);
-
         } catch (e) {
-
             swallowPop = 0;
         }
     }
 
     nbDepth = 0;
-
     isNoticeActive = false;
-
     noticeSearchQuery = "";
 
     unmountHeaderSearch();
 
     const view =
         document.getElementById("noticeBoxSheetView");
-
     if (view) {
-
         view.classList.add("hidden");
-
         view.innerHTML = "";
     }
 
     restoreHeaderMode();
-
     hideMainViewsForNotice(false);
 }
-
 
 /* =========================================================
    PUSH EVENT LISTENER
 ========================================================= */
 
 window.addEventListener("app:notice", (e) => {
-
     const d = e?.detail || {};
-
     if (!isPushNotice(d)) {
         return;
     }
 
     if (d.title || d.body || d.message) {
-
         upsertNoticeToUserStorage({
-
             id: d.id,
-
             title: d.title,
-
             body: d.body ?? d.message,
-
             type: "push",
-
             time: d.time,
-
             createdAt: d.createdAt
-
         });
     }
 });
-
 
 /* =========================================================
    FIREBASE EXTERNAL SYNC EVENT
@@ -1945,29 +1602,20 @@ window.addEventListener("app:notice", (e) => {
 window.addEventListener(
     "rmp:firebase-notices-sync",
     (e) => {
-
         if (e?.detail?.notices !== undefined) {
-
-            syncFirebaseNoticesList(
-                e.detail.notices
-            );
-
+            syncFirebaseNoticesList(e.detail.notices);
         } else {
-
             fetchPushNoticesViaRest();
         }
     }
 );
-
 
 /* =========================================================
    SERVICE WORKER / MESSAGE LISTENER
 ========================================================= */
 
 window.addEventListener("message", (event) => {
-
     const data = event?.data;
-
     if (!data || typeof data !== "object") {
         return;
     }
@@ -1978,8 +1626,7 @@ window.addEventListener("message", (event) => {
         data;
 
     const nested =
-        payload.data &&
-        typeof payload.data === "object"
+        payload.data && typeof payload.data === "object"
             ? payload.data
             : {};
 
@@ -2006,79 +1653,48 @@ window.addEventListener("message", (event) => {
         "";
 
     if (title || body) {
-
         upsertNoticeToUserStorage({
-
             id: merged.id || merged.messageId,
-
             title,
-
             body,
-
             type: "push",
-
-            time:
-                merged.time ||
-                formatNow()
-
+            time: merged.time || formatNow()
         });
     }
 });
-
 
 /* =========================================================
    STORAGE EVENT
 ========================================================= */
 
 window.addEventListener("storage", (e) => {
-
-    if (
-        e.key === STORAGE_KEY ||
-        e.key === LEGACY_KEY
-    ) {
-
+    if (e.key === STORAGE_KEY || e.key === LEGACY_KEY) {
         loadLocalNotices();
-
         if (isNoticeActive) {
             renderNoticeBoxInSheet();
         }
     }
 });
 
-
 /* =========================================================
    PAGE INITIALIZATION
 ========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
-
     loadLocalNotices();
-
     startFirebaseAutoSync();
-
 });
-
 
 window.addEventListener("load", () => {
-
     startFirebaseAutoSync();
-
 });
-
 
 /* =========================================================
    GLOBAL API
 ========================================================= */
 
 window.openNoticeInbox = openNoticeInbox;
-
 window.closeNoticeBox = () => closeNoticeBox();
-
-window.saveNoticeToUserStorage =
-    upsertNoticeToUserStorage;
-
-window.syncFirebaseNoticesToUserStorage =
-    syncFirebaseNoticesList;
-
-window.startNoticeBoxAutoSync =
-    startFirebaseAutoSync;
+window.saveNoticeToUserStorage = upsertNoticeToUserStorage;
+window.syncFirebaseNoticesToUserStorage = syncFirebaseNoticesList;
+window.startNoticeBoxAutoSync = startFirebaseAutoSync;
