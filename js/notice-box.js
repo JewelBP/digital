@@ -1,8 +1,9 @@
-// js/notice-box.js  (Strict type="push" Auto Sync — Read-Only All Users)
+// js/notice-box.js  (Direct Firebase Auto Sync for type="push" — Read-Only)
 
 const STORAGE_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
 const FIREBASE_NOTICES_PATH = "notices";
+const DEFAULT_RTDB_URL = "https://qrt-team-default-rtdb.firebaseio.com";
 
 let noticeState = { notices: [] };
 let memoryNotices = [];
@@ -13,7 +14,6 @@ let prevBackHidden = true;
 let prevMenuHidden = false;
 let autoSyncStarted = false;
 let autoSyncPollTimer = null;
-let autoSyncRetryTimer = null;
 let lastSyncedSnapshotSignature = "";
 
 /* ============================== Helpers ============================== */
@@ -682,7 +682,7 @@ function renderNoticeListView(container) {
         <div class="nb-ticker-bar">
             <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
             <div class="nb-ticker-viewport">
-                <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
+                <div id="nbTickerTrack" class="nb-ticker-track">লোড হচ্ছে...</div>
             </div>
         </div>
 
@@ -696,16 +696,31 @@ function renderNoticeListView(container) {
     fillNoticeList();
 }
 
+function getCategorySlidingNoticeText() {
+    const el =
+        document.getElementById("slidingNoticeContainer") ||
+        document.querySelector(".sliding-notice-container");
+    if (!el) return "";
+    return String(el.textContent || "").replace(/\s+/g, " ").trim();
+}
+
 function updateTicker(all, filtered, q, trackEl) {
     if (!trackEl) return;
+
+    const catSlideText = getCategorySlidingNoticeText();
+    if (catSlideText) {
+        trackEl.textContent = catSlideText;
+        return;
+    }
+
     if (!all.length) {
         trackEl.textContent = "কোনো পুশ নোটিশ নেই — Firebase এ type: push নোটিশ থাকলে এখানে দেখা যাবে।";
         return;
     }
 
     const summary = q
-        ? `সার্চ ফলাফল: ${filtered.length}টি পুশ নোটিশ পাওয়া গেছে`
-        : `মোট ${all.length}টি পুশ নোটিশ • `;
+        ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
+        : `মোট ${all.length}টি নোটিশ • `;
 
     const headlines = (filtered.length ? filtered : all)
         .map(n => `${n.title}: ${n.body || ""}`.trim())
@@ -932,7 +947,7 @@ function resolveDatabaseUrl() {
         window.FIREBASE_DATABASE_URL ||
         window.firebaseConfig?.databaseURL ||
         window.firebase?.app?.()?.options?.databaseURL ||
-        ""
+        DEFAULT_RTDB_URL
     );
 }
 
@@ -947,55 +962,44 @@ async function fetchPushNoticesViaRest() {
         const data = await res.json();
         syncFirebaseNoticesList(data || {});
     } catch (e) {
-        // ignore network/permission errors silently
+        // ignore network errors silently
     }
 }
 
 function startFirebaseAutoSync() {
+    // তাৎক্ষণিক REST সিঙ্ক যাতে দেরি না হয়
+    fetchPushNoticesViaRest();
+
     if (autoSyncStarted) return;
+    autoSyncStarted = true;
 
     const db = resolveRealtimeDbInstance();
     if (db) {
-        autoSyncStarted = true;
-        const ref = db.ref(FIREBASE_NOTICES_PATH);
-        ref.on("value", (snapshot) => {
-            const val = snapshot && typeof snapshot.val === "function" ? snapshot.val() : null;
-            syncFirebaseNoticesList(val || {});
-        }, (err) => {
-            console.warn("Firebase push notices listener error:", err);
-        });
-        return;
+        try {
+            const ref = db.ref(FIREBASE_NOTICES_PATH);
+            ref.on("value", (snapshot) => {
+                const val = snapshot && typeof snapshot.val === "function" ? snapshot.val() : null;
+                syncFirebaseNoticesList(val || {});
+            });
+        } catch (e) {
+            console.warn("Firebase SDK listener fallback to REST:", e);
+        }
     }
 
     if (window._firebaseModularDb && window._firebaseModularRef && window._firebaseModularOnValue) {
-        autoSyncStarted = true;
-        const r = window._firebaseModularRef(window._firebaseModularDb, FIREBASE_NOTICES_PATH);
-        window._firebaseModularOnValue(r, (snapshot) => {
-            const val = snapshot && typeof snapshot.val === "function" ? snapshot.val() : null;
-            syncFirebaseNoticesList(val || {});
-        });
-        return;
+        try {
+            const r = window._firebaseModularRef(window._firebaseModularDb, FIREBASE_NOTICES_PATH);
+            window._firebaseModularOnValue(r, (snapshot) => {
+                const val = snapshot && typeof snapshot.val === "function" ? snapshot.val() : null;
+                syncFirebaseNoticesList(val || {});
+            });
+        } catch (e) {
+            console.warn("Firebase Modular listener fallback to REST:", e);
+        }
     }
 
-    const dbUrl = resolveDatabaseUrl();
-    if (dbUrl && !autoSyncPollTimer) {
-        autoSyncStarted = true;
-        fetchPushNoticesViaRest();
+    if (!autoSyncPollTimer) {
         autoSyncPollTimer = setInterval(fetchPushNoticesViaRest, 5000);
-        return;
-    }
-
-    if (!autoSyncRetryTimer) {
-        let attempts = 0;
-        autoSyncRetryTimer = setInterval(() => {
-            attempts++;
-            if (autoSyncStarted || attempts >= 30) {
-                clearInterval(autoSyncRetryTimer);
-                autoSyncRetryTimer = null;
-                return;
-            }
-            startFirebaseAutoSync();
-        }, 700);
     }
 }
 
@@ -1011,7 +1015,6 @@ export function openNoticeInbox() {
     injectNoticeStyles();
     loadLocalNotices();
     startFirebaseAutoSync();
-    if (resolveDatabaseUrl()) fetchPushNoticesViaRest();
 
     if (!isNoticeActive) {
         captureHeaderState();
@@ -1072,8 +1075,7 @@ window.addEventListener("rmp:firebase-notices-sync", (e) => {
     if (e?.detail?.notices !== undefined) {
         syncFirebaseNoticesList(e.detail.notices);
     } else {
-        loadLocalNotices();
-        if (isNoticeActive) renderNoticeBoxInSheet();
+        fetchPushNoticesViaRest();
     }
 });
 
@@ -1110,12 +1112,10 @@ window.addEventListener("storage", (e) => {
 document.addEventListener("DOMContentLoaded", () => {
     loadLocalNotices();
     startFirebaseAutoSync();
-    setTimeout(startFirebaseAutoSync, 1000);
 });
 
 window.addEventListener("load", () => {
     startFirebaseAutoSync();
-    if (resolveDatabaseUrl()) fetchPushNoticesViaRest();
 });
 
 window.openNoticeInbox = openNoticeInbox;
