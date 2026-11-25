@@ -9,7 +9,7 @@ let cached = { token: null, exp: 0 };
 
 export function hasServiceAccount() {
     return !!localStorage.getItem(SA_KEY);
-}
+} 
 
 export function saveServiceAccount(jsonText) {
     const sa = JSON.parse(jsonText);
