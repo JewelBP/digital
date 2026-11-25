@@ -295,33 +295,22 @@ function injectNoticeStyles() {
             display: none;
         }
 
-        /* জরুরি বিজ্ঞপ্তি টিকার — আরও উপরের দিকে তোলা ও হাইট বৃদ্ধি */
+        /* স্লাইড টেক্সট — ক্যাটাগরি/সাব-ক্যাটাগরির #slidingNoticeContainer এর মতো (ট্রান্সপারেন্ট, নিচে বর্ডার, গোলাকার) */
         .nb-ticker-bar {
-            background: var(--card-bg, #ffffff);
-            border: 1px solid var(--border-color, #e2e8f0);
-            border-radius: 14px;
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 8px;
             margin: 0 0 4px 0;
-            min-height: 44px;
-            padding: 8px 12px 8px 8px;
+            padding: 2px 0;
             display: flex;
             align-items: center;
-            gap: 8px;
-            box-shadow: 0 3px 10px rgba(2, 6, 36, .05);
             overflow: hidden;
         }
-        body.dark-mode .nb-ticker-bar {
-            background: var(--card-bg, #0f172a);
-            border-color: var(--border-color, #1e293b);
-        }
-        .nb-ticker-badge {
-            background: #dc2626;
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 700;
-            padding: 6px 10px;
-            border-radius: 9px;
-            white-space: nowrap;
-            flex-shrink: 0;
+        .nb-ticker-bar.hidden {
+            display: none !important;
+            margin: 0 !important;
+            border: 0 !important;
         }
         .nb-ticker-viewport {
             flex: 1;
@@ -681,10 +670,9 @@ function renderNoticeListView(container) {
     mountHeaderSearch("নোটিশ খুঁজুন...");
 
     const html = `
-        <div class="nb-ticker-bar">
-            <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
+        <div id="nbTickerBar" class="nb-ticker-bar hidden">
             <div class="nb-ticker-viewport">
-                <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
+                <div id="nbTickerTrack" class="nb-ticker-track"></div>
             </div>
         </div>
 
@@ -700,20 +688,21 @@ function renderNoticeListView(container) {
 
 function updateTicker(all, filtered, q, trackEl) {
     if (!trackEl) return;
-    if (!all.length) {
-        trackEl.textContent = "কোনো নোটিশ সংরক্ষিত নেই — নতুন নোটিশ আসলে এখানে স্ক্রল করে দেখা যাবে।";
+    const bar = document.getElementById("nbTickerBar");
+    const list = q ? filtered : all;
+
+    if (!list.length) {
+        if (bar) bar.classList.add("hidden");
+        trackEl.textContent = "";
         return;
     }
 
-    const summary = q
-        ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
-        : `মোট ${all.length}টি নোটিশ • `;
-
-    const headlines = (filtered.length ? filtered : all)
-        .map(n => `${n.title}: ${n.body || ""}`.trim())
+    const text = list
+        .map(n => `${n.title}${n.body ? ": " + n.body : ""}`.trim())
         .join("   ★   ");
 
-    trackEl.textContent = `${summary}   •   ${headlines}`;
+    if (trackEl.textContent !== text) trackEl.textContent = text;
+    if (bar) bar.classList.remove("hidden");
 }
 
 function fillNoticeList() {
@@ -894,6 +883,46 @@ function pullRemoteNotices() {
     } catch (e) { /* ignore */ }
 }
 
+/* ============================== Auto Sync ============================== */
+
+const AUTO_SYNC_MS = 30000;
+let autoSyncTimer = null;
+let syncBusy = false;
+
+async function runAutoSync() {
+    if (syncBusy) return;
+    syncBusy = true;
+    try {
+        // ১) অ্যাপের নিজস্ব ফেচার থাকলে (Promise<Array>) সেটি থেকে সর্বশেষ নোটিশ আনা
+        if (typeof window.fetchFirebaseNotices === "function") {
+            const list = await window.fetchFirebaseNotices();
+            if (Array.isArray(list)) syncFirebaseNoticesList(list);
+        }
+    } catch (e) {
+        console.warn("Notice auto sync error:", e);
+    } finally {
+        syncBusy = false;
+    }
+    // ২) সর্বশেষ পাওয়া লিস্ট আবার প্রয়োগ + সোর্সকে রিকোয়েস্ট
+    pullRemoteNotices();
+    // ৩) লোকাল স্টোরেজের পুরাতন নোটিশ স্ক্রিনে রিফ্রেশ
+    if (isNoticeActive) renderNoticeBoxInSheet();
+}
+
+function startAutoSync() {
+    if (autoSyncTimer) return;
+    runAutoSync();
+    autoSyncTimer = setInterval(() => {
+        if (document.visibilityState === "visible") runAutoSync();
+    }, AUTO_SYNC_MS);
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") runAutoSync();
+});
+window.addEventListener("focus", runAutoSync);
+window.addEventListener("online", runAutoSync);
+
 /* ============================== Public API ============================== */
 
 export function renderNoticeBoxInSheet() {
@@ -922,7 +951,7 @@ export function openNoticeInbox() {
         renderNoticeBoxInSheet();
     }
 
-    pullRemoteNotices();
+    runAutoSync();
 }
 
 export function closeNoticeBox(fromPop = false) {
@@ -1019,12 +1048,19 @@ window.addEventListener("storage", (e) => {
     }
 });
 
-document.addEventListener("DOMContentLoaded", () => {
+function bootNoticeBox() {
     loadLocalNotices();
-});
+    setTimeout(startAutoSync, 1200);
+}
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootNoticeBox);
+} else {
+    bootNoticeBox();
+}
 
 window.openNoticeInbox = openNoticeInbox;
 window.closeNoticeBox = () => closeNoticeBox();
 window.addNotice = addNotice;
+window.syncNoticeBoxNow = runAutoSync;
 window.saveNoticeToUserStorage = upsertNoticeToUserStorage;
 window.syncFirebaseNoticesToUserStorage = syncFirebaseNoticesList;
