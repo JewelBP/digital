@@ -1,4 +1,4 @@
-// js/notice-box.js  (Auto Sync All type="push" Notices — Read-Only User View)
+// js/notice-box.js  (All Push Notices + Background SW Bridge + Static Ticker)
 
 const STORAGE_KEY = "rmp_app_notices_v1";
 const LEGACY_KEY = "app_notices";
@@ -13,6 +13,7 @@ let prevBackHidden = true;
 let prevMenuHidden = false;
 let autoSyncStarted = false;
 let autoSyncPollTimer = null;
+let autoSyncRetryTimer = null;
 
 /* ============================== Helpers ============================== */
 
@@ -50,15 +51,6 @@ function escapeHTML(str) {
 
 function escapeRegExp(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function showNoticeToast(msg) {
-    const toast = document.getElementById("toast");
-    if (toast) {
-        toast.textContent = msg;
-        toast.classList.add("show");
-        setTimeout(() => toast.classList.remove("show"), 2400);
-    }
 }
 
 function generateNoticeId() {
@@ -312,6 +304,7 @@ function injectNoticeStyles() {
             display: none;
         }
 
+        /* স্লাইড টেক্সট বন্ধ — স্থির ব্যানার */
         .nb-ticker-bar {
             background: var(--card-bg, #ffffff);
             border: 1px solid var(--border-color, #e2e8f0);
@@ -354,21 +347,17 @@ function injectNoticeStyles() {
             height: 28px;
             line-height: 28px;
             white-space: nowrap;
-            font-size: 13.5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 13px;
             font-weight: 600;
             color: var(--text-main, #0f172a);
-            padding-left: 100%;
-            animation: nbScrollText 14s linear infinite;
+            padding-left: 0 !important;
+            animation: none !important;
+            transform: none !important;
         }
         body.dark-mode .nb-ticker-track {
             color: var(--text-main, #f8fafc);
-        }
-        .nb-ticker-bar:hover .nb-ticker-track {
-            animation-play-state: paused;
-        }
-        @keyframes nbScrollText {
-            0% { transform: translateX(0%); }
-            100% { transform: translateX(-100%); }
         }
 
         .nb-card-stack {
@@ -687,9 +676,9 @@ function renderNoticeListView(container) {
 
     const html = `
         <div class="nb-ticker-bar">
-            <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি:</span>
+            <span class="nb-ticker-badge">📢 জরুরি বিজ্ঞপ্তি</span>
             <div class="nb-ticker-viewport">
-                <div id="nbTickerTrack" class="nb-ticker-track">কোনো জরুরি নোটিশ নেই</div>
+                <div id="nbTickerTrack" class="nb-ticker-track">পুশ নোটিফিকেশন বোর্ড</div>
             </div>
         </div>
 
@@ -703,22 +692,9 @@ function renderNoticeListView(container) {
     fillNoticeList();
 }
 
-function updateTicker(all, filtered, q, trackEl) {
+function updateStaticBanner(filtered, q, trackEl) {
     if (!trackEl) return;
-    if (!all.length) {
-        trackEl.textContent = "কোনো পুশ নোটিশ সংরক্ষিত নেই — Firebase এ type: push নোটিশ আসলে এখানে দেখা যাবে।";
-        return;
-    }
-
-    const summary = q
-        ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
-        : `মোট ${all.length}টি নোটিশ • `;
-
-    const headlines = (filtered.length ? filtered : all)
-        .map(n => `${n.title}: ${n.body || ""}`.trim())
-        .join("   ★   ");
-
-    trackEl.textContent = `${summary}   •   ${headlines}`;
+    trackEl.textContent = q ? `সার্চ ফলাফল: ${filtered.length}টি` : "পুশ নোটিফিকেশন বোর্ড";
 }
 
 function fillNoticeList() {
@@ -741,7 +717,7 @@ function fillNoticeList() {
     if (countEl) {
         countEl.textContent = q ? `${filtered.length}টি নোটিশ পাওয়া গেছে` : "";
     }
-    updateTicker(all, filtered, q, tickerEl);
+    updateStaticBanner(filtered, q, tickerEl);
 
     if (!filtered.length) {
         area.innerHTML = `
@@ -871,7 +847,6 @@ function extractPushNoticesArray(input) {
                     body: val.message ?? val.body ?? val.text ?? "",
                     type: "push",
                     time: val.time ?? val.timestamp ?? formatNow(new Date()),
-                    // Firebase push keys (-P7FEhc...) ক্রমানুসারে সাজানোর জন্য index ভিত্তিক fallback timestamp
                     createdAt: Number(val.createdAt) || (1700000000000 + idx * 1000)
                 };
             })
@@ -907,7 +882,6 @@ function syncFirebaseNoticesList(noticesInput) {
         })
         .filter(Boolean);
 
-    // সবচেয়ে সাম্প্রতিক নোটিশ উপরে থাকবে
     nextList.sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
 
     const prevSerialized = JSON.stringify(prevList);
@@ -989,6 +963,53 @@ function startFirebaseAutoSync() {
         autoSyncStarted = true;
         fetchNoticesViaRestFallback();
         autoSyncPollTimer = setInterval(fetchNoticesViaRestFallback, 8000);
+        return;
+    }
+
+    // Firebase SDK দেরিতে লোড হলে পুনরায় চেষ্টা করবে
+    if (!autoSyncRetryTimer) {
+        let attempts = 0;
+        autoSyncRetryTimer = setInterval(() => {
+            attempts++;
+            if (autoSyncStarted || attempts >= 20) {
+                clearInterval(autoSyncRetryTimer);
+                autoSyncRetryTimer = null;
+                return;
+            }
+            startFirebaseAutoSync();
+        }, 1000);
+    }
+}
+
+/* ============================== Background / SW Push Bridge ============================== */
+
+function handleIncomingPushPayload(raw) {
+    if (!raw || typeof raw !== "object") return;
+    const payload = raw.payload || raw.data || raw;
+    const nestedData = payload.data && typeof payload.data === "object" ? payload.data : {};
+
+    const merged = {
+        ...nestedData,
+        ...payload
+    };
+
+    // type না থাকলে বা "push" হলে পুশ নোটিশ হিসেবে ধরবে
+    const rawType = merged.type ?? merged.noticeType;
+    if (rawType !== undefined && rawType !== null && String(rawType).trim() !== "") {
+        if (!isPushType(merged)) return;
+    }
+
+    const title = merged.notification?.title || merged.title || merged.subject || "";
+    const body = merged.notification?.body || merged.body || merged.message || merged.text || "";
+
+    if (title || body) {
+        upsertNoticeToUserStorage({
+            id: merged.id || merged.messageId || merged.fcmMessageId,
+            title,
+            body,
+            type: "push",
+            time: merged.time || formatNow(new Date())
+        });
     }
 }
 
@@ -1070,21 +1091,24 @@ window.addEventListener("message", (event) => {
     const data = event?.data;
     if (!data || typeof data !== "object") return;
 
-    if (data.type === "FCM_NOTICE" || data.type === "PUSH_NOTIFICATION" || data.from === "firebase-messaging-sw") {
-        const payload = data.payload || data.data || data;
-        const title = payload.notification?.title || payload.title;
-        const body = payload.notification?.body || payload.body || payload.message;
-        if (title || body) {
-            upsertNoticeToUserStorage({
-                id: payload.id || payload.messageId,
-                title,
-                body,
-                type: "push",
-                time: formatNow(new Date())
-            });
-        }
+    if (
+        data.type === "FCM_NOTICE" ||
+        data.type === "PUSH_NOTIFICATION" ||
+        data.from === "firebase-messaging-sw" ||
+        data.notification ||
+        data.data
+    ) {
+        handleIncomingPushPayload(data);
     }
 });
+
+if ("serviceWorker" in navigator && navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener("message", (event) => {
+        const data = event?.data;
+        if (!data || typeof data !== "object") return;
+        handleIncomingPushPayload(data);
+    });
+}
 
 window.addEventListener("storage", (e) => {
     if (e.key === STORAGE_KEY || e.key === LEGACY_KEY) {
