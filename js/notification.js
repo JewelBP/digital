@@ -1,926 +1,1782 @@
-/* =========================================
-   Notification & Slider System Module (Complete & Active)
-========================================= */
+/* =========================================================
+   js/notice-box.js
+   RMP MT CONTACTS
+   Direct Firebase Auto Sync
+   Strict type="push" | Read Only
+   LocalStorage Fallback Enabled
+========================================================= */
 
-import { db } from "./firebase.js";
-import { ref, push, set, update, remove, onValue, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+const STORAGE_KEY = "rmp_app_notices_v1";
+const LEGACY_KEY = "app_notices";
+const FIREBASE_NOTICES_PATHS = ["webapp/notices", "notices"];
+const FIREBASE_NOTICES_PATH = FIREBASE_NOTICES_PATHS[0];
+const pathCache = {};
 
-import { hasServiceAccount, saveServiceAccount, clearServiceAccount, sendPushToAll } from "./fcm-sender.js";
+function mergeAndSync(path, val) {
+    pathCache[path] =
+        val && typeof val === "object" ? val : {};
 
-let sliderInterval = null;
-
-/* ==========================================
-   SLIDER OFFLINE CACHE
-   - স্লাইডের ডাটা: localStorage
-   - স্লাইডের ছবি: IndexedDB (Blob)
-========================================== */
-const SLIDER_DATA_KEY = "police_pb_slider_cache";
-const SLIDER_DB_NAME = "rmp_slider_images";
-const SLIDER_STORE = "kv";
-const SLIDER_MAX_IMG_BYTES = 2 * 1024 * 1024;
-let sliderCacheQueue = Promise.resolve();
-
-function sliderOpenDB() {
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open(SLIDER_DB_NAME, 1);
-        req.onupgradeneeded = () => req.result.createObjectStore(SLIDER_STORE);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+    const merged = {};
+    Object.values(pathCache).forEach(obj => {
+        if (Array.isArray(obj)) {
+            obj.forEach((v, i) => { merged[`arr_${i}`] = v; });
+        } else {
+            Object.assign(merged, obj);
+        }
     });
-}
 
-async function sliderIdbGet(key) {
-    const dbi = await sliderOpenDB();
-    return new Promise((resolve, reject) => {
-        const req = dbi.transaction(SLIDER_STORE, "readonly").objectStore(SLIDER_STORE).get(key);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
+    syncFirebaseNoticesList(merged);
 }
+const DEFAULT_RTDB_URL = "https://qrt-team-default-rtdb.firebaseio.com";
 
-async function sliderIdbSet(key, value) {
-    const dbi = await sliderOpenDB();
-    return new Promise((resolve, reject) => {
-        const tx = dbi.transaction(SLIDER_STORE, "readwrite");
-        tx.objectStore(SLIDER_STORE).put(value, key);
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-    });
-}
+let noticeState = { notices: [] };
+let memoryNotices = [];
+let noticeSearchQuery = "";
 
-function saveSliderDataCache(items) {
+let isNoticeActive = false;
+
+let prevTitleText = "";
+let prevBackHidden = true;
+let prevMenuHidden = false;
+
+let autoSyncStarted = false;
+let autoSyncPollTimer = null;
+
+let lastSyncedSnapshotSignature = "";
+let syncErrorMsg = "";
+
+let nbDepth = 0;
+let swallowPop = 0;
+let viewSnapshot = null;
+let searchHandler = null;
+let noticeTitleNow = "";
+
+const NOTICE_HIDE_IDS = [
+    "mainDashboardView",
+    "categoryDetailsView",
+    "dataDetailsView",
+    "heroSlider",
+    "searchBox",
+    "subPageHeaderSearchWrapper",
+    "slidingNoticeContainer"
+];
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function canUseStorage() {
     try {
-        localStorage.setItem(SLIDER_DATA_KEY, JSON.stringify(items));
+        const k = "__rmp_nb_test__";
+        window.localStorage.setItem(k, "1");
+        window.localStorage.removeItem(k);
+        return true;
     } catch (e) {
-        console.error("Slider data cache error:", e);
+        return false;
     }
 }
 
-function loadSliderDataCache() {
+const HAS_STORAGE = canUseStorage();
+
+function isPushNotice(raw) {
+    if (!raw || typeof raw !== "object") {
+        return false;
+    }
+
+    const rawType = String(
+        raw.type ??
+        raw.Type ??
+        raw.noticeType ??
+        raw.categoryType ??
+        ""
+    ).trim().toLowerCase();
+
+    return rawType === "push";
+}
+
+function escapeHTML(str) {
+    return String(str ?? "").replace(
+        /[&<>"']/g,
+        m => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[m])
+    );
+}
+
+function escapeRegExp(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function generateNoticeId() {
+    return `push_${Date.now()}_${Math.random()
+        .toString(36).substring(2, 7)}`;
+}
+
+
+/* Firebase push-id এর প্রথম ৮ অক্ষরে সময় (ms) থাকে।
+   createdAt না থাকলেও এখান থেকে সঠিক ক্রম পাওয়া যায়। */
+const PUSH_CHARS =
+    "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+
+function pushIdToTime(key) {
+    const k = String(key || "");
+    if (k.length < 8) {
+        return 0;
+    }
+
+    let t = 0;
+    for (let i = 0; i < 8; i++) {
+        const idx = PUSH_CHARS.indexOf(k.charAt(i));
+        if (idx < 0) {
+            return 0;
+        }
+        t = t * 64 + idx;
+    }
+
+    // বাস্তবসম্মত সময় কিনা যাচাই (২০১৫ - ২১০০)
+    return t > 1420070400000 && t < 4102444800000 ? t : 0;
+}
+
+function formatNow(date = new Date()) {
+    const pad = n => String(n).padStart(2, "0");
+
+    const dd = pad(date.getDate());
+    const mm = pad(date.getMonth() + 1);
+    const yyyy = date.getFullYear();
+
+    let h = date.getHours();
+    const ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+
+    return `${dd}/${mm}/${yyyy} ${pad(h)}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${ampm}`;
+}
+
+function normalizePushNotice(raw, index = 0) {
+    if (!raw || typeof raw !== "object") {
+        return null;
+    }
+
+    if (!isPushNotice(raw)) {
+        return null;
+    }
+
+    const title = String(
+        raw.title ??
+        raw.subject ??
+        raw.heading ??
+        "জরুরি বিজ্ঞপ্তি"
+    ).trim();
+
+    const body = String(
+        raw.body ??
+        raw.message ??
+        raw.text ??
+        raw.description ??
+        ""
+    ).trim();
+
+    if (!title && !body) {
+        return null;
+    }
+
+    return {
+        id: String(
+            raw.id ??
+            `push_${index}_${title.slice(0, 10)}`
+        ),
+        title: title || "জরুরি বিজ্ঞপ্তি",
+        body,
+        type: "push",
+        time: String(
+            raw.time ??
+            raw.timestamp ??
+            formatNow()
+        ),
+        read: Boolean(raw.read),
+        createdAt:
+            Number(raw.createdAt) ||
+            (1700000000000 + index * 1000)
+    };
+}
+
+/* =========================================================
+   LOCAL STORAGE
+========================================================= */
+
+function readFromKey(key) {
+    if (!HAS_STORAGE) {
+        return null;
+    }
+
     try {
-        const raw = localStorage.getItem(SLIDER_DATA_KEY);
-        if (!raw) return null;
+        const raw = window.localStorage.getItem(key);
+        if (!raw) {
+            return null;
+        }
+
         const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : null;
+        if (!Array.isArray(parsed)) {
+            return null;
+        }
+
+        return parsed
+            .map((item, idx) => normalizePushNotice(item, idx))
+            .filter(Boolean);
     } catch (e) {
+        console.warn("Notice read error:", key, e);
         return null;
     }
 }
 
-function cacheSliderImages(urls) {
-    if (!navigator.onLine || !("indexedDB" in window)) return;
-    const list = urls.filter(u => /^https?:/i.test(u));
+function loadLocalNotices() {
+    const fromPrimary = readFromKey(STORAGE_KEY);
+    if (fromPrimary && fromPrimary.length > 0) {
+        memoryNotices = fromPrimary;
+        noticeState = { notices: fromPrimary };
+        return fromPrimary;
+    }
 
-    sliderCacheQueue = sliderCacheQueue.then(async () => {
+    const fromLegacy = readFromKey(LEGACY_KEY);
+    if (fromLegacy && fromLegacy.length > 0) {
+        memoryNotices = fromLegacy;
+        noticeState = { notices: fromLegacy };
+        return fromLegacy;
+    }
+
+    if (Array.isArray(memoryNotices) && memoryNotices.length > 0) {
+        const filteredMem = memoryNotices.filter(isPushNotice);
+        noticeState = { notices: filteredMem };
+        return filteredMem;
+    }
+
+    noticeState = { notices: [] };
+    return [];
+}
+
+function saveLocalNotices() {
+    const safe = (
+        Array.isArray(noticeState.notices)
+            ? noticeState.notices
+            : []
+    )
+        .map((item, idx) => normalizePushNotice(item, idx))
+        .filter(Boolean);
+
+    noticeState.notices = safe;
+    memoryNotices = safe;
+
+    if (HAS_STORAGE) {
         try {
-            const store = (await sliderIdbGet("images")) || {};
-            let changed = false;
-
-            for (const url of list) {
-                if (store[url]) continue;
-                try {
-                    const res = await fetch(url);
-                    if (!res.ok) continue;
-                    const blob = await res.blob();
-                    if (blob.size > 0 && blob.size <= SLIDER_MAX_IMG_BYTES) {
-                        store[url] = blob;
-                        changed = true;
-                    }
-                } catch (e) {
-                    /* CORS/নেটওয়ার্ক সমস্যা: এই ছবি ক্যাশ হবে না */
-                }
-            }
-
-            // বাদ পড়া স্লাইডের পুরনো ছবি মুছে ফেলা
-            Object.keys(store).forEach(url => {
-                if (!list.includes(url)) {
-                    delete store[url];
-                    changed = true;
-                }
-            });
-
-            if (changed) await sliderIdbSet("images", store);
+            const serialized = JSON.stringify(safe);
+            window.localStorage.setItem(STORAGE_KEY, serialized);
+            window.localStorage.setItem(LEGACY_KEY, serialized);
         } catch (e) {
-            console.error("Slider image cache error:", e);
-        }
-    });
-}
-
-async function swapWithCachedImage(img) {
-    if (!img || img.dataset.cachedSwap) return;
-    const original = img.dataset.origSrc || img.getAttribute("src");
-    if (!original) return;
-    try {
-        const store = await sliderIdbGet("images");
-        const blob = store && store[original];
-        if (blob) {
-            img.dataset.cachedSwap = "1";
-            img.src = URL.createObjectURL(blob);
-        }
-    } catch (e) { /* ignore */ }
-}
-
-function enableSliderImageFallback(track) {
-    if (!track.dataset.fallbackReady) {
-        track.dataset.fallbackReady = "1";
-        // ছবি লোড ব্যর্থ হলে ক্যাশ করা ছবি বসানো
-        track.addEventListener("error", (e) => {
-            if (e.target && e.target.tagName === "IMG") swapWithCachedImage(e.target);
-        }, true);
-    }
-    // অফলাইনে শুরুতেই ক্যাশ করা ছবি বসানো (ভাঙা ছবির ঝলক এড়াতে)
-    if (!navigator.onLine) {
-        track.querySelectorAll("img").forEach(img => swapWithCachedImage(img));
-    }
-}
-
-export function initNotificationSystem() {
-    createNotificationUI();
-    setupNotificationEvents();
-    loadAllFirebaseListsAndListen();
-}
-
-function showCustomDialog(message, title = "বার্তা") {
-    return new Promise((resolve) => {
-        let dialogEl = document.getElementById("notifCustomDialog");
-        if (!dialogEl) {
-            dialogEl = document.createElement("div");
-            dialogEl.id = "notifCustomDialog";
-            dialogEl.style.cssText = `
-                position: fixed; inset: 0; background: rgba(0,0,0,0.55);
-                display: none; justify-content: center; align-items: center;
-                z-index: 100000; padding: 16px;
-            `;
-            dialogEl.innerHTML = `
-                <div style="background: var(--card-bg, #ffffff); color: var(--text-main, #1e293b); width: 100%; max-width: 380px; border-radius: 16px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.3); position: relative;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h3 id="notifDialogTitle" style="margin: 0; font-size: 18px; font-weight: 700;"></h3>
-                        <button type="button" id="notifDialogCloseX" style="background: none; border: none; font-size: 20px; color: var(--text-muted, #64748b); cursor: pointer;">✕</button>
-                    </div>
-                    <p id="notifDialogMsg" style="margin: 0 0 20px 0; font-size: 14.5px; line-height: 1.5; color: var(--text-main, #334155);"></p>
-                    <div id="notifDialogActions" style="display: flex; justify-content: flex-end; gap: 10px;"></div>
-                </div>
-            `;
-            document.body.appendChild(dialogEl);
-        }
-
-        const titleEl = document.getElementById("notifDialogTitle");
-        const msgEl = document.getElementById("notifDialogMsg");
-        const actionsEl = document.getElementById("notifDialogActions");
-        const closeX = document.getElementById("notifDialogCloseX");
-
-        titleEl.innerText = title;
-        msgEl.innerText = message;
-        actionsEl.innerHTML = `
-            <button type="button" id="notifDialogOkBtn" style="padding: 8px 20px; background: #0d6efd; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">ঠিক আছে</button>
-        `;
-
-        dialogEl.style.display = "flex";
-
-        const finish = () => {
-            dialogEl.style.display = "none";
-            resolve();
-        };
-
-        document.getElementById("notifDialogOkBtn").onclick = finish;
-        closeX.onclick = finish;
-    });
-}
-
-function showCustomConfirm(message, title = "নিশ্চিতকরণ") {
-    return new Promise((resolve) => {
-        let dialogEl = document.getElementById("notifCustomDialog");
-        if (!dialogEl) {
-            showCustomDialog("", "");
-            dialogEl = document.getElementById("notifCustomDialog");
-        }
-
-        const titleEl = document.getElementById("notifDialogTitle");
-        const msgEl = document.getElementById("notifDialogMsg");
-        const actionsEl = document.getElementById("notifDialogActions");
-        const closeX = document.getElementById("notifDialogCloseX");
-
-        titleEl.innerText = title;
-        msgEl.innerText = message;
-        actionsEl.innerHTML = `
-            <button type="button" id="notifConfirmCancelBtn" style="padding: 8px 16px; background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; cursor: pointer;">বাতিল</button>
-            <button type="button" id="notifConfirmYesBtn" style="padding: 8px 16px; background: #ef4444; color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">হ্যাঁ, মুছুন</button>
-        `;
-
-        dialogEl.style.display = "flex";
-
-        const finish = (val) => {
-            dialogEl.style.display = "none";
-            resolve(val);
-        };
-
-        document.getElementById("notifConfirmCancelBtn").onclick = () => finish(false);
-        document.getElementById("notifConfirmYesBtn").onclick = () => finish(true);
-        closeX.onclick = () => finish(false);
-    });
-}
-
-function createNotificationUI() {
-    if (document.getElementById("notificationModal")) return;
-
-    const notificationHTML = `
-    <div id="notificationModal" class="modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 9999;">
-        <div class="modal-content notification-modal-content" style="background: var(--card-bg, #fff); color: var(--text-main, #333); max-width: 680px; width: 95%; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-            <div class="modal-header" style="background: #0d6efd; color: #fff; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin: 0; font-size: 16px;">📢 ফায়ারবেজ রিয়েল-টাইম নোটিফিকেশন ও স্লাইডার প্যানেল</h2>
-                <button class="close-btn" data-close="notificationModal" type="button" style="background: none; border: none; color: #fff; font-size: 18px; cursor: pointer;">✕</button>
-            </div>
-            
-            <div class="notification-body" style="max-height: 75vh; overflow-y: auto; padding: 15px;">
-                
-                <!-- Tabs -->
-                <div class="notice-tabs" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid var(--border-color, #ddd); padding-bottom: 10px;">
-                    <button type="button" class="tab-btn active-tab" data-target="tabSliding" style="flex: 1; min-width: 110px; padding: 8px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">স্লাইডিং নোটিশ</button>
-                    <button type="button" class="tab-btn" data-target="tabHome" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">হোম নোটিশ</button>
-                    <button type="button" class="tab-btn" data-target="tabPush" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">পুশ নোটিশ</button>
-                    <button type="button" class="tab-btn" data-target="tabSlider" style="flex: 1; min-width: 110px; padding: 8px; background: #e9ecef; color: #333; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">ইমেজ স্লাইডার</button>
-                </div>
-
-                <input type="hidden" id="editNoticeId" value="">
-
-                <!-- TAB 1: SLIDING -->
-                <div id="tabSliding" class="notice-tab-content">
-                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h3 class="form-title-sliding" style="margin: 0; font-size: 15px;">স্লাইডিং নোটিশ তৈরি করুন</h3>
-                            <button type="button" id="toggleSlidingGlobalBtn" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; background: #28a745; color: #fff;">স্ট্যাটাস: চালু আছে</button>
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">শিরোনাম:</label>
-                            <input type="text" id="slidingTitle" placeholder="শিরোনাম লিখুন..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">বিস্তারিত:</label>
-                            <textarea id="slidingMessage" rows="2" placeholder="বিস্তারিত লিখুন..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);"></textarea>
-                        </div>
-                        <button type="button" class="submit-notice-btn" data-type="sliding" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">স্লাইডিং নোটিশ প্রকাশ করুন</button>
-                    </div>
-                    <div>
-                        <h4 style="margin-bottom: 8px; font-size: 14px;">স্লাইডিং নোটিশের তালিকা</h4>
-                        <div id="sentSlidingList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: HOME (App Aligned) -->
-                <div id="tabHome" class="notice-tab-content" style="display: none;">
-                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h3 class="form-title-home" style="margin: 0; font-size: 15px;">হোম নোটিশ পপআপ তৈরি করুন</h3>
-                            <button type="button" id="toggleHomeGlobalBtn" style="padding: 4px 10px; font-size: 12px; border-radius: 4px; border: none; cursor: pointer; background: #28a745; color: #fff;">স্ট্যাটাস: চালু আছে</button>
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Title:</label>
-                            <input type="text" id="homeTitle" placeholder="শিরোনাম..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Message:</label>
-                            <textarea id="homeMessage" rows="2" placeholder="মেসেজ..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);"></textarea>
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Image Link (img):</label>
-                            <input type="url" id="homeImage" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Video Link (Video):</label>
-                            <input type="url" id="homeVideo" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">Enter Web/Site Link (keys):</label>
-                            <input type="url" id="homeKeys" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <button type="button" class="submit-notice-btn" data-type="home" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">হোম নোটিশ প্রকাশ করুন</button>
-                    </div>
-                    <div>
-                        <h4 style="margin-bottom: 8px; font-size: 14px;">হোম নোটিশের তালিকা</h4>
-                        <div id="sentHomeList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
-                    </div>
-                </div>
-
-                <!-- TAB 3: PUSH -->
-                <div id="tabPush" class="notice-tab-content" style="display: none;">
-                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
-                        <h3 class="form-title-push" style="margin: 0; font-size: 15px; margin-bottom: 10px;">পুশ নোটিশ তৈরি করুন</h3>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">শিরোনাম:</label>
-                            <input type="text" id="pushTitle" placeholder="শিরোনাম..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">বিস্তারিত:</label>
-                            <textarea id="pushMessage" rows="2" placeholder="মেসেজ..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);"></textarea>
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">ইমেজ লিংক:</label>
-                            <input type="url" id="pushImageLink" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <div style="margin-bottom: 10px; padding: 10px; border: 1px dashed var(--border-color, #ccc); border-radius: 6px;">
-                            <div id="fcmSaStatus" style="font-size: 12px; margin-bottom: 6px;"></div>
-                            <textarea id="fcmSaInput" rows="2" placeholder="Paste Firebase Service Account JSON (saved only on this phone)" style="width: 100%; padding: 6px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);"></textarea>
-                            <div style="display: flex; gap: 6px; margin-top: 6px;">
-                                <button type="button" id="fcmSaSaveBtn" style="flex: 1; padding: 6px; border: none; border-radius: 4px; background: #28a745; color: #fff; cursor: pointer;">Save</button>
-                                <button type="button" id="fcmSaClearBtn" style="flex: 1; padding: 6px; border: none; border-radius: 4px; background: #dc3545; color: #fff; cursor: pointer;">Remove</button>
-                            </div>
-                        </div>
-                        <button type="button" class="submit-notice-btn" data-type="push" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">পুশ নোটিশ পাঠান</button>
-                    </div>
-                    <div>
-                        <h4 style="margin-bottom: 8px; font-size: 14px;">পুশ নোটিশের তালিকা</h4>
-                        <div id="sentPushList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
-                    </div>
-                </div>
-
-                <!-- TAB 4: IMAGE SLIDER -->
-                <div id="tabSlider" class="notice-tab-content" style="display: none;">
-                    <div style="padding: 15px; background: var(--bg-color, #f9f9f9); border-radius: 8px; border: 1px solid var(--border-color, #ddd); margin-bottom: 15px;">
-                        <h3 class="form-title-slider" style="margin: 0 0 10px 0; font-size: 15px;">স্লাইডার ইমেজ যুক্ত/এডিট করুন</h3>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">ইমেজ লিংক (URL) *:</label>
-                            <input type="url" id="sliderImage" placeholder="https://example.com/banner.jpg" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <label style="display:block; margin-bottom: 4px; font-size: 13px;">স্লাইড শিরোনাম *:</label>
-                            <input type="text" id="sliderTitle" placeholder="যেমন: Welcome to RMP MT Contacts" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                        </div>
-                        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                            <div style="flex: 1;">
-                                <label style="display:block; margin-bottom: 4px; font-size: 13px;">বাটন টেক্সট:</label>
-                                <input type="text" id="sliderBtnText" placeholder="Explore" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="display:block; margin-bottom: 4px; font-size: 13px;">বাটন লিংক:</label>
-                                <input type="text" id="sliderBtnLink" placeholder="#categoryList বা https://..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border-color, #ccc); background: var(--card-bg, #fff); color: var(--text-main, #000);">
-                            </div>
-                        </div>
-                        <button type="button" class="submit-notice-btn" data-type="slider" style="width: 100%; padding: 9px; background: #0d6efd; color: #fff; border: none; border-radius: 4px; cursor: pointer;">স্লাইডার সেভ করুন</button>
-                    </div>
-                    <div>
-                        <h4 style="margin-bottom: 8px; font-size: 14px;">স্লাইডার ইমেজের তালিকা</h4>
-                        <div id="sentSliderList"><p style="text-align: center; color: gray; font-size: 13px;">লোড হচ্ছে...</p></div>
-                    </div>
-                </div>
-
-                <button id="cancelEditBtn" class="secondary-btn" style="width: 100%; padding: 8px; margin-top: 15px; background: #6c757d; color: #fff; border: none; border-radius: 4px; cursor: pointer; display: none;">এডিট বাতিল করুন</button>
-            </div>
-        </div>
-    </div>
-    `;
-
-    document.body.insertAdjacentHTML('beforeend', notificationHTML);
-}
-
-function setupNotificationEvents() {
-    const refreshSaStatus = () => {
-        const el = document.getElementById("fcmSaStatus");
-        if (el) el.innerText = hasServiceAccount() ? "✅ Service Account is set" : "⚠️ Service Account not set (push cannot be sent)";
-    };
-    document.addEventListener("click", async (e) => {
-        if (e.target.id === "fcmSaSaveBtn") {
-            try {
-                saveServiceAccount(document.getElementById("fcmSaInput").value.trim());
-                document.getElementById("fcmSaInput").value = "";
-                refreshSaStatus();
-                await showCustomDialog("Saved", "Done");
-            } catch (err) { await showCustomDialog(err.message, "Error"); }
-        } else if (e.target.id === "fcmSaClearBtn") {
-            clearServiceAccount();
-            refreshSaStatus();
-        }
-    });
-    setTimeout(refreshSaStatus, 0);
-
-    const notifBtn = document.getElementById("notificationBtn");
-    const modal = document.getElementById("notificationModal");
-    const cancelEditBtn = document.getElementById("cancelEditBtn");
-    const toggleSlidingBtn = document.getElementById("toggleSlidingGlobalBtn");
-    const toggleHomeBtn = document.getElementById("toggleHomeGlobalBtn");
-
-    if (notifBtn && modal) {
-        notifBtn.addEventListener("click", () => {
-            modal.style.display = "flex";
-            updateToggleButtonsUI();
-        });
-    }
-
-    modal?.querySelectorAll("[data-close]").forEach(btn => {
-        btn.addEventListener("click", () => {
-            modal.style.display = "none";
-            resetForm();
-        });
-    });
-
-    toggleSlidingBtn?.addEventListener("click", () => {
-        let isOff = localStorage.getItem("sliding_notice_disabled") === "true";
-        localStorage.setItem("sliding_notice_disabled", !isOff);
-        updateToggleButtonsUI();
-        loadAllFirebaseListsAndListen();
-    });
-
-    toggleHomeBtn?.addEventListener("click", () => {
-        let isOff = localStorage.getItem("home_notice_disabled") === "true";
-        localStorage.setItem("home_notice_disabled", !isOff);
-        updateToggleButtonsUI();
-        loadAllFirebaseListsAndListen();
-    });
-
-    const tabBtns = modal.querySelectorAll(".tab-btn");
-    tabBtns.forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            tabBtns.forEach(b => {
-                b.classList.remove("active-tab");
-                b.style.background = "#e9ecef";
-                b.style.color = "#333";
-            });
-            e.target.classList.add("active-tab");
-            e.target.style.background = "#0d6efd";
-            e.target.style.color = "#fff";
-
-            modal.querySelectorAll(".notice-tab-content").forEach(content => {
-                content.style.display = "none";
-            });
-
-            const targetTab = e.target.getAttribute("data-target");
-            const targetElement = document.getElementById(targetTab);
-            if (targetElement) targetElement.style.display = "block";
-        });
-    });
-
-    modal.querySelectorAll(".submit-notice-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            const type = e.target.getAttribute("data-type");
-            saveOrUpdateToFirebase(type);
-        });
-    });
-
-    if (cancelEditBtn) {
-        cancelEditBtn.addEventListener("click", () => resetForm());
-    }
-
-    const popupModal = document.getElementById("homeNoticePopupModal");
-    const closePopupBtn = document.getElementById("closeHomePopupBtn");
-
-    if (closePopupBtn) {
-        closePopupBtn.style.backgroundColor = "#dc3545"; 
-        closePopupBtn.style.color = "#ffffff";
-        closePopupBtn.style.border = "none";
-
-        closePopupBtn.addEventListener("click", () => {
-            if (popupModal) {
-                popupModal.style.display = "none";
-            }
-            
-            const mediaContainer = document.getElementById("popupMediaContainer");
-            if (mediaContainer) {
-                mediaContainer.innerHTML = ""; 
-            }
-        });
-    }
-}
-
-function updateToggleButtonsUI() {
-    const slidingBtn = document.getElementById("toggleSlidingGlobalBtn");
-    const homeBtn = document.getElementById("toggleHomeGlobalBtn");
-
-    if (slidingBtn) {
-        const isOff = localStorage.getItem("sliding_notice_disabled") === "true";
-        slidingBtn.innerText = isOff ? "স্ট্যাটাস: বন্ধ আছে" : "স্ট্যাটাস: চালু আছে";
-        slidingBtn.style.background = isOff ? "#dc3545" : "#28a745";
-    }
-
-    if (homeBtn) {
-        const isOff = localStorage.getItem("home_notice_disabled") === "true";
-        homeBtn.innerText = isOff ? "স্ট্যাটাস: বন্ধ আছে" : "স্ট্যাটাস: চালু আছে";
-        homeBtn.style.background = isOff ? "#dc3545" : "#28a745";
-    }
-}
-
-async function saveOrUpdateToFirebase(type) {
-    const editId = document.getElementById("editNoticeId").value;
-    let title = "";
-    let message = "";
-    let img = "";
-    let video = "";
-    let keys = "";
-
-    if (type === 'sliding') {
-        title = document.getElementById("slidingTitle").value.trim();
-        message = document.getElementById("slidingMessage").value.trim();
-    } else if (type === 'home') {
-        title = document.getElementById("homeTitle").value.trim();
-        message = document.getElementById("homeMessage").value.trim();
-        img = document.getElementById("homeImage").value.trim();
-        video = document.getElementById("homeVideo").value.trim();
-        keys = document.getElementById("homeKeys").value.trim();
-    } else if (type === 'push') {
-        title = document.getElementById("pushTitle").value.trim();
-        message = document.getElementById("pushMessage").value.trim();
-        img = document.getElementById("pushImageLink").value.trim();
-    } else if (type === 'slider') {
-        img = document.getElementById("sliderImage").value.trim();
-        title = document.getElementById("sliderTitle").value.trim();
-        message = document.getElementById("sliderBtnText").value.trim() || "Explore";
-        keys = document.getElementById("sliderBtnLink").value.trim() || "#categoryList";
-
-        if (!img || !title) {
-            await showCustomDialog("দয়া করে স্লাইডার ইমেজ লিংক এবং শিরোনাম দিন।", "সতর্কতা");
-            return;
+            console.error("Notice local save error:", e);
         }
     }
+}
 
-    if (type !== 'slider' && (!title || !message)) {
-        await showCustomDialog("দয়া করে শিরোনাম এবং বিস্তারিত বিবরণ লিখুন।", "সতর্কতা");
+/* =========================================================
+   STYLES
+========================================================= */
+
+function injectNoticeStyles() {
+    if (document.getElementById("noticeBoxModernStyles")) {
         return;
     }
 
-    try {
-        if (editId) {
-            const noticeRef = ref(db, 'webapp/notices/' + editId);
-            await update(noticeRef, {
-                title,
-                message,
-                img,
-                Video: video,
-                keys,
-                time: new Date().toLocaleString('bn-BD') + " (এডিটেড)"
-            });
-            await showCustomDialog("ফায়ারবেজে সফলভাবে আপডেট করা হয়েছে!", "সফল");
-        } else {
-            const noticesRef = ref(db, 'webapp/notices');
-            const newNoticeRef = push(noticesRef);
-            const noticeTime = new Date().toLocaleString('bn-BD');
-            await set(newNoticeRef, {
-                id: newNoticeRef.key,
-                type,
-                title,
-                message,
-                img,
-                Video: video,
-                keys,
-                time: noticeTime
-            });
-            if (type !== 'slider') {
-                if (typeof window.saveNoticeToUserStorage === "function") {
-                    window.saveNoticeToUserStorage({
-                        id: newNoticeRef.key,
-                        title,
-                        body: message,
-                        time: noticeTime,
-                        read: false,
-                        createdAt: Date.now()
-                    });
-                } else {
-                    window.dispatchEvent(new CustomEvent("app:notice", {
-                        detail: {
-                            id: newNoticeRef.key,
-                            title,
-                            body: message,
-                            time: noticeTime,
-                            createdAt: Date.now()
-                        }
-                    }));
-                }
-            }
-            if (type === 'push') {
-                if (!hasServiceAccount()) {
-                    await showCustomDialog("Notice saved, but Service Account is not set, so push was NOT sent.", "Warning");
-                } else {
-                    try {
-                        const r = await sendPushToAll({ title, body: message, image: img });
-                        await showCustomDialog("Push sent: " + r.sent + " ok, " + r.failed + " failed.", "Done");
-                    } catch (e) {
-                        console.error(e);
-                        await showCustomDialog("Push failed: " + e.message, "Error");
-                    }
-                }
-            } else {
-                await showCustomDialog("ফায়ারবেজে সফলভাবে সংরক্ষণ করা হয়েছে!", "সফল");
-            }
+    const style = document.createElement("style");
+    style.id = "noticeBoxModernStyles";
+
+    style.textContent = `
+        .custom-bottom-nav {
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            height: 48px !important;
+            z-index: 100000 !important;
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            overflow: visible !important;
+            isolation: isolate !important;
+            -webkit-tap-highlight-color: transparent !important;
         }
 
-        resetForm();
-        document.getElementById("notificationModal").style.display = "none";
-    } catch (error) {
-        console.error("Firebase Error: ", error);
-        await showCustomDialog("সংরক্ষণ করতে ব্যর্থ হয়েছে", "ত্রুটি");
+        .custom-bottom-nav::before,
+        .custom-bottom-nav::after {
+            display: none !important;
+            content: none !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-svg {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 48px !important;
+            display: block !important;
+            z-index: 1 !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            filter: none !important;
+            overflow: visible !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-svg path,
+        .custom-bottom-nav .bottom-nav-svg circle,
+        .custom-bottom-nav .bottom-nav-svg rect,
+        .custom-bottom-nav .bottom-nav-svg g {
+            filter: none !important;
+            stroke: none !important;
+            outline: none !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-logo-circle {
+            position: absolute !important;
+            top: auto !important;
+            bottom: 10px !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            width: 54px !important;
+            height: 54px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border-radius: 50% !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            filter: none !important;
+            clip-path: none !important;
+            overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 2 !important;
+            isolation: isolate !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-logo-circle::before,
+        .custom-bottom-nav .bottom-nav-logo-circle::after {
+            display: none !important;
+            content: none !important;
+        }
+
+        .custom-bottom-nav .bottom-nav-logo-circle img,
+        .custom-bottom-nav .bottom-nav-logo-circle svg {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 100% !important;
+            max-height: 100% !important;
+            object-fit: cover !important;
+            border-radius: 50% !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            outline: none !important;
+            filter: none !important;
+        }
+
+        .custom-bottom-nav * {
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        #noticeBoxSheetView {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: -6px;
+            padding: 0 2px 24px;
+        }
+
+        #noticeBoxSheetView.hidden {
+            display: none !important;
+        }
+
+        #noticeBoxSheetView .hidden {
+            display: none !important;
+        }
+
+        .nb-result-count {
+            font-size: 12px;
+            color: var(--text-muted, #64748b);
+            margin: 0 4px;
+        }
+
+        .nb-result-count:empty {
+            display: none;
+        }
+
+        .nb-ticker-bar {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 14px;
+            margin: 0 0 4px 0;
+            min-height: 44px;
+            padding: 8px 12px 8px 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 3px 10px rgba(2, 6, 36, .05);
+            overflow: hidden;
+        }
+
+        body.dark-mode .nb-ticker-bar {
+            background: var(--card-bg, #0f172a);
+            border-color: var(--border-color, #1e293b);
+        }
+
+        .nb-ticker-badge {
+            background: #dc2626;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 10px;
+            border-radius: 9px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .nb-ticker-viewport {
+            flex: 1;
+            min-width: 0;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .nb-ticker-track {
+            display: inline-flex;
+            align-items: center;
+            height: 28px;
+            line-height: 28px;
+            white-space: nowrap;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--text-main, #0f172a);
+            padding-left: 100%;
+            animation: nbScrollText 14s linear infinite;
+        }
+
+        body.dark-mode .nb-ticker-track {
+            color: var(--text-main, #f8fafc);
+        }
+
+        .nb-ticker-bar:hover .nb-ticker-track {
+            animation-play-state: paused;
+        }
+
+        @keyframes nbScrollText {
+            0% { transform: translateX(0%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .nb-card-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .nb-card {
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 16px;
+            margin: 0;
+            padding: 14px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(2, 6, 36, .05);
+            cursor: pointer;
+        }
+
+        .nb-card.unread {
+            border-left: 4px solid var(--app-main-color, var(--primary-color, #020624));
+        }
+
+        body.dark-mode .nb-card {
+            background: var(--card-bg, #0f172a);
+            border-color: var(--border-color, #1e293b);
+        }
+
+        .nb-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--app-main-color, var(--primary-color, #020624)) 12%, transparent);
+            color: var(--app-main-color, var(--primary-color, #020624));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+            flex-shrink: 0;
+        }
+
+        body.dark-mode .nb-avatar {
+            background: rgba(255, 255, 255, .14);
+            color: #ffffff;
+        }
+
+        .nb-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .nb-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .nb-card-title {
+            margin: 0;
+            font-size: 15.5px;
+            font-weight: 700;
+            color: var(--text-main, #0f172a);
+            line-height: 1.35;
+        }
+
+        body.dark-mode .nb-card-title {
+            color: var(--text-main, #f8fafc);
+        }
+
+        .nb-new-tag {
+            background: #dc2626;
+            color: #ffffff;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+
+        .nb-card-body {
+            margin: 6px 0 8px;
+            font-size: 13.5px;
+            line-height: 1.55;
+            color: var(--text-muted, #475569);
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        body.dark-mode .nb-card-body {
+            color: var(--text-muted, #cbd5e1);
+        }
+
+        .nb-card-foot {
+            font-size: 11.5px;
+            color: var(--text-muted, #64748b);
+        }
+
+        .nb-empty {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 16px;
+            margin: 0;
+            padding: 28px 16px;
+            text-align: center;
+            color: var(--text-muted, #64748b);
+        }
+
+        body.dark-mode .nb-empty {
+            background: var(--card-bg, #0f172a);
+            border-color: var(--border-color, #1e293b);
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .nb-rich mark {
+            background: #fde68a;
+            color: #111827;
+            padding: 0 3px;
+            border-radius: 4px;
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
+/* =========================================================
+   HIGHLIGHT
+========================================================= */
+
+function highlightHTML(html) {
+    if (!noticeSearchQuery) {
+        return html;
+    }
+
+    const re = new RegExp(
+        `(${escapeRegExp(escapeHTML(noticeSearchQuery))})`,
+        "gi"
+    );
+
+    return html
+        .split(/(<[^>]+>)/g)
+        .map(seg =>
+            seg.startsWith("<")
+                ? seg
+                : seg.replace(re, "<mark>$1</mark>")
+        )
+        .join("");
+}
+
+/* =========================================================
+   LAYOUT / HEADER / HISTORY
+========================================================= */
+
+function ensureSheetContainer() {
+    const sheet = document.getElementById("mainScrollSheet");
+    if (!sheet) {
+        return null;
+    }
+
+    let view = document.getElementById("noticeBoxSheetView");
+    if (!view) {
+        view = document.createElement("div");
+        view.id = "noticeBoxSheetView";
+        view.className = "hidden";
+
+        const mainEl =
+            sheet.querySelector("main.container") || sheet;
+        mainEl.appendChild(view);
+    }
+
+    return view;
+}
+
+function pushNoticeState(level) {
+    try {
+        history.pushState(
+            { nbLevel: level },
+            "",
+            location.href
+        );
+    } catch (e) {}
+
+    nbDepth = level;
+}
+
+window.addEventListener("popstate", (e) => {
+    if (swallowPop > 0) {
+        swallowPop--;
+        e.stopImmediatePropagation();
+        return;
+    }
+
+    if (!isNoticeActive) {
+        return;
+    }
+
+    e.stopImmediatePropagation();
+
+    const lvl =
+        e.state && typeof e.state.nbLevel === "number"
+            ? e.state.nbLevel
+            : 0;
+
+    if (lvl >= 1) {
+        nbDepth = lvl;
+        return;
+    }
+
+    nbDepth = 0;
+    closeNoticeBox(true);
+}, true);
+
+function setHeaderBackMode(titleText) {
+    const appTitleText =
+        document.querySelector(".app-title-text");
+    const menuIcon =
+        document.getElementById("menuIcon");
+    const backIcon =
+        document.getElementById("backIcon");
+    const navBtn =
+        document.getElementById("navToggleBtn");
+
+    noticeTitleNow = titleText;
+
+    if (appTitleText) {
+        appTitleText.textContent = titleText;
+    }
+
+    if (menuIcon && backIcon) {
+        menuIcon.classList.add("hidden");
+        backIcon.classList.remove("hidden");
+    }
+
+    if (navBtn && !navBtn.dataset.nbBound) {
+        navBtn.dataset.nbBound = "1";
+
+        navBtn.addEventListener("click", (e) => {
+            if (!isNoticeActive) {
+                return;
+            }
+
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            if (nbDepth > 0) {
+                history.back();
+            } else {
+                closeNoticeBox();
+            }
+        }, true);
     }
 }
 
-function loadAllFirebaseListsAndListen() {
-    // অফলাইনে/ধীর নেটে Firebase থেকে ডাটা আসার আগেই ক্যাশ করা স্লাইডার দেখানো
-    const cachedSlides = loadSliderDataCache();
-    if (cachedSlides) renderHeroSlider(cachedSlides);
+function captureHeaderState() {
+    const appTitleText =
+        document.querySelector(".app-title-text");
+    const menuIcon =
+        document.getElementById("menuIcon");
+    const backIcon =
+        document.getElementById("backIcon");
 
-    const noticesRef = ref(db, 'webapp/notices');
-    onValue(noticesRef, (snapshot) => {
-        const data = snapshot.val();
-        let notices = [];
-        
-        if (data) {
-            notices = Object.keys(data).map(key => ({
-                id: key,
-                ...data[key]
-            }));
-            notices.reverse();
-        }
-
-        const slidingList = document.getElementById("sentSlidingList");
-        const homeList = document.getElementById("sentHomeList");
-        const pushList = document.getElementById("sentPushList");
-        const sliderList = document.getElementById("sentSliderList");
-
-        const slidingNotices = notices.filter(n => n.type === 'sliding');
-        const homeNotices = notices.filter(n => n.type === 'home');
-        const pushNotices = notices.filter(n => n.type === 'push');
-        const sliderNotices = notices.filter(n => n.type === 'slider');
-
-        const slidingContainer = document.getElementById("slidingNoticeContainer");
-        const isSlidingDisabled = localStorage.getItem("sliding_notice_disabled") === "true";
-
-        if (slidingContainer) {
-            if (!isSlidingDisabled && slidingNotices.length > 0) {
-                const latestNotice = slidingNotices[0];
-                slidingContainer.style.display = "block";
-                slidingContainer.innerHTML = `
-                    <div style="background: var(--card-bg, #fff); border-bottom: 1px solid var(--border-color, #e2e8f0); display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02); overflow: hidden; height: 36px;">
-                        <div style="background: #dc3545; color: #fff; padding: 0 12px; height: 100%; display: flex; align-items: center; font-size: 13px; font-weight: 600; white-space: nowrap; z-index: 2;">
-                            📢 ${latestNotice.title}:
-                        </div>
-                        <marquee behavior="scroll" direction="left" scrollamount="5" onmouseover="this.stop();" onmouseout="this.start();" style="width: 100%; font-size: 13px; font-weight: 500; color: var(--text-main, #1e293b); padding-left: 10px;">
-                            ${latestNotice.message}
-                        </marquee>
-                    </div>
-                `;
-            } else {
-                slidingContainer.style.display = "none";
-                slidingContainer.innerHTML = "";
-            }
-        }
-
-        const isHomeDisabled = localStorage.getItem("home_notice_disabled") === "true";
-        const popupModal = document.getElementById("homeNoticePopupModal");
-        
-        if (popupModal && !isHomeDisabled && homeNotices.length > 0) {
-            const latestHomeNotice = homeNotices[0];
-            
-            const shownKey = `popup_shown_${latestHomeNotice.id}`;
-            if (!sessionStorage.getItem(shownKey)) {
-                document.getElementById("popupTitle").innerText = latestHomeNotice.title || "";
-                document.getElementById("popupMessage").innerText = latestHomeNotice.message || "";
-                
-                const mediaContainer = document.getElementById("popupMediaContainer");
-                const websiteBtn = document.getElementById("popupWebsiteBtn");
-                
-                const imgLink = latestHomeNotice.img ? latestHomeNotice.img.trim() : "";
-                const videoLink = latestHomeNotice.Video ? latestHomeNotice.Video.trim() : "";
-                const siteLink = latestHomeNotice.keys ? latestHomeNotice.keys.trim() : "";
-
-                if (videoLink) {
-                    mediaContainer.style.display = "flex";
-                    if (videoLink.includes("youtube.com") || videoLink.includes("youtu.be")) {
-                        let embedUrl = videoLink;
-                        if (videoLink.includes("watch?v=")) {
-                            embedUrl = videoLink.replace("watch?v=", "embed/");
-                        } else if (videoLink.includes("youtu.be/")) {
-                            embedUrl = videoLink.replace("youtu.be/", "www.youtube.com/embed/");
-                        }
-                        mediaContainer.innerHTML = `<iframe src="${embedUrl}" style="width: 100%; height: 200px; border: none; border-radius: 6px;" allowfullscreen></iframe>`;
-                    } else {
-                        mediaContainer.innerHTML = `<video src="${videoLink}" controls autoplay style="width: 100%; max-height: 230px; object-fit: contain; background: #000; border-radius: 6px;"></video>`;
-                    }
-                } else if (imgLink) {
-                    mediaContainer.style.display = "flex";
-                    mediaContainer.innerHTML = `<img src="${imgLink}" style="width: 100%; max-height: 230px; object-fit: contain; background: #000; border-radius: 6px;" alt="Notice Image">`;
-                } else {
-                    mediaContainer.style.display = "none";
-                    mediaContainer.innerHTML = "";
-                }
-
-                if (siteLink && siteLink.startsWith("http")) {
-                    websiteBtn.href = siteLink;
-                    websiteBtn.style.display = "block";
-                } else {
-                    websiteBtn.style.display = "none";
-                }
-
-                popupModal.style.display = "flex";
-                sessionStorage.setItem(shownKey, "true");
-            }
-        }
-
-        if (slidingList) {
-            slidingList.innerHTML = slidingNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো স্লাইডিং নোটিশ নেই</p>' : 
-            slidingNotices.map(n => renderCard(n)).join('');
-        }
-        if (homeList) {
-            homeList.innerHTML = homeNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো হোম নোটিশ নেই</p>' : 
-            homeNotices.map(n => renderCard(n)).join('');
-        }
-        if (pushList) {
-            pushList.innerHTML = pushNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো পুশ নোটিশ নেই</p>' : 
-            pushNotices.map(n => renderCard(n)).join('');
-        }
-        if (sliderList) {
-            sliderList.innerHTML = sliderNotices.length === 0 ? '<p style="text-align: center; color: gray; font-size: 13px;">কোনো স্লাইডার ইমেজ নেই</p>' : 
-            sliderNotices.map(n => renderCard(n)).join('');
-        }
-
-        saveSliderDataCache(sliderNotices);
-        renderHeroSlider(sliderNotices);
-        attachCardActions();
-
-        if (typeof window.syncFirebaseNoticesToUserStorage === "function") {
-            window.syncFirebaseNoticesToUserStorage(notices);
-        } else {
-            window.dispatchEvent(new CustomEvent("rmp:firebase-notices-sync", {
-                detail: { notices }
-            }));
-        }
-    });
+    prevTitleText =
+        appTitleText ? appTitleText.textContent : "";
+    prevMenuHidden =
+        menuIcon ? menuIcon.classList.contains("hidden") : false;
+    prevBackHidden =
+        backIcon ? backIcon.classList.contains("hidden") : true;
 }
 
-function renderHeroSlider(slidesData) {
-    const track = document.getElementById('sliderTrack');
-    const dotsContainer = document.getElementById('sliderDots');
-    if (!track || !dotsContainer) return;
+function restoreHeaderMode() {
+    const appTitleText =
+        document.querySelector(".app-title-text");
+    const menuIcon =
+        document.getElementById("menuIcon");
+    const backIcon =
+        document.getElementById("backIcon");
 
-    const items = slidesData.length > 0 ? slidesData : [{
-        img: "https://images.unsplash.com/photo-1546272989-40c92939c6c2?auto=format&fit=crop&w=800&q=80",
-        title: "Welcome to Digital Phonebook",
-        message: "Explore",
-        keys: "#categoryList"
-    }];
+    if (appTitleText) {
+        appTitleText.textContent =
+            prevTitleText || "RMP MT Contacts";
+    }
 
-    track.innerHTML = items.map(item => `
-        <div class="slide-item">
-            <img src="${item.img}" data-orig-src="${item.img}" alt="${item.title}">
-            <div class="slide-overlay">
-                <div class="slide-info">
-                    <span class="slide-badge">📢</span>
-                    <h4>${item.title}</h4>
-                </div>
-                <a href="${item.keys || '#categoryList'}" class="slide-btn">${item.message || 'Explore'}</a>
-            </div>
-        </div>
-    `).join('');
+    if (menuIcon) {
+        menuIcon.classList.toggle("hidden", prevMenuHidden);
+    }
 
-    enableSliderImageFallback(track);
-    cacheSliderImages(items.map(item => item.img).filter(Boolean));
+    if (backIcon) {
+        backIcon.classList.toggle("hidden", prevBackHidden);
+    }
+}
 
-    dotsContainer.innerHTML = '';
-    let currentIndex = 0;
+function hideMainViewsForNotice(hide) {
+    if (hide) {
+        viewSnapshot = {};
 
-    items.forEach((_, i) => {
-        const dot = document.createElement('div');
-        dot.classList.add('slider-dot');
-        if (i === 0) dot.classList.add('active');
-        dot.addEventListener('click', () => goToSlide(i));
-        dotsContainer.appendChild(dot);
+        NOTICE_HIDE_IDS.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) {
+                return;
+            }
+
+            viewSnapshot[id] = {
+                hidden: el.classList.contains("hidden"),
+                display: el.style.display
+            };
+
+            el.classList.add("hidden");
+        });
+
+        const slider =
+            document.getElementById("heroSlider");
+        if (slider) {
+            slider.style.display = "none";
+        }
+
+        return;
+    }
+
+    if (!viewSnapshot) {
+        return;
+    }
+
+    NOTICE_HIDE_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        const snap = viewSnapshot[id];
+        if (!el || !snap) {
+            return;
+        }
+
+        el.classList.toggle("hidden", snap.hidden);
+        el.style.display = snap.display;
     });
 
-    const dots = dotsContainer.children;
+    viewSnapshot = null;
+}
 
-    function goToSlide(index) {
-        currentIndex = index;
-        track.style.transform = `translateX(-${currentIndex * 100}%)`;
-        Array.from(dots).forEach((d, idx) => {
-            d.classList.toggle('active', idx === currentIndex);
+/* =========================================================
+   HEADER SEARCH
+========================================================= */
+
+function mountHeaderSearch(placeholder) {
+    let wrap = document.getElementById("nbHeaderSearch");
+
+    if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = "nbHeaderSearch";
+        wrap.className = "header-search-inline is-visible";
+
+        wrap.innerHTML = `
+            <div class="subpage-search-field">
+                <span class="subpage-search-icon" aria-hidden="true">⌕</span>
+                <input id="nbToolbarSearchInput"
+                       type="search"
+                       autocomplete="off">
+
+                <button id="nbClearSearchBtn"
+                        type="button"
+                        class="subpage-search-clear"
+                        aria-label="Clear search"
+                        title="Clear search">×</button>
+            </div>
+        `;
+
+        const top =
+            document.querySelector(".modern-top-wrapper");
+        const header =
+            top?.querySelector(".modern-header");
+
+        if (header) {
+            header.insertAdjacentElement("afterend", wrap);
+        } else if (top) {
+            top.appendChild(wrap);
+        } else {
+            const sheet =
+                document.getElementById("mainScrollSheet");
+            if (sheet?.parentElement) {
+                sheet.parentElement.insertBefore(wrap, sheet);
+            } else {
+                document.body.prepend(wrap);
+            }
+        }
+
+        const field =
+            wrap.querySelector(".subpage-search-field");
+        const input =
+            wrap.querySelector("#nbToolbarSearchInput");
+        const clearBtn =
+            wrap.querySelector("#nbClearSearchBtn");
+
+        input.addEventListener("input", () => {
+            noticeSearchQuery =
+                input.value.trim().toLowerCase();
+            field.classList.toggle(
+                "has-value",
+                input.value.length > 0
+            );
+
+            if (searchHandler) {
+                searchHandler();
+            }
+        });
+
+        clearBtn.addEventListener("click", () => {
+            noticeSearchQuery = "";
+            input.value = "";
+            field.classList.remove("has-value");
+            input.focus();
+
+            if (searchHandler) {
+                searchHandler();
+            }
         });
     }
 
-    if (sliderInterval) clearInterval(sliderInterval);
-    if (items.length > 1) {
-        sliderInterval = setInterval(() => {
-            currentIndex = (currentIndex + 1) % items.length;
-            goToSlide(currentIndex);
-        }, 3500);
+    const field =
+        wrap.querySelector(".subpage-search-field");
+    const input =
+        wrap.querySelector("#nbToolbarSearchInput");
+
+    input.placeholder = placeholder;
+
+    if (
+        input.value.trim().toLowerCase() !==
+        noticeSearchQuery
+    ) {
+        input.value = noticeSearchQuery;
     }
+
+    field.classList.toggle(
+        "has-value",
+        input.value.length > 0
+    );
+
+    wrap.classList.add("is-visible");
+    wrap.classList.remove("hidden");
 }
 
-function renderCard(n) {
-    const thumbHtml = n.type === 'slider' && n.img
-        ? `<img src="${n.img}" alt="${n.title}" style="width: 48px; height: 36px; object-fit: cover; border-radius: 4px; margin-right: 8px; flex-shrink: 0;">`
-        : '';
+function unmountHeaderSearch() {
+    document.getElementById("nbHeaderSearch")?.remove();
+    searchHandler = null;
+}
 
-    return `
-        <div style="padding: 10px; border: 1px solid var(--border-color, #ddd); border-radius: 6px; margin-bottom: 8px; background: var(--card-bg, #fff); display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; flex: 1; padding-right: 8px; min-width: 0;">
-                ${thumbHtml}
-                <div style="min-width: 0;">
-                    <strong style="font-size: 13px; color: var(--text-main, #333); display:block;">${n.title}</strong>
-                    <p style="font-size: 12px; color: var(--text-muted, #666); margin: 2px 0; word-break: break-all;">${n.type === 'slider' ? `বাটন: ${n.message} (${n.keys || '#categoryList'})` : n.message}</p>
-                    <small style="font-size: 10px; color: #999;">${n.time}</small>
+/* =========================================================
+   NOTICE LIST RENDER
+========================================================= */
+
+function renderNoticeListView(container) {
+    setHeaderBackMode(noticeTitleNow || "Notice Box");
+    mountHeaderSearch("নোটিশ খুঁজুন...");
+
+    container.innerHTML = `
+        <div class="nb-ticker-bar">
+            <span class="nb-ticker-badge">
+                📢 জরুরি বিজ্ঞপ্তি:
+            </span>
+
+            <div class="nb-ticker-viewport">
+                <div id="nbTickerTrack"
+                     class="nb-ticker-track">
+                    লোড হচ্ছে...
                 </div>
             </div>
-            <div style="display: flex; gap: 4px; flex-shrink: 0;">
-                <button class="edit-btn" data-id="${n.id}" style="padding: 4px 8px; font-size: 11px; background: #ffc107; border: none; border-radius: 4px; cursor: pointer;">এডিট</button>
-                <button class="delete-btn" data-id="${n.id}" style="padding: 4px 8px; font-size: 11px; background: #dc3545; color: #fff; border: none; border-radius: 4px; cursor: pointer;">ডিলিট</button>
+        </div>
+
+        <div id="nbResultCount"
+             class="nb-result-count"></div>
+
+        <div id="nbListArea"></div>
+    `;
+
+    searchHandler = () => fillNoticeList();
+    fillNoticeList();
+}
+
+function getCategorySlidingNoticeText() {
+    const el =
+        document.getElementById("slidingNoticeContainer") ||
+        document.querySelector(".sliding-notice-container");
+
+    if (!el) {
+        return "";
+    }
+
+    return String(el.textContent || "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function updateTicker(all, filtered, q, trackEl) {
+    if (!trackEl) {
+        return;
+    }
+
+    const catSlideText =
+        getCategorySlidingNoticeText();
+
+    if (catSlideText) {
+        trackEl.textContent = catSlideText;
+        return;
+    }
+
+    if (!all.length) {
+        trackEl.textContent =
+            "কোনো পুশ নোটিশ নেই — Firebase এ type: push নোটিশ থাকলে এখানে দেখা যাবে।";
+        return;
+    }
+
+    const summary = q
+        ? `সার্চ ফলাফল: ${filtered.length}টি নোটিশ পাওয়া গেছে`
+        : `মোট ${all.length}টি নোটিশ • `;
+
+    const headlines = (
+        filtered.length ? filtered : all
+    )
+        .map(n => `${n.title}: ${n.body || ""}`.trim())
+        .join("   ★   ");
+
+    trackEl.textContent =
+        `${summary}   •   ${headlines}`;
+}
+
+function fillNoticeList() {
+    const area =
+        document.getElementById("nbListArea");
+    const countEl =
+        document.getElementById("nbResultCount");
+    const tickerEl =
+        document.getElementById("nbTickerTrack");
+
+    if (!area) {
+        return;
+    }
+
+    // গুরুত্বপূর্ণ:
+    // Firebase খালি থাকলেও LocalStorage থেকে নোটিশ লোড হবে।
+    const all = loadLocalNotices().filter(isPushNotice);
+    const q = noticeSearchQuery;
+
+    const filtered = q
+        ? all.filter(n =>
+            (n.title || "").toLowerCase().includes(q) ||
+            (n.body || "").toLowerCase().includes(q) ||
+            (n.time || "").toLowerCase().includes(q)
+        )
+        : all;
+
+    if (countEl) {
+        countEl.textContent = q
+            ? `${filtered.length}টি নোটিশ পাওয়া গেছে`
+            : (syncErrorMsg || "");
+    }
+
+    updateTicker(all, filtered, q, tickerEl);
+
+    if (!filtered.length) {
+        area.innerHTML = `
+            <div class="nb-empty">
+                <div style="font-size:28px;margin-bottom:6px;">
+                    📢
+                </div>
+
+                <div style="font-size:15px;font-weight:700;">
+                    ${q
+                        ? "কোনো নোটিশ খুঁজে পাওয়া যায়নি"
+                        : "কোনো পুশ নোটিশ নেই"}
+                </div>
+
+                <div style="font-size:12.5px;margin-top:4px;">
+                    ${q
+                        ? "অন্য শব্দ দিয়ে সার্চ করে দেখুন।"
+                        : 'Firebase এ type: "push" নোটিশ থাকলে এখানে দেখা যাবে।'}
+                </div>
             </div>
+        `;
+        return;
+    }
+
+    area.innerHTML = `
+        <div class="nb-card-stack nb-rich">
+            ${filtered.map(n => `
+                <article class="nb-card ${n.read ? "" : "unread"}"
+                         data-id="${escapeHTML(n.id)}">
+
+                    <div class="nb-avatar">
+                        📢
+                    </div>
+
+                    <div class="nb-content">
+                        <div class="nb-card-top">
+                            <h3 class="nb-card-title">
+                                ${highlightHTML(escapeHTML(n.title))}
+                            </h3>
+
+                            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                                ${n.read
+                                    ? ""
+                                    : `<span class="nb-new-tag">নতুন</span>`
+                                }
+                            </div>
+                        </div>
+
+                        <p class="nb-card-body">
+                            ${highlightHTML(escapeHTML(n.body))}
+                        </p>
+
+                        <div class="nb-card-foot">
+                            <span>
+                                🕒 ${highlightHTML(escapeHTML(n.time || ""))}
+                            </span>
+                        </div>
+                    </div>
+                </article>
+            `).join("")}
         </div>
     `;
-}
 
-function attachCardActions() {
-    const modal = document.getElementById("notificationModal");
-    if (!modal) return;
+    area.querySelectorAll(".nb-card").forEach(card => {
+        card.addEventListener("click", () => {
+            const id = card.getAttribute("data-id");
+            noticeState.notices =
+                loadLocalNotices().map(item =>
+                    item.id === id
+                        ? { ...item, read: true }
+                        : item
+                );
 
-    modal.querySelectorAll(".edit-btn").forEach(btn => {
-        btn.addEventListener("click", async (e) => {
-            const id = e.target.getAttribute("data-id");
-            const snapshot = await get(ref(db, 'webapp/notices/' + id));
-            if (snapshot.exists()) {
-                const notice = snapshot.val();
-                document.getElementById("editNoticeId").value = id;
-
-                const targetTabBtn = modal.querySelector(`.tab-btn[data-target="tab${notice.type.charAt(0).toUpperCase() + notice.type.slice(1)}"]`);
-                if (targetTabBtn) targetTabBtn.click();
-
-                if (notice.type === 'sliding') {
-                    document.getElementById("slidingTitle").value = notice.title;
-                    document.getElementById("slidingMessage").value = notice.message;
-                } else if (notice.type === 'home') {
-                    document.getElementById("homeTitle").value = notice.title;
-                    document.getElementById("homeMessage").value = notice.message;
-                    document.getElementById("homeImage").value = notice.img || "";
-                    document.getElementById("homeVideo").value = notice.Video || "";
-                    document.getElementById("homeKeys").value = notice.keys || "";
-                } else if (notice.type === 'push') {
-                    document.getElementById("pushTitle").value = notice.title;
-                    document.getElementById("pushMessage").value = notice.message;
-                    document.getElementById("pushImageLink").value = notice.img || "";
-                } else if (notice.type === 'slider') {
-                    document.getElementById("sliderImage").value = notice.img || "";
-                    document.getElementById("sliderTitle").value = notice.title || "";
-                    document.getElementById("sliderBtnText").value = notice.message || "";
-                    document.getElementById("sliderBtnLink").value = notice.keys || "";
-                }
-
-                const cancelBtn = document.getElementById("cancelEditBtn");
-                if (cancelBtn) cancelBtn.style.display = "block";
-            }
-        });
-    });
-
-    modal.querySelectorAll(".delete-btn").forEach(btn => {
-        btn.addEventListener("click", async (e) => {
-            const id = e.target.getAttribute("data-id");
-            const ok = await showCustomConfirm("আপনি কি এটি ডিলিট করতে চান?", "নিশ্চিতকরণ");
-            if (ok) {
-                await remove(ref(db, 'webapp/notices/' + id));
-                await showCustomDialog("সফলভাবে ডিলিট করা হয়েছে!", "সফল");
-            }
+            saveLocalNotices();
+            renderNoticeBoxInSheet();
         });
     });
 }
 
-function resetForm() {
-    const editIdInput = document.getElementById("editNoticeId");
-    if (editIdInput) editIdInput.value = "";
-    
-    const slidingTitle = document.getElementById("slidingTitle");
-    if (slidingTitle) slidingTitle.value = "";
-    
-    const slidingMsg = document.getElementById("slidingMessage");
-    if (slidingMsg) slidingMsg.value = "";
-    
-    const homeTitle = document.getElementById("homeTitle");
-    if (homeTitle) homeTitle.value = "";
-    
-    const homeMsg = document.getElementById("homeMessage");
-    if (homeMsg) homeMsg.value = "";
-    
-    const homeImage = document.getElementById("homeImage");
-    if (homeImage) homeImage.value = "";
-    
-    const homeVideo = document.getElementById("homeVideo");
-    if (homeVideo) homeVideo.value = "";
-    
-    const homeKeys = document.getElementById("homeKeys");
-    if (homeKeys) homeKeys.value = "";
-    
-    const pushTitle = document.getElementById("pushTitle");
-    if (pushTitle) pushTitle.value = "";
-    
-    const pushMsg = document.getElementById("pushMessage");
-    if (pushMsg) pushMsg.value = "";
-    
-    const pushImg = document.getElementById("pushImageLink");
-    if (pushImg) pushImg.value = "";
+/* =========================================================
+   STRICT PUSH NOTICE STORAGE
+========================================================= */
 
-    const sliderImg = document.getElementById("sliderImage");
-    if (sliderImg) sliderImg.value = "";
+function upsertNoticeToUserStorage(rawNotice) {
+    if (!rawNotice || typeof rawNotice !== "object") {
+        return null;
+    }
 
-    const sliderTitle = document.getElementById("sliderTitle");
-    if (sliderTitle) sliderTitle.value = "";
+    if (!isPushNotice(rawNotice)) {
+        return null;
+    }
 
-    const sliderBtnText = document.getElementById("sliderBtnText");
-    if (sliderBtnText) sliderBtnText.value = "";
+    const cleanTitle = String(
+        rawNotice.title ??
+        rawNotice.subject ??
+        rawNotice.heading ??
+        ""
+    ).trim();
 
-    const sliderBtnLink = document.getElementById("sliderBtnLink");
-    if (sliderBtnLink) sliderBtnLink.value = "";
-    
-    const cancelBtn = document.getElementById("cancelEditBtn");
-    if (cancelBtn) cancelBtn.style.display = "none";
+    const cleanBody = String(
+        rawNotice.body ??
+        rawNotice.message ??
+        rawNotice.text ??
+        rawNotice.description ??
+        ""
+    ).trim();
+
+    if (!cleanTitle && !cleanBody) {
+        return null;
+    }
+
+    loadLocalNotices();
+
+    const targetId =
+        rawNotice.id ? String(rawNotice.id) : null;
+
+    const existingIndex = targetId
+        ? noticeState.notices.findIndex(
+            item => String(item.id) === targetId
+        )
+        : noticeState.notices.findIndex(item =>
+            item.title === (cleanTitle || "জরুরি বিজ্ঞপ্তি") &&
+            item.body === cleanBody
+        );
+
+    if (existingIndex !== -1) {
+        const existing =
+            noticeState.notices[existingIndex];
+
+        const updated = normalizePushNotice({
+            ...existing,
+            title: cleanTitle || existing.title,
+            body: cleanBody || existing.body,
+            type: "push",
+            time: rawNotice.time || existing.time,
+            read: existing.read,
+            createdAt: existing.createdAt
+        }, existingIndex);
+
+        if (updated) {
+            noticeState.notices[existingIndex] = updated;
+            saveLocalNotices();
+
+            if (isNoticeActive) {
+                renderNoticeBoxInSheet();
+            }
+
+            return updated;
+        }
+
+        return existing;
+    }
+
+    const entry = {
+        id: targetId || generateNoticeId(),
+        title: cleanTitle || "জরুরি বিজ্ঞপ্তি",
+        body: cleanBody,
+        type: "push",
+        time: String(
+            rawNotice.time ??
+            rawNotice.timestamp ??
+            formatNow()
+        ),
+        read: false,
+        createdAt:
+            Number(rawNotice.createdAt) || Date.now()
+    };
+
+    noticeState.notices.unshift(entry);
+    saveLocalNotices();
+
+    if (isNoticeActive) {
+        renderNoticeBoxInSheet();
+    }
+
+    return entry;
 }
+
+/* =========================================================
+   FIREBASE DATA EXTRACTION
+========================================================= */
+
+function buildPushFromRaw(val, key, idx) {
+    if (!val || typeof val !== "object" || !isPushNotice(val)) {
+        return null;
+    }
+
+    const title = String(
+        val.title ?? val.subject ?? val.heading ?? ""
+    ).trim();
+
+    const body = String(
+        val.message ?? val.body ?? val.text ?? val.description ?? ""
+    ).trim();
+
+    if (!title && !body) {
+        return null;
+    }
+
+    const idStr = String(val.id || key || `push_${idx}`);
+
+    return {
+        id: idStr,
+        title,
+        body,
+        type: "push",
+        time: String(
+            val.time ?? val.timestamp ?? formatNow()
+        ),
+        createdAt:
+            Number(val.createdAt) ||
+            Number(val.timestamp) ||
+            pushIdToTime(key || idStr) ||
+            (1700000000000 + idx * 1000)
+    };
+}
+
+function extractStrictPushList(input) {
+    if (!input) {
+        return [];
+    }
+
+    if (Array.isArray(input)) {
+        return input
+            .map((item, idx) =>
+                buildPushFromRaw(item, item && (item._key || item.id), idx)
+            )
+            .filter(Boolean);
+    }
+
+    if (typeof input === "object") {
+        return Object.entries(input)
+            .map(([key, val], idx) =>
+                buildPushFromRaw(val, key, idx)
+            )
+            .filter(Boolean);
+    }
+
+    return [];
+}
+
+/* =========================================================
+   FIREBASE SYNC
+========================================================= */
+
+function syncFirebaseNoticesList(noticesInput) {
+    const pushItems =
+        extractStrictPushList(noticesInput);
+
+    // FIX:
+    // Firebase-এ Push নোটিশ না থাকলে পুরোনো নোটিশ
+    // কখনোই মুছে ফেলা হবে না।
+    if (!pushItems.length) {
+        loadLocalNotices();
+
+        if (isNoticeActive) {
+            fillNoticeList();
+        }
+
+        return;
+    }
+
+    const prevList =
+        loadLocalNotices().filter(isPushNotice);
+
+    const prevReadMap = new Map(
+        prevList.map(n => [
+            String(n.id),
+            Boolean(n.read)
+        ])
+    );
+
+    const prevCreatedMap = new Map(
+        prevList.map(n => [
+            String(n.id),
+            Number(n.createdAt) || 0
+        ])
+    );
+
+    const nextList = pushItems.map((n, idx) => ({
+        id: String(n.id),
+        title: n.title || "জরুরি বিজ্ঞপ্তি",
+        body: n.body || "",
+        type: "push",
+        time: n.time || formatNow(),
+        read: prevReadMap.has(String(n.id))
+            ? prevReadMap.get(String(n.id))
+            : false,
+        createdAt:
+            Number(n.createdAt) ||
+            prevCreatedMap.get(String(n.id)) ||
+            (1700000000000 + idx * 1000)
+    }));
+
+    nextList.sort((a, b) =>
+        (Number(b.createdAt) || 0) -
+        (Number(a.createdAt) || 0)
+    );
+
+    const changed =
+        JSON.stringify(prevList) !==
+        JSON.stringify(nextList);
+
+    lastSyncedSnapshotSignature =
+        JSON.stringify(
+            pushItems.map(i => [
+                i.id,
+                i.title,
+                i.body,
+                i.time
+            ])
+        );
+
+    noticeState.notices = nextList;
+    memoryNotices = nextList;
+    saveLocalNotices();
+
+    if (isNoticeActive) {
+        if (changed) {
+            renderNoticeBoxInSheet();
+        } else {
+            fillNoticeList();
+        }
+    }
+}
+
+/* =========================================================
+   FIREBASE DATABASE RESOLVER
+========================================================= */
+
+function resolveRealtimeDbInstance() {
+    if (window.db && typeof window.db.ref === "function") {
+        return window.db;
+    }
+
+    if (window.firebaseDb && typeof window.firebaseDb.ref === "function") {
+        return window.firebaseDb;
+    }
+
+    if (window.database && typeof window.database.ref === "function") {
+        return window.database;
+    }
+
+    if (window.rtdb && typeof window.rtdb.ref === "function") {
+        return window.rtdb;
+    }
+
+    if (window.firebase && typeof window.firebase.database === "function") {
+        try {
+            return window.firebase.database();
+        } catch (e) {
+            return null;
+        }
+    }
+
+    return null;
+}
+
+function resolveDatabaseUrl() {
+    return (
+        window.FIREBASE_DATABASE_URL ||
+        window.firebaseConfig?.databaseURL ||
+        window.firebase?.app?.()?.options?.databaseURL ||
+        DEFAULT_RTDB_URL
+    );
+}
+
+/* =========================================================
+   FIREBASE REST FETCH
+========================================================= */
+
+async function getAuthTokenSafe() {
+    try {
+        const cands = [
+            window.firebase?.auth?.()?.currentUser,
+            window.firebaseAuth?.currentUser,
+            window.auth?.currentUser,
+            window._firebaseModularAuth?.currentUser
+        ];
+
+        for (const u of cands) {
+            if (u && typeof u.getIdToken === "function") {
+                return await u.getIdToken();
+            }
+        }
+    } catch (e) {}
+
+    return "";
+}
+
+function setSyncError(msg) {
+    syncErrorMsg = msg || "";
+
+    if (isNoticeActive) {
+        fillNoticeList();
+    }
+}
+
+let restFetching = false;
+
+async function fetchPushNoticesViaRest() {
+    if (restFetching) {
+        return;
+    }
+
+    const dbUrl = resolveDatabaseUrl();
+    if (!dbUrl) {
+        return;
+    }
+
+    restFetching = true;
+
+    try {
+        const base = String(dbUrl).replace(/\/+$/, "");
+        const token = await getAuthTokenSafe();
+
+        let okCount = 0;
+        let lastStatus = 0;
+
+        for (const path of FIREBASE_NOTICES_PATHS) {
+            const url =
+                `${base}/${path}.json` +
+                (token ? `?auth=${encodeURIComponent(token)}` : "");
+
+            const res = await fetch(url, { cache: "no-store" });
+
+            if (!res.ok) {
+                lastStatus = res.status;
+                console.warn("Firebase REST error:", path, res.status);
+                continue;
+            }
+
+            okCount++;
+            const data = await res.json();
+            mergeAndSync(path, data || {});
+        }
+
+        if (okCount === 0) {
+            setSyncError(
+                lastStatus === 401 || lastStatus === 403
+                    ? "⚠️ Firebase Rules এর কারণে নোটিশ পড়া যাচ্ছে না (Permission denied)।"
+                    : `⚠️ নোটিশ সিঙ্ক ব্যর্থ (কোড ${lastStatus})।`
+            );
+            return;
+        }
+
+        syncErrorMsg = "";
+    } catch (e) {
+        console.warn("Firebase REST sync unavailable:", e);
+        setSyncError(
+            navigator.onLine === false
+                ? "ইন্টারনেট নেই — সংরক্ষিত নোটিশ দেখানো হচ্ছে।"
+                : ""
+        );
+    } finally {
+        restFetching = false;
+    }
+}
+
+/* =========================================================
+   AUTO SYNC START
+========================================================= */
+
+function startFirebaseAutoSync() {
+    // প্রথমে LocalStorage লোড
+    // যাতে Firebase আসার আগেই পুরোনো নোটিশ পাওয়া যায়।
+    loadLocalNotices();
+
+    // তাৎক্ষণিক Firebase REST Sync
+    fetchPushNoticesViaRest();
+
+    if (autoSyncStarted) {
+        return;
+    }
+
+    autoSyncStarted = true;
+
+    const db = resolveRealtimeDbInstance();
+
+    // Firebase Compat Listener
+    if (db) {
+        try {
+            FIREBASE_NOTICES_PATHS.forEach(path => {
+                db.ref(path).on("value", (snapshot) => {
+                    const val =
+                        snapshot && typeof snapshot.val === "function"
+                            ? snapshot.val()
+                            : null;
+
+                    syncErrorMsg = "";
+                    mergeAndSync(path, val || {});
+                }, (err) => {
+                    console.warn("Firebase listener denied:", path, err);
+                });
+            });
+        } catch (e) {
+            console.warn("Firebase SDK listener fallback to REST:", e);
+        }
+    }
+
+    // Firebase Modular Listener
+    if (
+        window._firebaseModularDb &&
+        window._firebaseModularRef &&
+        window._firebaseModularOnValue
+    ) {
+        try {
+            FIREBASE_NOTICES_PATHS.forEach(path => {
+                const r = window._firebaseModularRef(
+                    window._firebaseModularDb,
+                    path
+                );
+
+                window._firebaseModularOnValue(r, (snapshot) => {
+                    const val =
+                        snapshot && typeof snapshot.val === "function"
+                            ? snapshot.val()
+                            : null;
+
+                    syncErrorMsg = "";
+                    mergeAndSync(path, val || {});
+                }, (err) => {
+                    console.warn("Modular listener denied:", path, err);
+                });
+            });
+        } catch (e) {
+            console.warn("Firebase Modular listener fallback to REST:", e);
+        }
+    }
+
+    window.addEventListener("online", fetchPushNoticesViaRest);
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            fetchPushNoticesViaRest();
+        }
+    });
+
+    // প্রতি ৫ সেকেন্ডে REST Auto Sync
+    if (!autoSyncPollTimer) {
+        autoSyncPollTimer = setInterval(
+            fetchPushNoticesViaRest,
+            5000
+        );
+    }
+}
+
+/* =========================================================
+   PUBLIC API
+========================================================= */
+
+export function renderNoticeBoxInSheet() {
+    const view = ensureSheetContainer();
+    if (!view) {
+        return;
+    }
+
+    renderNoticeListView(view);
+}
+
+export function openNoticeInbox() {
+    injectNoticeStyles();
+
+    // প্রথমে পুরোনো LocalStorage নোটিশ লোড
+    loadLocalNotices();
+
+    // তারপর Firebase Auto Sync
+    startFirebaseAutoSync();
+    fetchPushNoticesViaRest();
+
+    if (!isNoticeActive) {
+        captureHeaderState();
+        hideMainViewsForNotice(true);
+        pushNoticeState(1);
+    }
+
+    isNoticeActive = true;
+    noticeSearchQuery = "";
+    noticeTitleNow = "Notice Box";
+
+    const view = ensureSheetContainer();
+    if (view) {
+        view.classList.remove("hidden");
+        renderNoticeBoxInSheet();
+    }
+}
+
+export function closeNoticeBox(fromPop = false) {
+    if (!isNoticeActive) {
+        return;
+    }
+
+    if (fromPop !== true && nbDepth > 0) {
+        swallowPop++;
+        try {
+            history.go(-nbDepth);
+        } catch (e) {
+            swallowPop = 0;
+        }
+    }
+
+    nbDepth = 0;
+    isNoticeActive = false;
+    noticeSearchQuery = "";
+
+    unmountHeaderSearch();
+
+    const view =
+        document.getElementById("noticeBoxSheetView");
+    if (view) {
+        view.classList.add("hidden");
+        view.innerHTML = "";
+    }
+
+    restoreHeaderMode();
+    hideMainViewsForNotice(false);
+}
+
+/* =========================================================
+   PUSH EVENT LISTENER
+========================================================= */
+
+window.addEventListener("app:notice", (e) => {
+    const d = e?.detail || {};
+    if (!isPushNotice(d)) {
+        return;
+    }
+
+    if (d.title || d.body || d.message) {
+        upsertNoticeToUserStorage({
+            id: d.id,
+            title: d.title,
+            body: d.body ?? d.message,
+            type: "push",
+            time: d.time,
+            createdAt: d.createdAt
+        });
+    }
+});
+
+/* =========================================================
+   FIREBASE EXTERNAL SYNC EVENT
+========================================================= */
+
+window.addEventListener(
+    "rmp:firebase-notices-sync",
+    (e) => {
+        if (e?.detail?.notices !== undefined) {
+            syncFirebaseNoticesList(e.detail.notices);
+        } else {
+            fetchPushNoticesViaRest();
+        }
+    }
+);
+
+/* =========================================================
+   SERVICE WORKER / MESSAGE LISTENER
+========================================================= */
+
+window.addEventListener("message", (event) => {
+    const data = event?.data;
+    if (!data || typeof data !== "object") {
+        return;
+    }
+
+    const payload =
+        data.payload ||
+        data.data ||
+        data;
+
+    const nested =
+        payload.data && typeof payload.data === "object"
+            ? payload.data
+            : {};
+
+    const merged = {
+        ...nested,
+        ...payload
+    };
+
+    if (!isPushNotice(merged)) {
+        return;
+    }
+
+    const title =
+        merged.notification?.title ||
+        merged.title ||
+        merged.subject ||
+        "";
+
+    const body =
+        merged.notification?.body ||
+        merged.body ||
+        merged.message ||
+        merged.text ||
+        "";
+
+    if (title || body) {
+        upsertNoticeToUserStorage({
+            id: merged.id || merged.messageId,
+            title,
+            body,
+            type: "push",
+            time: merged.time || formatNow()
+        });
+    }
+});
+
+/* =========================================================
+   STORAGE EVENT
+========================================================= */
+
+window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY || e.key === LEGACY_KEY) {
+        loadLocalNotices();
+        if (isNoticeActive) {
+            renderNoticeBoxInSheet();
+        }
+    }
+});
+
+/* =========================================================
+   PAGE INITIALIZATION
+========================================================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadLocalNotices();
+    startFirebaseAutoSync();
+});
+
+window.addEventListener("load", () => {
+    startFirebaseAutoSync();
+});
+
+/* =========================================================
+   GLOBAL API
+========================================================= */
+
+window.openNoticeInbox = openNoticeInbox;
+window.closeNoticeBox = () => closeNoticeBox();
+window.saveNoticeToUserStorage = upsertNoticeToUserStorage;
+window.syncFirebaseNoticesToUserStorage = syncFirebaseNoticesList;
+window.startNoticeBoxAutoSync = startFirebaseAutoSync;
