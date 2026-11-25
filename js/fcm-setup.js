@@ -7,7 +7,7 @@ const VAPID_KEY = "BMrkQHSj9Ecth4EmZgRAJI9Wy0SaC6fYzMbibosBFXdaUo8BE-TRotw9UXx9L
 
 export async function initWebPushNotifications() {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-        return;
+        return; 
     }
 
     try {
