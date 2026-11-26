@@ -130,6 +130,14 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+        }
+        .verified-badge.hidden {
+            display: none !important;
+        }
+        .verified-badge svg {
+            width: 11px;
+            height: 11px;
         }
         .live-clock {
             font-size: 11.5px;
@@ -921,7 +929,7 @@
             background-color: rgba(15, 23, 42, 0.75) !important;
             backdrop-filter: blur(2px);
         }
-    
+
         /* ক্যাটাগরির উপরের বাড়তি ফাঁকা কমানো
            - গেস্ট/ইউজারের জন্য ফাঁকা (অ্যাডমিন বাটনহীন) হেডার সেকশন লুকানো হয়
            - টেক্সট স্লাইডিং বন্ধ থাকলে (display:none) কোনো বাড়তি জায়গা থাকে না */
@@ -983,13 +991,12 @@
                     <div class="app-title" id="appTitle">
                         <span class="app-title-text">RMP MT Contacts</span>
                         <span id="verifiedBadge" class="verified-badge hidden" title="Verified Device">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M5 12.5L10 17.5L19 6.5"></path>
-    </svg>
-</span>
-
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M5 12.5L10 17.5L19 6.5"></path>
+                            </svg>
+                        </span>
                     </div>
-                    
+
                     <div id="liveDateTime" class="live-clock">লোড হচ্ছে...</div>
                 </div>
             </div>
@@ -1227,8 +1234,36 @@
         const searchField = subPageSearchWrapper?.querySelector('.subpage-search-field');
         const mainScrollSheet = document.getElementById('mainScrollSheet');
         const appTitleText = document.querySelector('.app-title-text');
+        const verifiedBadge = document.getElementById('verifiedBadge');
 
         if (!heroSlider || !subPageSearchWrapper) return;
+
+        let externalBadgeVisible = verifiedBadge ? !verifiedBadge.classList.contains('hidden') : false;
+        let badgeSyncGuard = false;
+
+        if (verifiedBadge) {
+            new MutationObserver(() => {
+                if (badgeSyncGuard) return;
+                const isSubPageNow = categoryDetails && !categoryDetails.classList.contains('hidden');
+                const titleNow = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
+                const isFavoriteNow = titleNow.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
+                const isAllSearchNow = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleNow.includes('search all');
+                if (!isSubPageNow && !isFavoriteNow && !isAllSearchNow) {
+                    externalBadgeVisible = !verifiedBadge.classList.contains('hidden');
+                }
+            }).observe(verifiedBadge, { attributes: true, attributeFilter: ['class'] });
+        }
+
+        function syncVerifiedBadgeForPages(shouldShowOnTargetPages) {
+            if (!verifiedBadge) return;
+            badgeSyncGuard = true;
+            if (shouldShowOnTargetPages) {
+                verifiedBadge.classList.remove('hidden');
+            } else {
+                verifiedBadge.classList.toggle('hidden', !externalBadgeVisible);
+            }
+            badgeSyncGuard = false;
+        }
 
         function isFavoriteViewActive() {
             const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
@@ -1256,6 +1291,7 @@
             const isAllSearchPage = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleText.includes('search all');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
+            syncVerifiedBadgeForPages((isSubPage || isAllSearchPage || isFavoritePage) && !isDataPage);
 
             const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage || isAllSearchPage;
             heroSlider.style.display = hideSlider ? 'none' : '';
