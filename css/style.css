@@ -73,8 +73,8 @@ body {
 }
 
 .verified-badge {
-    width: 20px !important;
-    height: 20px !important;
+    width: 17px !important;
+    height: 17px !important;
     border-radius: 50% !important;
     background-color: #0bab77 !important;
     border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
@@ -102,6 +102,11 @@ body {
     width: 10px !important;
     height: 10px !important;
     display: block !important;
+}
+
+.verified-badge.hidden,
+.verified-badge.hidden {
+    display: none !important;
 }
 
 
