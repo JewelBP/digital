@@ -1220,7 +1220,7 @@
         startClock();
     })();
 
-        (function initSubPageHeaderSearch() {
+    (function initSubPageHeaderSearch() {
         const mainDashboard = document.getElementById('mainDashboardView');
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
@@ -1240,34 +1240,29 @@
 
         let externalBadgeVisible = verifiedBadge ? !verifiedBadge.classList.contains('hidden') : false;
         let badgeSyncGuard = false;
-        let lastShouldShowOnTargetPages = false;
-
-        function applyBadgeVisibility() {
-            if (!verifiedBadge) return;
-            badgeSyncGuard = true;
-            const shouldDisplay = Boolean(externalBadgeVisible && lastShouldShowOnTargetPages);
-            verifiedBadge.classList.toggle('hidden', !shouldDisplay);
-            badgeSyncGuard = false;
-        }
-
-        window.setVerifiedBadgeState = function(isVerified) {
-            externalBadgeVisible = Boolean(isVerified);
-            applyBadgeVisibility();
-        };
 
         if (verifiedBadge) {
             new MutationObserver(() => {
                 if (badgeSyncGuard) return;
-                externalBadgeVisible = !verifiedBadge.classList.contains('hidden');
-                applyBadgeVisibility();
+                const isSubPageNow = categoryDetails && !categoryDetails.classList.contains('hidden');
+                const titleNow = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
+                const isFavoriteNow = titleNow.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
+                const isAllSearchNow = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleNow.includes('search all');
+                if (!isSubPageNow && !isFavoriteNow && !isAllSearchNow) {
+                    externalBadgeVisible = !verifiedBadge.classList.contains('hidden');
+                }
             }).observe(verifiedBadge, { attributes: true, attributeFilter: ['class'] });
         }
 
-        function syncVerifiedBadgeForPages(shouldShowOnTargetPages) {
-            lastShouldShowOnTargetPages = Boolean(shouldShowOnTargetPages);
-            applyBadgeVisibility();
+        // ব্যাজ শুধু ভেরিফাইড ইউজারদের জন্য দেখাবে।
+        // সাব-ক্যাটাগরি / ফেভারিট / অল সার্চ পেজেও আগে থেকে সেভ করা ভেরিফাইড স্ট্যাটাস (externalBadgeVisible) অনুযায়ী চলবে,
+        // রেগুলার ইউজারের ক্ষেত্রে কখনো জোর করে ব্যাজ দেখানো হবে না।
+        function syncVerifiedBadgeForPages() {
+            if (!verifiedBadge) return;
+            badgeSyncGuard = true;
+            verifiedBadge.classList.toggle('hidden', !externalBadgeVisible);
+            badgeSyncGuard = false;
         }
-
 
         function isFavoriteViewActive() {
             const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
@@ -1295,7 +1290,7 @@
             const isAllSearchPage = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleText.includes('search all');
 
             document.body.classList.toggle('is-data-details-mode', isDataPage);
-            syncVerifiedBadgeForPages((isSubPage || isAllSearchPage || isFavoritePage) && !isDataPage);
+            syncVerifiedBadgeForPages();
 
             const hideSlider = isHomeHidden || isSubPage || isDataPage || isFavoritePage || isAllSearchPage;
             heroSlider.style.display = hideSlider ? 'none' : '';
