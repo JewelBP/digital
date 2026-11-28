@@ -1220,7 +1220,7 @@
         startClock();
     })();
 
-    (function initSubPageHeaderSearch() {
+        (function initSubPageHeaderSearch() {
         const mainDashboard = document.getElementById('mainDashboardView');
         const categoryDetails = document.getElementById('categoryDetailsView');
         const dataDetails = document.getElementById('dataDetailsView');
@@ -1242,26 +1242,32 @@
         let badgeSyncGuard = false;
         let lastShouldShowOnTargetPages = false;
 
+        function applyBadgeVisibility() {
+            if (!verifiedBadge) return;
+            badgeSyncGuard = true;
+            const shouldDisplay = Boolean(externalBadgeVisible && lastShouldShowOnTargetPages);
+            verifiedBadge.classList.toggle('hidden', !shouldDisplay);
+            badgeSyncGuard = false;
+        }
+
+        window.setVerifiedBadgeState = function(isVerified) {
+            externalBadgeVisible = Boolean(isVerified);
+            applyBadgeVisibility();
+        };
+
         if (verifiedBadge) {
             new MutationObserver(() => {
                 if (badgeSyncGuard) return;
                 externalBadgeVisible = !verifiedBadge.classList.contains('hidden');
-                if (externalBadgeVisible && lastShouldShowOnTargetPages) {
-                    badgeSyncGuard = true;
-                    verifiedBadge.classList.remove('hidden');
-                    badgeSyncGuard = false;
-                }
+                applyBadgeVisibility();
             }).observe(verifiedBadge, { attributes: true, attributeFilter: ['class'] });
         }
 
         function syncVerifiedBadgeForPages(shouldShowOnTargetPages) {
             lastShouldShowOnTargetPages = Boolean(shouldShowOnTargetPages);
-            if (!verifiedBadge) return;
-            badgeSyncGuard = true;
-            const shouldDisplay = Boolean(shouldShowOnTargetPages && externalBadgeVisible);
-            verifiedBadge.classList.toggle('hidden', !shouldDisplay);
-            badgeSyncGuard = false;
+            applyBadgeVisibility();
         }
+
 
         function isFavoriteViewActive() {
             const titleText = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
