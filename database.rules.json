@@ -1,0 +1,62 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "webapp": {
+      "admins": {
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": false
+        }
+      },
+
+      "public_data": {
+        ".read": true,
+        ".write": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)"
+      },
+
+      "notices": {
+        ".read": true,
+        ".write": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)"
+      },
+
+      "driving_guide": {
+        ".read": true,
+        ".write": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)"
+      },
+
+      "admin": {
+        "password": {
+          ".read": true,
+          ".write": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)"
+        }
+      },
+
+      "approved_devices": {
+        ".read": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)",
+        "$deviceId": {
+          ".read": true,
+          ".write": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)"
+        }
+      },
+
+      "verification_requests": {
+        ".read": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)",
+        ".write": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)",
+        "$deviceId": {
+          ".write": true,
+          ".validate": "!newData.exists() || (newData.hasChildren(['name', 'designation']) && newData.child('name').isString() && newData.child('name').val().length <= 120 && newData.child('designation').isString() && newData.child('designation').val().length <= 120)"
+        }
+      },
+
+      "fcmTokens": {
+        ".read": "auth != null && (auth.token.admin === true || root.child('webapp/admins/' + auth.uid).val() === true)",
+        "$tokenKey": {
+          ".write": true,
+          ".validate": "!newData.exists() || (newData.hasChildren(['token']) && newData.child('token').isString() && newData.child('token').val().length < 1024)"
+        }
+      }
+    }
+  }
+}

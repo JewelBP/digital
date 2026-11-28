@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="bn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>RMP MT Contacts - Modals & Viewer</title>
+</head>
+
+<body>
+    <div id="index1Content">
+        <style>
+        /* ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো */
+        .image-zoom-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 6, 36, 0.96);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            touch-action: none;
+            user-select: none;
+        }
+        .image-zoom-modal.hidden {
+            display: none !important;
+        }
+        .zoom-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+            color: #ffffff;
+            z-index: 10;
+        }
+        .zoom-modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 75%;
+        }
+        .zoom-close-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .zoom-canvas-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        #zoomTargetImage {
+            max-width: 92vw;
+            max-height: 76vh;
+            border-radius: 14px;
+            object-fit: contain;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
+        }
+        #zoomFallbackIcon {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: #1e293b;
+            border: 4px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 120px;
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+        }
+        .zoom-controls-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+            padding: 16px;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+            z-index: 10;
+        }
+        .zoom-ctrl-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .zoom-ctrl-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* ছবি আপলোড (ImgBB) UI */
+        .img-url-row { display: flex; gap: 8px; align-items: stretch; }
+        .img-url-row input { flex: 1; min-width: 0; }
+        .img-upload-btn {
+            flex-shrink: 0;
+            padding: 0 12px;
+            border: 1px solid var(--border-color, #cbd5e1);
+            border-radius: 8px;
+            background: var(--card-bg, #f1f5f9);
+            color: var(--text-main, #0f172a);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .img-upload-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .img-upload-status { display: block; margin-top: 4px; font-size: 12px; min-height: 16px; }
+        .img-upload-status.info { color: #2563eb; }
+        .img-upload-status.ok { color: #16a34a; }
+        .img-upload-status.err { color: #dc2626; }
+        </style>
+
+        <!-- Modals -->
+        <div id="loginModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Admin Login</h2>
+                    <button class="close-btn" data-close="loginModal" type="button">✕</button>
+                </div>
+                <div id="loginFormContainer">
+                    <button id="googleLoginBtn" class="primary-btn" type="button" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;">
+                        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.5l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+                        Google দিয়ে লগইন
+                    </button>
+                    <div class="form-group">
+                        <label>ইমেইল</label>
+                        <input id="loginEmail" type="email" placeholder="admin@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>পাসওয়ার্ড</label>
+                        <input id="loginPassword" type="password" placeholder="******">
+                    </div>
+                    <div class="modal-actions">
+                        <button class="secondary-btn" data-close="loginModal" type="button">বাতিল</button>
+                        <button id="submitLoginBtn" class="primary-btn" type="button">লগইন</button>
+                    </div>
+                </div>
+                <div id="logoutContainer" class="hidden logout-box">
+                    <p class="status-ok">✅ আপনি অ্যাডমিন হিসেবে লগইন আছেন</p>
+                    <div class="modal-actions">
+                        <button class="secondary-btn" data-close="loginModal" type="button">বন্ধ করুন</button>
+                        <button id="logoutBtn" class="danger-btn" type="button">লগআউট</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="verifyModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>প্রশাসনিক তথ্যের জন্য ভেরিফিকেশন রিকোয়েস্ট</h2>
+                    <button class="close-btn" data-close="verifyModal" type="button">✕</button>
+                </div>
+                <div class="form-group">
+                    <label>আপনার নাম *</label>
+                    <input id="applicantName" type="text" placeholder="যেমন: মো: আব্দুর রহিম">
+                </div>
+                <div class="form-group">
+                    <label>পদবী / পরিচয় *</label>
+                    <input id="applicantDesignation" type="text" placeholder="যেমন: সাব-ইন্সপেক্টর / পরিচয় সংক্রান্ত তথ্য">
+                </div>
+                <div class="modal-actions">
+                    <button class="secondary-btn" data-close="verifyModal" type="button">বাতিল</button>
+                    <button id="submitVerifyBtn" class="primary-btn" type="button">রিকোয়েস্ট পাঠান</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="adminVerifyRequestsModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 500px; width: 90%;">
+                <div class="modal-header">
+                    <h2>🛡️ ডিভাইস ভেরিফিকেশন রিকোয়েস্ট</h2>
+                    <button class="close-btn" data-close="adminVerifyRequestsModal" type="button">✕</button>
+                </div>
+                <div id="verifyRequestsList" style="max-height: 350px; overflow-y: auto;">
+                    <p style="text-align: center; color: var(--text-muted);">কোনো রিকোয়েস্ট নেই</p>
+                </div>
+                <div class="modal-actions" style="margin-top: 15px;">
+                    <button class="secondary-btn" data-close="adminVerifyRequestsModal" type="button">বন্ধ করুন</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="categoryModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="categoryModalTitle">ক্যাটাগরি</h2>
+                    <button class="close-btn" data-close="categoryModal" type="button">✕</button>
+                </div>
+                <div class="form-group">
+                    <label>ছবি লিঙ্ক (URL)</label>
+                    <div class="img-url-row">
+                        <input id="categoryImageInput" type="url" placeholder="https://example.com/image.png">
+                        <button type="button" class="img-upload-btn" data-upload-btn data-target="categoryImageInput">📷 গ্যালারি</button>
+                    </div>
+                    <input type="file" accept="image/*" style="display:none" data-upload-file data-target="categoryImageInput">
+                    <small class="img-upload-status" data-status-for="categoryImageInput">সর্বোচ্চ ৩০০ KB</small>
+                </div>
+                <div class="form-group">
+                    <label>ক্যাটাগরির নাম</label>
+                    <input id="categoryNameInput" type="text" placeholder="নাম লিখুন">
+                </div>
+                <div class="modal-actions">
+                    <button class="secondary-btn" data-close="categoryModal" type="button">বাতিল</button>
+                    <button id="saveCategoryBtn" class="primary-btn" type="button">সেভ করুন</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="headerModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Header যুক্ত/এডিট করুন</h2>
+                    <button class="close-btn" data-close="headerModal" type="button">✕</button>
+                </div>
+                <div class="form-group">
+                    <label>হেডার টাইটেল</label>
+                    <input id="headerNameInput" type="text" placeholder="যেমন: কর্মকর্তা/কর্মচারী">
+                </div>
+                <div class="modal-actions">
+                    <button class="secondary-btn" data-close="headerModal" type="button">বাতিল</button>
+                    <button id="saveHeaderBtn" class="primary-btn" type="button">সেভ করুন</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="dataModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="dataModalTitle">Data যুক্ত করুন</h2>
+                    <button class="close-btn" data-close="dataModal" type="button">✕</button>
+                </div>
+                <div class="form-group">
+                    <label>ছবি লিঙ্ক (URL)</label>
+                    <div class="img-url-row">
+                        <input id="dataPhoto" type="url">
+                        <button type="button" class="img-upload-btn" data-upload-btn data-target="dataPhoto">📷 গ্যালারি</button>
+                    </div>
+                    <input type="file" accept="image/*" style="display:none" data-upload-file data-target="dataPhoto">
+                    <small class="img-upload-status" data-status-for="dataPhoto">সর্বোচ্চ ৩০০ KB</small>
+                </div>
+                <div class="form-group">
+                    <label>নাম *</label>
+                    <input id="dataName" type="text">
+                </div>
+                <div class="form-group">
+                    <label>মোবাইল</label>
+                    <input id="dataMobile" type="tel">
+                </div>
+                <div class="form-group">
+                    <label>টেলিফোন</label>
+                    <input id="dataPhone" type="tel">
+                </div>
+                <div class="form-group">
+                    <label>পদবী</label>
+                    <input id="dataDesignation" type="text">
+                </div>
+                <div class="form-group">
+                    <label>ইমেইল</label>
+                    <input id="dataEmail" type="email">
+                </div>
+                <div class="form-group">
+                    <label>বর্তমান অফিস/ঠিকানা</label>
+                    <input id="dataCurrentOffice" type="text">
+                </div>
+                <div class="form-group">
+                    <label>স্থায়ী ঠিকানা</label>
+                    <input id="dataPermanentAddress" type="text">
+                </div>
+                <div class="form-group">
+                    <label>প্রশাসনিক তথ্য</label>
+                    <input id="dataAdminInfo" type="text">
+                </div>
+                <div class="form-group">
+                    <label>Header নির্বাচন করুন</label>
+                    <select id="dataHeaderSelect"></select>
+                </div>
+                <div class="modal-actions">
+                    <button class="secondary-btn" data-close="dataModal" type="button">বাতিল</button>
+                    <button id="saveDataBtn" class="primary-btn" type="button">সেভ করুন</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="moveDataModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>ডাটা মুভ করুন</h2>
+                    <button class="close-btn" data-close="moveDataModal" type="button">✕</button>
+                </div>
+                <div class="form-group">
+                    <label>নতুন Category</label>
+                    <select id="moveCategorySelect"></select>
+                </div>
+                <div class="form-group">
+                    <label>নতুন Header</label>
+                    <select id="moveHeaderSelect"></select>
+                </div>
+                <div class="modal-actions">
+                    <button class="secondary-btn" data-close="moveDataModal" type="button">বাতিল</button>
+                    <button id="confirmMoveBtn" class="primary-btn" type="button">মুভ নিশ্চিত করুন</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="customConfirmModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="confirmModalTitle">নিশ্চিতকরণ</h2>
+                    <button class="close-btn" data-close="customConfirmModal" type="button">✕</button>
+                </div>
+                <p id="confirmModalMessage">আপনি কি নিশ্চিত?</p>
+                <div class="modal-actions">
+                    <button id="cancelConfirmBtn" class="secondary-btn" type="button">বাতিল</button>
+                    <button id="okConfirmBtn" class="danger-btn" type="button">হ্যাঁ, মুছুন</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="homeNoticePopupModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 99999; padding: 15px;">
+            <div style="background: var(--card-bg, #fff); color: var(--text-main, #333); max-width: 450px; width: 100%; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 20px rgba(0,0,0,0.3); position: relative; display: flex; flex-direction: column;">
+                <button type="button" id="closeHomePopupBtn" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: #fff; border: none; width: 30px; height: 30px; border-radius: 50%; font-size: 16px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center;">✕</button>
+                <div id="popupMediaContainer" style="width: 100%; max-height: 250px; background: #000; display: none; overflow: hidden; align-items: center; justify-content: center;"></div>
+                <div style="padding: 20px; text-align: center;">
+                    <h3 id="popupTitle" style="margin-top: 0; margin-bottom: 10px; font-size: 18px; color: var(--text-main, #000);"></h3>
+                    <p id="popupMessage" style="font-size: 14px; line-height: 1.5; margin: 0 0 15px 0; color: var(--text-muted, #555); text-align: left; max-height: 150px; overflow-y: auto;"></p>
+                    <a id="popupWebsiteBtn" href="#" target="_blank" style="display: none; width: 100%; padding: 10px; background: #0d6efd; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600; text-align: center; box-sizing: border-box;">Open Website</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast" class="toast"></div>
+
+        <!-- ফুল-স্ক্রিন ছবি জুম ভিউয়ার উইন্ডো -->
+        <div id="imageZoomModal" class="image-zoom-modal hidden">
+            <div class="zoom-modal-header">
+                <span id="zoomModalTitle" class="zoom-modal-title">প্রোফাইল ছবি</span>
+                <button type="button" id="closeImageZoomBtn" class="zoom-close-btn" title="বন্ধ করুন">✕</button>
+            </div>
+
+            <div class="zoom-canvas-area" id="zoomCanvasArea">
+                <img id="zoomTargetImage" src="" alt="Profile Photo" class="hidden">
+                <div id="zoomFallbackIcon" class="hidden">👤</div>
+            </div>
+
+            <div class="zoom-controls-bar">
+                <button type="button" id="zoomOutBtn" class="zoom-ctrl-btn">➖ জুম আউট</button>
+                <button type="button" id="zoomResetBtn" class="zoom-ctrl-btn">🔄 রিসেট</button>
+                <button type="button" id="zoomInBtn" class="zoom-ctrl-btn">➕ জুম ইন</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
