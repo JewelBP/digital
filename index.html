@@ -1244,24 +1244,15 @@
         if (verifiedBadge) {
             new MutationObserver(() => {
                 if (badgeSyncGuard) return;
-                const isSubPageNow = categoryDetails && !categoryDetails.classList.contains('hidden');
-                const titleNow = appTitleText ? appTitleText.textContent.trim().toLowerCase() : '';
-                const isFavoriteNow = titleNow.includes('favorite') || !!document.querySelector('#favoriteNumbersView:not(.hidden), #favoritesView:not(.hidden)');
-                const isAllSearchNow = (allSearchContainer && !allSearchContainer.classList.contains('hidden')) || titleNow.includes('search all');
-                if (!isSubPageNow && !isFavoriteNow && !isAllSearchNow) {
-                    externalBadgeVisible = !verifiedBadge.classList.contains('hidden');
-                }
+                externalBadgeVisible = !verifiedBadge.classList.contains('hidden');
             }).observe(verifiedBadge, { attributes: true, attributeFilter: ['class'] });
         }
 
         function syncVerifiedBadgeForPages(shouldShowOnTargetPages) {
             if (!verifiedBadge) return;
             badgeSyncGuard = true;
-            if (shouldShowOnTargetPages) {
-                verifiedBadge.classList.remove('hidden');
-            } else {
-                verifiedBadge.classList.toggle('hidden', !externalBadgeVisible);
-            }
+            const shouldDisplay = Boolean(shouldShowOnTargetPages && externalBadgeVisible);
+            verifiedBadge.classList.toggle('hidden', !shouldDisplay);
             badgeSyncGuard = false;
         }
 
