@@ -1240,15 +1240,22 @@
 
         let externalBadgeVisible = verifiedBadge ? !verifiedBadge.classList.contains('hidden') : false;
         let badgeSyncGuard = false;
+        let lastShouldShowOnTargetPages = false;
 
         if (verifiedBadge) {
             new MutationObserver(() => {
                 if (badgeSyncGuard) return;
                 externalBadgeVisible = !verifiedBadge.classList.contains('hidden');
+                if (externalBadgeVisible && lastShouldShowOnTargetPages) {
+                    badgeSyncGuard = true;
+                    verifiedBadge.classList.remove('hidden');
+                    badgeSyncGuard = false;
+                }
             }).observe(verifiedBadge, { attributes: true, attributeFilter: ['class'] });
         }
 
         function syncVerifiedBadgeForPages(shouldShowOnTargetPages) {
+            lastShouldShowOnTargetPages = Boolean(shouldShowOnTargetPages);
             if (!verifiedBadge) return;
             badgeSyncGuard = true;
             const shouldDisplay = Boolean(shouldShowOnTargetPages && externalBadgeVisible);
